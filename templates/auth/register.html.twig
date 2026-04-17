@@ -1,0 +1,206 @@
+{% extends 'base.html.twig' %}
+{% block voice_briefing %}
+<script>window.__vcPage__ = { page: 'register', role: 'guest', briefing: { en: "Registration page. Create your UNIDAR account. Say 'start dictation' to fill fields by voice.", fr: "Inscription. Créez votre compte UNIDAR. Dites 'commencer dictée'.", ar: "صفحة التسجيل. أنشئ حسابك. قل 'ابدأ الإملاء'." }, suggestions: [ {label:'Start dictation', cmd:'start dictation'}, {label:'Login instead', cmd:'login'} ] };</script>
+{% endblock %}
+{% block title %}Register - UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<style>
+    #map { height: 280px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); margin-top: 0.5rem; }
+    #universityGroup { display: none; }
+    #genderGroup     { display: none; }
+    .form-hint { font-size: 0.78rem; color: var(--color-text-muted); margin-top: 0.3rem; display: block; }
+    #selectedLocationDisplay { font-size: 0.85rem; color: var(--color-brand); font-weight: 500; margin-top: 0.5rem; min-height: 1.2em; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div><div class="shape shape-3"></div></div>
+
+<div class="section" style="min-height: calc(100vh - 70px); display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; padding: 2rem 1rem;">
+    <div class="container" style="max-width: 650px;">
+        <div class="card fade-in-up" style="padding: 0; overflow: hidden;">
+            <div class="card-header text-center" style="padding: 2rem;">
+                <div class="section-tag" data-i18n="register_welcome">Join Us</div>
+                <h1 style="font-size: 1.75rem; margin: 0.5rem 0 0.25rem;" data-i18n="register_title">Create Account</h1>
+                <p class="text-muted" data-i18n="register_start">Start your journey with UNIDAR</p>
+            </div>
+            <div class="card-body" style="padding: 2rem;">
+
+                {{ form_start(form, {'attr': {'id': 'registerForm', 'novalidate': 'novalidate'}}) }}
+                {{ form_errors(form) }}
+
+                {# Row 1: Full Name + Role #}
+                <div class="flex gap-md" style="margin-bottom: 1.25rem;">
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label class="form-label" data-i18n="register_fullname">Full Name</label>
+                        {{ form_widget(form.fullName, {'attr': {'class': 'form-input', 'placeholder': 'John Doe', 'data-i18n-placeholder': 'register_fullname_placeholder'}}) }}
+                        {{ form_errors(form.fullName) }}
+                    </div>
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label class="form-label" data-i18n="register_role">I am a</label>
+                        {{ form_widget(form.role, {'attr': {'class': 'form-input'}}) }}
+                        {{ form_errors(form.role) }}
+                    </div>
+                </div>
+
+                {# Gender — students only #}
+                <div id="genderGroup" class="form-group">
+                    <label class="form-label">Gender *</label>
+                    {{ form_widget(form.gender, {'attr': {'class': 'form-input'}}) }}
+                    {{ form_errors(form.gender) }}
+                </div>
+
+                {# Email #}
+                <div class="form-group">
+                    <label class="form-label" data-i18n="register_email">Email Address</label>
+                    {{ form_widget(form.email, {'attr': {'class': 'form-input', 'placeholder': 'student@university.edu', 'data-i18n-placeholder': 'register_email_placeholder'}}) }}
+                    <span class="form-hint" data-i18n="register_email_hint">University email helps with trust and verification.</span>
+                    {{ form_errors(form.email) }}
+                </div>
+
+                {# Password row #}
+                <div class="flex gap-md" style="margin-bottom: 1.25rem;">
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label class="form-label" data-i18n="register_password">Password</label>
+                        {{ form_widget(form.password.first, {'attr': {'class': 'form-input', 'placeholder': 'Min. 8 characters', 'data-i18n-placeholder': 'register_password_placeholder'}}) }}
+                        {{ form_errors(form.password.first) }}
+                    </div>
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label class="form-label" data-i18n="register_confirm">Confirm Password</label>
+                        {{ form_widget(form.password.second, {'attr': {'class': 'form-input', 'placeholder': 'Re-enter password', 'data-i18n-placeholder': 'register_confirm_placeholder'}}) }}
+                        {{ form_errors(form.password.second) }}
+                    </div>
+                </div>
+
+                {# Phone #}
+                <div class="form-group">
+                    <label class="form-label" data-i18n="register_phone">Phone Number (Optional)</label>
+                    {{ form_widget(form.phone, {'attr': {'class': 'form-input', 'placeholder': '+216 ...', 'data-i18n-placeholder': 'register_phone_placeholder'}}) }}
+                </div>
+
+                {# University + Map — students only #}
+                <div id="universityGroup">
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="register_university">University Name</label>
+                        {{ form_widget(form.university, {'attr': {'class': 'form-input', 'placeholder': 'e.g. ESPRIT, INSAT, MSB...', 'data-i18n-placeholder': 'register_university_placeholder'}}) }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="register_map_radius">Search Radius (Preferred Area)</label>
+                        <p class="text-small text-muted mb-sm" data-i18n="register_map_hint" style="margin-bottom: 0.5rem;">Click on the map to mark your study area.</p>
+                        <div id="map"></div>
+                        <div id="selectedLocationDisplay"></div>
+                    </div>
+                </div>
+
+                {# Hidden fields — prevent form_end from rendering them visibly #}
+                <div style="display: none;">
+                    {{ form_widget(form.preferredLat) }}
+                    {{ form_widget(form.preferredLng) }}
+                    {{ form_widget(form.preferredAddress) }}
+                    {{ form_widget(form.universityAddress) }}
+                </div>
+
+                <div id="errorMessage" class="alert alert-error" style="display: none;"></div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.875rem; font-size: 1rem; margin-top: var(--space-md);">
+                    <span data-i18n="register_create">Create Account</span>
+                </button>
+
+                {{ form_end(form, {'render_rest': false}) }}
+
+                <div class="text-center" style="margin-top: 1.5rem;">
+                    <p class="text-small text-muted">
+                        <span data-i18n="register_have_account">Already have an account?</span>
+                        <a href="{{ path('app_login') }}" style="font-weight: 600; color: var(--color-brand);" data-i18n="register_signin">Sign in</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+(function () {
+    var regMap = null, regMarker = null;
+
+    var roleField = document.getElementById('registration_role');
+    var universityGroup = document.getElementById('universityGroup');
+    var genderGroup = document.getElementById('genderGroup');
+    var latInput = document.getElementById('registration_preferredLat');
+    var lngInput = document.getElementById('registration_preferredLng');
+    var addrInput = document.getElementById('registration_preferredAddress');
+
+    if (!roleField) {
+        console.warn('registration_role not found');
+        return;
+    }
+
+    function updateVisibility() {
+        var isStudent = (roleField.value === 'student');
+        universityGroup.style.display = isStudent ? 'block' : 'none';
+        genderGroup.style.display     = isStudent ? 'block' : 'none';
+
+        if (isStudent) {
+            // Use increasing timeouts to ensure the DOM has reflowed
+            setTimeout(function() {
+                initRegMap();
+                if (regMap) regMap.invalidateSize();
+            }, 300);
+        }
+    }
+
+    roleField.addEventListener('change', updateVisibility);
+
+    // Run on load in case role already has a value
+    updateVisibility();
+
+    function initRegMap() {
+        if (regMap) return;
+        var mapEl = document.getElementById('map');
+        if (!mapEl) return;
+        // Don't check offsetParent — the container is visible after updateVisibility sets display:block
+
+        regMap = L.map('map').setView([36.8065, 10.1815], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(regMap);
+
+        // Force tile render after a short delay
+        setTimeout(function() { regMap.invalidateSize(); }, 100);
+
+        regMap.on('click', onMapClick);
+    }
+
+    function onMapClick(e) {
+        var lat = e.latlng.lat;
+        var lng = e.latlng.lng;
+
+        if (regMarker) regMap.removeLayer(regMarker);
+        regMarker = L.marker([lat, lng]).addTo(regMap);
+
+        if (latInput) latInput.value = lat;
+        if (lngInput) lngInput.value = lng;
+
+        var display = document.getElementById('selectedLocationDisplay');
+        display.textContent = '📍 Locating...';
+
+        // Reverse geocode with Nominatim
+        fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng)
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (addrInput) addrInput.value = data.display_name;
+                display.textContent = '📍 ' + data.display_name;
+            })
+            .catch(function () {
+                var coords = lat.toFixed(4) + ', ' + lng.toFixed(4);
+                if (addrInput) addrInput.value = coords;
+                display.textContent = '📍 ' + coords;
+            });
+    }
+})();
+</script>
+{% endblock %}

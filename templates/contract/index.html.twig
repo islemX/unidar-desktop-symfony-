@@ -1,0 +1,40 @@
+{% extends 'base.html.twig' %}
+{% block voice_briefing %}
+<script>window.__vcPage__ = { page: 'contracts', role: '{{ app.user ? (is_granted("ROLE_OWNER") ? "owner" : "student") : "guest" }}', briefing: { en: "Contracts page. Review and manage your rental agreements. Say 'open contract 1' to view the first one.", fr: "Contrats. Dites 'ouvrir contrat 1' pour le premier.", ar: "العقود. قل 'افتح العقد 1' للعقد الأول." }, suggestions: [ {label:'Open first contract', cmd:'open the first one'}, {label:'Go to dashboard', cmd:'go to dashboard'} ] };</script>
+{% endblock %}
+{% block title %}Contracts - UNIDAR{% endblock %}
+{% block body %}
+<div class="container">
+    <h2 style="margin-bottom:1.5rem;">My Contracts</h2>
+    {% if contracts|length == 0 %}
+        <div class="card" style="text-align:center;padding:3rem;">
+            <p style="font-size:3rem;margin-bottom:1rem;">📄</p>
+            <p style="color:var(--gray);">No contracts yet.</p>
+        </div>
+    {% else %}
+        <div class="card">
+            <table class="table">
+                <thead><tr><th>Contract #</th><th>Listing</th><th>Rent</th><th>Dates</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>
+                {% for contract in contracts %}
+                <tr>
+                    <td><code>{{ contract.contractNumber }}</code></td>
+                    <td>{{ contract.listing.title }}</td>
+                    <td>{{ contract.monthlyRent }} TND</td>
+                    <td>{{ contract.startDate|date('d/m/Y') }} – {{ contract.endDate|date('d/m/Y') }}</td>
+                    <td>
+                        <span class="badge {% if contract.status.value == 'active' %}badge-success{% elseif contract.status.value == 'cancelled' %}badge-danger{% else %}badge-warning{% endif %}">
+                            {{ contract.status.value|replace({'_': ' '})|title }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{{ path('contract_show', {id: contract.id}) }}" class="btn btn-outline btn-sm">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

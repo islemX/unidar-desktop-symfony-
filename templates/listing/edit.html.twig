@@ -1,0 +1,311 @@
+{% extends 'base.html.twig' %}
+{% block voice_briefing %}
+<script>window.__vcPage__ = { page: 'listing_edit', role: 'owner', briefing: { en: "Editing {{ listing.title|e('js') }}. Say 'fill field with value' to update fields by voice, or 'submit form' to save changes.", fr: "Modification de {{ listing.title|e('js') }}. Dites 'remplis champ avec valeur' ou 'soumettre'.", ar: "تعديل {{ listing.title|e('js') }}. قل 'اكتب في الحقل' أو 'إرسال النموذج'." }, suggestions: [ {label:'Start dictation', cmd:'start dictation'}, {label:'Next field', cmd:'next field'}, {label:'Submit form', cmd:'submit form'}, {label:'Go back', cmd:'go back'} ] };</script>
+{% endblock %}
+{% block title %}Edit Property - UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .property-form-page { max-width: 720px; margin: 0 auto; }
+    .field-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); }
+    .field-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+    #propertyMap {
+        width: 100%;
+        height: 260px;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        border: 1px solid var(--color-surface-200, #e5e7eb);
+        margin-top: var(--space-sm);
+    }
+    .image-previews {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: var(--space-xs);
+        margin-top: var(--space-sm);
+    }
+    .preview-item {
+        position: relative;
+        aspect-ratio: 1;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        border: 1px solid var(--color-surface-200, #e5e7eb);
+    }
+    .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+    .preview-remove {
+        position: absolute;
+        top: 3px; right: 3px;
+        background: rgba(0,0,0,0.55);
+        color: #fff;
+        border: none;
+        border-radius: 50%;
+        width: 20px; height: 20px;
+        font-size: 11px;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .required-star { color: var(--color-danger, #ef4444); }
+    .existing-photos-grid { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
+    .existing-photo { width: 80px; height: 60px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--color-surface-200, #e5e7eb); }
+    #mapCoordHint { font-size: 0.78rem; color: var(--color-brand, #6366f1); font-weight: 500; margin-top: 0.3rem; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container property-form-page">
+
+    {# ── Page header ── #}
+    <div class="fade-in-up" style="margin-bottom: var(--space-xl);">
+        <div class="section-tag">Management</div>
+        <h1 style="font-size:2rem; font-weight:700; margin-top: var(--space-xs);">Edit Property</h1>
+        <p style="color: var(--color-text-muted,#6b7280); font-size:0.875rem; margin-bottom: var(--space-lg);">
+            Update the details for <strong>{{ listing.title }}</strong>.
+            Fields marked with <span class="required-star">*</span> are required.
+        </p>
+    </div>
+
+    <div class="card" style="padding: var(--space-xl);">
+
+        {{ form_start(form, {
+            'attr': {
+                'enctype': 'multipart/form-data',
+                'id': 'editListingForm',
+                'novalidate': 'novalidate'
+            }
+        }) }}
+
+        {# ── Title ── #}
+        <div class="form-group">
+            <label class="form-label" for="{{ form.title.vars.id }}">Title <span class="required-star">*</span></label>
+            {{ form_widget(form.title, {'attr': {'class': 'form-input'}}) }}
+            {{ form_errors(form.title) }}
+        </div>
+
+        {# ── Description ── #}
+        <div class="form-group">
+            <label class="form-label" for="{{ form.description.vars.id }}">Description <span class="required-star">*</span></label>
+            {{ form_widget(form.description, {'attr': {'class': 'form-input', 'rows': '4'}}) }}
+            {{ form_errors(form.description) }}
+        </div>
+
+        {# ── Address + Map ── #}
+        <div class="form-group">
+            <label class="form-label" for="{{ form.address.vars.id }}">Address <span class="required-star">*</span></label>
+            {{ form_widget(form.address, {'attr': {'class': 'form-input', 'id': 'addressInput'}}) }}
+            {{ form_errors(form.address) }}
+            <label class="form-label" style="margin-top: var(--space-md);">Location on Map</label>
+            <div id="propertyMap"></div>
+            {{ form_widget(form.latitude,  {'attr': {'id': 'latInput'}}) }}
+            {{ form_widget(form.longitude, {'attr': {'id': 'lngInput'}}) }}
+            <div id="mapCoordHint"></div>
+        </div>
+
+        {# ── Price / Bedrooms / Rooms ── #}
+        <div class="field-grid-3">
+            <div class="form-group">
+                <label class="form-label" for="{{ form.price.vars.id }}">Price (TND/mo) <span class="required-star">*</span></label>
+                {{ form_widget(form.price, {'attr': {'class': 'form-input'}}) }}
+                {{ form_errors(form.price) }}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.bedrooms.vars.id }}">Bedrooms <span class="required-star">*</span></label>
+                {{ form_widget(form.bedrooms, {'attr': {'class': 'form-input', 'min': '1'}}) }}
+                {{ form_errors(form.bedrooms) }}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.bedsCount.vars.id }}">Rooms <span class="required-star">*</span></label>
+                {{ form_widget(form.bedsCount, {'attr': {'class': 'form-input', 'min': '1'}}) }}
+                {{ form_errors(form.bedsCount) }}
+            </div>
+        </div>
+
+        {# ── Total Student Capacity ── #}
+        <div class="form-group">
+            <label class="form-label" for="{{ form.capacity.vars.id }}">Total Student Capacity <span class="required-star">*</span></label>
+            {{ form_widget(form.capacity, {'attr': {'class': 'form-input', 'min': '1'}}) }}
+            {{ form_errors(form.capacity) }}
+        </div>
+
+        {# ── Bathrooms ── #}
+        <div class="form-group" style="max-width:200px;">
+            <label class="form-label" for="{{ form.bathrooms.vars.id }}">Bathrooms <span class="required-star">*</span></label>
+            {{ form_widget(form.bathrooms, {'attr': {'class': 'form-input', 'min': '1'}}) }}
+            {{ form_errors(form.bathrooms) }}
+        </div>
+
+        {# ── Property Type ── #}
+        <div class="form-group">
+            <label class="form-label" for="{{ form.propertyType.vars.id }}">Property Type <span class="required-star">*</span></label>
+            {{ form_widget(form.propertyType, {'attr': {'class': 'form-input'}}) }}
+            {{ form_errors(form.propertyType) }}
+        </div>
+
+        {# ── Gender Preference ── #}
+        <div class="form-group">
+            <label class="form-label" for="{{ form.genderPreference.vars.id }}">Gender Preference</label>
+            {{ form_widget(form.genderPreference, {'attr': {'class': 'form-input'}}) }}
+            {{ form_errors(form.genderPreference) }}
+            <span class="form-hint">Specify if this listing is restricted to a specific gender.</span>
+        </div>
+
+        {# ── Availability ── #}
+        <div class="field-grid-2">
+            <div class="form-group">
+                <label class="form-label" for="{{ form.availableFrom.vars.id }}">Available From</label>
+                {{ form_widget(form.availableFrom, {'attr': {'class': 'form-input'}}) }}
+                {{ form_errors(form.availableFrom) }}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.availableUntil.vars.id }}">Available Until</label>
+                {{ form_widget(form.availableUntil, {'attr': {'class': 'form-input'}}) }}
+                {{ form_errors(form.availableUntil) }}
+            </div>
+        </div>
+
+        {# ── Existing photos ── #}
+        {% if listing.images|length > 0 %}
+        <div class="form-group">
+            <label class="form-label">Current Photos</label>
+            <div class="existing-photos-grid">
+                {% for img in listing.images %}
+                    <img src="/uploads/listings/{{ img.imagePath }}" class="existing-photo" alt="property photo">
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── Add more images ── #}
+        <div class="form-group">
+            <label class="form-label" for="{{ form.images.vars.id }}">
+                Add More Photos
+                <span style="font-weight:400; font-size:0.8rem; color: var(--color-text-muted,#6b7280);">(JPG, PNG, WebP — max 5 MB each)</span>
+            </label>
+            {{ form_widget(form.images, {'attr': {'class': 'form-input', 'accept': 'image/*', 'id': 'propertyImagesInput'}}) }}
+            {{ form_errors(form.images) }}
+            <div id="imagePreviews" class="image-previews"></div>
+        </div>
+
+        {# ── Digital Signature ── #}
+        <div class="form-group">
+            <label class="form-label">Digital Signature</label>
+
+            {% if listing.ownerSignaturePath %}
+                <div id="currentSignatureBox" class="card" style="background:var(--color-surface-50,#f9fafb); padding:0.85rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+                    <div style="display:flex; align-items:center; gap:1rem;">
+                        <img src="/{{ listing.ownerSignaturePath }}" alt="Current signature"
+                             style="height:80px; max-width:240px; background:white; border-radius:var(--radius-sm); padding:6px; border:1px solid var(--color-surface-200,#e5e7eb);">
+                        <div>
+                            <p style="margin:0; font-weight:600; font-size:0.9rem;">Signature on file</p>
+                            <p class="form-hint" style="margin:0;">Used on all contracts for this listing.</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" id="resignBtn">Re-sign</button>
+                </div>
+            {% endif %}
+
+            <div id="signature-pad-container" style="{{ listing.ownerSignaturePath ? 'display:none; margin-top:0.75rem;' : '' }}"></div>
+            {{ form_widget(form.ownerSignature, {'attr': {'id': 'ownerSignatureInput'}}) }}
+            <p class="form-hint" style="margin-top:0.5rem;">
+                {% if listing.ownerSignaturePath %}
+                    Click <strong>Re-sign</strong> to replace the current signature.
+                {% else %}
+                    No signature on file yet. Sign here to enable contract generation.
+                {% endif %}
+            </p>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; padding: var(--space-md); margin-top: var(--space-md); font-size:1rem;">
+            Save Changes
+        </button>
+
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script src="/js/signature-pad.js"></script>
+<script>
+// ── Map (pre-fill existing lat/lng) ──────────────────────────────────────────
+const existingLat = parseFloat('{{ listing.latitude ?? 36.8 }}');
+const existingLng = parseFloat('{{ listing.longitude ?? 10.1 }}');
+const map = L.map('propertyMap').setView([existingLat, existingLng], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+let marker = L.marker([existingLat, existingLng]).addTo(map);
+
+map.on('click', function(e) {
+    const { lat, lng } = e.latlng;
+    document.getElementById('latInput').value = lat.toFixed(6);
+    document.getElementById('lngInput').value = lng.toFixed(6);
+    document.getElementById('mapCoordHint').textContent = '📍 Updated: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
+    marker.setLatLng(e.latlng);
+});
+
+// ── Image previews ────────────────────────────────────────────────────────────
+const imagesInput = document.getElementById('propertyImagesInput');
+const previewsContainer = document.getElementById('imagePreviews');
+let selectedFiles = [];
+
+imagesInput.addEventListener('change', function() {
+    selectedFiles = Array.from(this.files);
+    renderPreviews();
+});
+
+function renderPreviews() {
+    previewsContainer.innerHTML = '';
+    selectedFiles.forEach(function(file, idx) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const item = document.createElement('div');
+            item.className = 'preview-item';
+            item.innerHTML =
+                '<img src="' + e.target.result + '" alt="preview">' +
+                '<button type="button" class="preview-remove" data-idx="' + idx + '">✕</button>';
+            previewsContainer.appendChild(item);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+previewsContainer.addEventListener('click', function(e) {
+    if (e.target.classList.contains('preview-remove')) {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        selectedFiles.splice(idx, 1);
+        const dt = new DataTransfer();
+        selectedFiles.forEach(function(f) { dt.items.add(f); });
+        imagesInput.files = dt.files;
+        renderPreviews();
+    }
+});
+
+// ── Signature pad ─────────────────────────────────────────────────────────────
+const hasSignature = {{ listing.ownerSignaturePath ? 'true' : 'false' }};
+let ownerPad = null;
+
+function initPad() {
+    if (ownerPad) return;
+    ownerPad = new UnidarSignaturePad('signature-pad-container', {
+        width: 620, height: 160, backgroundColor: '#f8fafc'
+    });
+}
+
+if (!hasSignature) initPad();
+
+const resignBtn = document.getElementById('resignBtn');
+if (resignBtn) {
+    resignBtn.addEventListener('click', function() {
+        document.getElementById('currentSignatureBox').style.display = 'none';
+        const padContainer = document.getElementById('signature-pad-container');
+        padContainer.style.display = 'block';
+        initPad();
+    });
+}
+
+document.getElementById('editListingForm').addEventListener('submit', function() {
+    if (ownerPad && !ownerPad.isEmpty()) {
+        document.getElementById('ownerSignatureInput').value = ownerPad.toDataURL();
+    }
+});
+</script>
+{% endblock %}

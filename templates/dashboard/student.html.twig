@@ -1,0 +1,99 @@
+{% extends 'base.html.twig' %}
+{% block voice_briefing %}
+<script>window.__vcPage__ = { page: 'dashboard_student', role: 'student', briefing: { en: "Student dashboard. Manage your saved listings and contracts. Say 'my contracts' or 'saved listings'.", fr: "Tableau de bord étudiant. Dites 'mes contrats' ou 'favoris'.", ar: "لوحة تحكم الطالب. قل 'عقودي' أو 'المحفوظات'." }, suggestions: [ {label:'My contracts', cmd:'open contracts'}, {label:'Saved listings', cmd:'saved listings'}, {label:'Browse listings', cmd:'open listings'} ] };</script>
+{% endblock %}
+{% block title %}Dashboard - UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .dashboard-hero {
+        background: linear-gradient(135deg, var(--color-surface-900), #1e1b4b);
+        color: white; border-radius: var(--radius-2xl); padding: 2rem; margin-bottom: 2rem;
+        position: relative; overflow: hidden;
+    }
+    .dashboard-hero::before {
+        content: ''; position: absolute; top: -50%; right: -20%; width: 300px; height: 300px;
+        border-radius: 50%; background: rgba(99,102,241,0.15);
+    }
+    .dashboard-hero h1 { font-size: 1.75rem; color: white; margin-bottom: 0.5rem; position: relative; z-index: 1; }
+    .dashboard-hero p { color: rgba(255,255,255,0.7); position: relative; z-index: 1; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div></div>
+
+<main class="section" style="padding: 2.5rem 0;">
+    <div class="container">
+        <!-- Hero -->
+        <div class="dashboard-hero fade-in-up">
+            <h1>Welcome back, {{ app.user.fullName }}!</h1>
+            <p>Here's your UNIDAR activity at a glance.</p>
+        </div>
+
+        <!-- Stats row -->
+        <div class="grid grid-3 fade-in-up stagger-1" style="margin-bottom: 2rem;">
+            <div class="stat-card">
+                <h3>{{ contracts|length }}</h3>
+                <p>Active Contracts</p>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, var(--secondary), #00b5b0);">
+                <h3>{{ unread_count }}</h3>
+                <p>Unread Messages</p>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, var(--accent), #e84393);">
+                <h3>{{ saved_count }}</h3>
+                <p>Saved Listings</p>
+            </div>
+        </div>
+
+        <!-- Two-column grid -->
+        <div class="grid grid-2 fade-in-up stagger-2">
+            <!-- Quick Actions -->
+            <div class="card premium-card" style="padding: 0; overflow: hidden;">
+                <div class="card-header" style="padding: 1.25rem 1.5rem;">
+                    <h3 style="font-size: 1rem; margin: 0;">Quick Actions</h3>
+                </div>
+                <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <a href="{{ path('listing_index') }}" class="btn btn-primary hover-lift">🔍 Browse Listings</a>
+                    <a href="{{ path('roommate_index') }}" class="btn btn-secondary hover-lift">🤝 Find Roommates</a>
+                    <button type="button" class="btn btn-secondary hover-lift" onclick="if(window.chatWidget){chatWidget.toggle(true)}">💬 Messages{% if unread_count > 0 %} <span class="badge badge-danger" style="margin-left: 0.5rem;">{{ unread_count }}</span>{% endif %}</button>
+                    <a href="{{ path('verification_submit') }}" class="btn btn-secondary hover-lift">🪪 Verification</a>
+                    <a href="{{ path('subscription_index') }}" class="btn btn-secondary hover-lift">⭐ Subscription</a>
+                </div>
+            </div>
+
+            <!-- My Contracts -->
+            <div class="card premium-card" style="padding: 0; overflow: hidden;">
+                <div class="card-header" style="padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 1rem; margin: 0;">My Contracts</h3>
+                    <a href="{{ path('contract_index') }}" style="font-size: 0.82rem; color: var(--color-brand); font-weight: 600;">View All →</a>
+                </div>
+                <div style="padding: 1.5rem;">
+                    {% if contracts|length == 0 %}
+                        <div class="text-center" style="padding: 2rem 0; color: var(--color-text-muted);">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📄</div>
+                            <p>No contracts yet.</p>
+                        </div>
+                    {% else %}
+                        {% for contract in contracts|slice(0, 5) %}
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.875rem 0; border-bottom: 1px solid var(--color-surface-100);">
+                            <div>
+                                <div style="font-size: 0.9rem; font-weight: 600;">{{ contract.listing.title }}</div>
+                                <div style="font-size: 0.8rem; color: var(--color-text-muted);">{{ contract.monthlyRent }} TND/mo</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="badge {% if contract.status.value == 'active' %}badge-success{% elseif contract.status.value == 'signed_by_both' %}badge-info{% else %}badge-warning{% endif %}">
+                                    {{ contract.status.value|replace({'_': ' '})|title }}
+                                </span>
+                                <a href="{{ path('contract_show', {id: contract.id}) }}" class="btn btn-secondary btn-sm">View</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

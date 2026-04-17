@@ -1,0 +1,226 @@
+{% extends 'base.html.twig' %}
+{% block voice_briefing %}
+<script>window.__vcPage__ = { page: 'dashboard_owner', itemCount: {{ kpi_active is defined ? kpi_active : 0 }}, role: 'owner', briefing: { en: "Owner dashboard. {{ kpi_active is defined ? kpi_active : 0 }} active listings, {{ kpi_contracts is defined ? kpi_contracts : 0 }} contracts. Say 'add listing' or 'my listings'.", fr: "Tableau propriétaire. {{ kpi_active is defined ? kpi_active : 0 }} annonces actives. Dites 'ajouter annonce'.", ar: "لوحة المالك. {{ kpi_active is defined ? kpi_active : 0 }} إعلان نشط. قل 'إضافة إعلان'." }, suggestions: [ {label:'Add new listing', cmd:'add listing'}, {label:'My listings', cmd:'my listings'}, {label:'My contracts', cmd:'open contracts'} ] };</script>
+{% endblock %}
+{% block title %}Owner Dashboard - UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .dashboard-hero {
+        background: linear-gradient(135deg, var(--color-surface-900), #1e1b4b);
+        color: white; border-radius: var(--radius-2xl); padding: 2rem; margin-bottom: 2rem;
+        position: relative; overflow: hidden;
+    }
+    .dashboard-hero::before {
+        content: ''; position: absolute; top: -50%; right: -20%; width: 320px; height: 320px;
+        border-radius: 50%; background: rgba(99,102,241,0.18);
+    }
+    .dashboard-hero h1 { font-size: 1.75rem; color: white; margin-bottom: 0.4rem; position: relative; z-index: 1; }
+    .dashboard-hero p { color: rgba(255,255,255,0.75); position: relative; z-index: 1; }
+    .dashboard-hero .hero-actions { position: relative; z-index: 1; margin-top: 1.25rem; display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+    .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    @media (max-width: 1024px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px)  { .kpi-row { grid-template-columns: 1fr; } }
+
+    .kpi-card {
+        background: white; border: 1px solid var(--color-border); border-radius: var(--radius-xl);
+        padding: 1.25rem; display: flex; align-items: center; gap: 1rem;
+        transition: transform .25s ease, box-shadow .25s ease;
+    }
+    .kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+    .kpi-icon {
+        width: 48px; height: 48px; border-radius: 12px;
+        display: grid; place-items: center; font-size: 22px; flex-shrink: 0;
+        background: var(--color-primary-100); color: var(--color-primary-700);
+    }
+    .kpi-card.green  .kpi-icon { background:#d1fae5; color:#065f46; }
+    .kpi-card.amber  .kpi-icon { background:#fef3c7; color:#92400e; }
+    .kpi-card.violet .kpi-icon { background:#ede9fe; color:#6d28d9; }
+    .kpi-card.cyan   .kpi-icon { background:#cffafe; color:#155e75; }
+    .kpi-num { font-size: 1.6rem; font-weight: 800; color: var(--color-surface-900); line-height: 1; }
+    .kpi-lbl { font-size: 0.78rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; margin-top: 4px; }
+
+    .pipeline { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.5rem; margin-bottom: 2rem; }
+    .pipeline-cell { background: white; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 0.75rem 1rem; text-align: center; }
+    .pipeline-cell .n { font-size: 1.2rem; font-weight: 700; }
+    .pipeline-cell .l { font-size: 0.7rem; text-transform: uppercase; color: var(--color-text-muted); letter-spacing: .04em; margin-top: 2px; }
+    @media (max-width: 900px) { .pipeline { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 500px) { .pipeline { grid-template-columns: repeat(2, 1fr); } }
+
+    .listing-mini {
+        display: flex; gap: 0.875rem; padding: 0.875rem; border-radius: var(--radius-lg);
+        border: 1px solid var(--color-border); background: white; transition: all .2s;
+        text-decoration: none; color: inherit;
+    }
+    .listing-mini:hover { border-color: var(--color-primary-300); transform: translateX(4px); }
+    .listing-mini-thumb { width: 64px; height: 64px; border-radius: var(--radius-md); object-fit: cover; flex-shrink: 0; background: var(--color-primary-100); }
+    .listing-mini-body { flex: 1; min-width: 0; }
+    .listing-mini-title { font-weight: 600; color: var(--color-surface-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .listing-mini-meta { font-size: 0.78rem; color: var(--color-text-muted); margin-top: 2px; }
+
+    .empty-card { text-align: center; padding: 2rem; color: var(--color-text-muted); }
+
+    .table-compact th, .table-compact td { padding: 0.65rem 0.75rem; font-size: 0.85rem; }
+</style>
+{% endblock %}
+
+{% block body %}
+<main class="section" style="padding: 2.5rem 0;">
+    <div class="container">
+
+        <!-- ── Hero ── -->
+        <div class="dashboard-hero">
+            <h1>Welcome back, {{ app.user.fullName }}</h1>
+            <p>Manage your properties, contracts and tenants — all in one place.</p>
+            <div class="hero-actions">
+                <a href="{{ path('listing_new') }}" class="btn btn-primary">+ Add new listing</a>
+                <a href="{{ path('listing_my') }}" class="btn btn-secondary">All my listings</a>
+                <a href="{{ path('contract_index') }}" class="btn btn-secondary">All contracts</a>
+            </div>
+        </div>
+
+        <!-- ── KPIs ── -->
+        <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-icon">🏠</div>
+                <div><div class="kpi-num">{{ kpi_active }}</div><div class="kpi-lbl">Active listings</div></div>
+            </div>
+            <div class="kpi-card green">
+                <div class="kpi-icon">🔑</div>
+                <div><div class="kpi-num">{{ kpi_rented }}</div><div class="kpi-lbl">Rented</div></div>
+            </div>
+            <div class="kpi-card violet">
+                <div class="kpi-icon">📄</div>
+                <div><div class="kpi-num">{{ kpi_contracts }}</div><div class="kpi-lbl">Total contracts</div></div>
+            </div>
+            <div class="kpi-card amber">
+                <div class="kpi-icon">💰</div>
+                <div><div class="kpi-num">{{ kpi_monthly_rev|number_format(0, '.', ' ') }}<span style="font-size:.7em;color:var(--color-text-muted);"> TND</span></div><div class="kpi-lbl">Monthly revenue</div></div>
+            </div>
+            <div class="kpi-card cyan">
+                <div class="kpi-icon">💬</div>
+                <div><div class="kpi-num">{{ kpi_unread }}</div><div class="kpi-lbl">Unread messages</div></div>
+            </div>
+        </div>
+
+        <!-- ── Contract pipeline ── -->
+        <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-header">Contract pipeline</div>
+            <div class="pipeline">
+                <div class="pipeline-cell"><div class="n">{{ contracts_by_status.draft }}</div><div class="l">Draft</div></div>
+                <div class="pipeline-cell" style="background:#fef9c3;"><div class="n">{{ contracts_by_status.pending_sig }}</div><div class="l">Awaiting your sig</div></div>
+                <div class="pipeline-cell" style="background:#dbeafe;"><div class="n">{{ contracts_by_status.active }}</div><div class="l">Active</div></div>
+                <div class="pipeline-cell" style="background:#d1fae5;"><div class="n">{{ contracts_by_status.paid }}</div><div class="l">Paid</div></div>
+                <div class="pipeline-cell"><div class="n">{{ contracts_by_status.completed }}</div><div class="l">Completed</div></div>
+                <div class="pipeline-cell"><div class="n">{{ contracts_by_status.cancelled }}</div><div class="l">Cancelled</div></div>
+            </div>
+        </div>
+
+        <!-- ── Action needed ── -->
+        {% if needs_signature|length > 0 %}
+        <div class="card" style="margin-bottom: 2rem; border-left: 4px solid var(--warning);">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+                <span>⚠️ {{ needs_signature|length }} contract(s) waiting for your signature</span>
+            </div>
+            <table class="table table-compact">
+                <thead><tr><th>Contract #</th><th>Student</th><th>Listing</th><th>Start</th><th>Rent</th><th></th></tr></thead>
+                <tbody>
+                {% for c in needs_signature %}
+                    <tr>
+                        <td style="font-family:ui-monospace,monospace;font-size:0.78rem;">{{ c.contractNumber|slice(0,8) }}…</td>
+                        <td>{{ c.student.fullName }}</td>
+                        <td><a href="{{ path('listing_show', {id: c.listing.id}) }}">{{ c.listing.title }}</a></td>
+                        <td>{{ c.startDate|date('d/m/Y') }}</td>
+                        <td>{{ c.monthlyRent }} TND</td>
+                        <td><a href="{{ path('contract_show', {id: c.id}) }}" class="btn btn-primary btn-sm">Sign now</a></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- ── Two-column: recent listings + recent contracts ── -->
+        <div class="grid grid-2">
+
+            <div class="card">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>Recent listings</span>
+                    <a href="{{ path('listing_my') }}" class="text-small">View all →</a>
+                </div>
+                {% if recent_listings|length == 0 %}
+                    <div class="empty-card">
+                        <p style="font-size:2.5rem;margin:0;">🏠</p>
+                        <p>No listings yet.</p>
+                        <a href="{{ path('listing_new') }}" class="btn btn-primary btn-sm">Create your first listing</a>
+                    </div>
+                {% else %}
+                    <div style="display:flex;flex-direction:column;gap:0.6rem;">
+                    {% for l in recent_listings %}
+                        <a href="{{ path('listing_show', {id: l.id}) }}" class="listing-mini">
+                            {% if l.images|length > 0 %}
+                                <img src="/uploads/listings/{{ l.images|first.imagePath }}" class="listing-mini-thumb" alt="">
+                            {% else %}
+                                <div class="listing-mini-thumb" style="display:grid;place-items:center;font-size:1.4rem;">🏠</div>
+                            {% endif %}
+                            <div class="listing-mini-body">
+                                <div class="listing-mini-title">{{ l.title }}</div>
+                                <div class="listing-mini-meta">{{ l.address }} · {{ l.price }} TND/mo</div>
+                            </div>
+                            <div style="align-self:center;">
+                                <span class="badge {{ l.status == 'active' ? 'badge-success' : l.status == 'rented' ? 'badge-info' : 'badge-gray' }}">{{ l.status }}</span>
+                                {% if not l.ownerSignaturePath %}
+                                    <span class="badge badge-warning" style="margin-left:4px;" title="No signature on file">⚠ no sig</span>
+                                {% endif %}
+                            </div>
+                        </a>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="card">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>Recent contracts</span>
+                    <a href="{{ path('contract_index') }}" class="text-small">View all →</a>
+                </div>
+                {% if recent_contracts|length == 0 %}
+                    <div class="empty-card">
+                        <p style="font-size:2.5rem;margin:0;">📄</p>
+                        <p>No contracts yet.</p>
+                    </div>
+                {% else %}
+                    <table class="table table-compact">
+                        <thead><tr><th>Student</th><th>Listing</th><th>Status</th><th>Rent</th></tr></thead>
+                        <tbody>
+                        {% for c in recent_contracts %}
+                            <tr>
+                                <td>{{ c.student.fullName }}</td>
+                                <td><a href="{{ path('contract_show', {id: c.id}) }}" style="text-decoration:none;">{{ c.listing.title }}</a></td>
+                                <td>
+                                    {% set st = c.status.value %}
+                                    {% set badge = {
+                                        'draft':'badge-gray',
+                                        'signed_by_student':'badge-warning',
+                                        'signed_by_both':'badge-info',
+                                        'active':'badge-info',
+                                        'paid':'badge-success',
+                                        'completed':'badge-success',
+                                        'cancelled':'badge-danger',
+                                    }[st] ?? 'badge-gray' %}
+                                    <span class="badge {{ badge }}">{{ st|replace({'_':' '}) }}</span>
+                                </td>
+                                <td>{{ c.monthlyRent }} TND</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </div>
+</main>
+{% endblock %}

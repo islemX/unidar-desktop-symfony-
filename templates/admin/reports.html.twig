@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+{% block title %}Reports - Admin{% endblock %}
+{% block body %}
+<div class="container">
+    <h2 style="margin-bottom:1.5rem;">Reports ({{ open_reports|length }} open)</h2>
+    {% for report in open_reports %}
+    <div class="card" style="margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:start;">
+            <div>
+                <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;">
+                    <span class="badge badge-danger">{{ report.priority }}</span>
+                    <span class="badge badge-warning">{{ report.reportType }}</span>
+                    <strong>{{ report.reason }}</strong>
+                </div>
+                <p>{{ report.description }}</p>
+                <div style="font-size:0.85rem;color:var(--gray);margin-top:0.5rem;">
+                    Reporter: {{ report.reporter.fullName }} |
+                    {% if report.reportedUser %}Target user: {{ report.reportedUser.fullName }}{% endif %}
+                    {% if report.reportedListing %}Target listing: {{ report.reportedListing.title }}{% endif %}
+                </div>
+            </div>
+            <div style="min-width:250px;">
+                <form method="post" action="{{ path('admin_report_resolve', {id: report.id}) }}">
+                    <select name="action" class="form-control" style="margin-bottom:0.5rem;">
+                        <option value="resolve">Mark Resolved</option>
+                        <option value="dismiss">Dismiss</option>
+                        {% if report.reportedUser %}<option value="ban_user">Ban User</option>{% endif %}
+                        {% if report.reportedListing %}<option value="remove_listing">Remove Listing</option>{% endif %}
+                    </select>
+                    <textarea name="resolutionNotes" class="form-control" rows="2" placeholder="Resolution notes" style="margin-bottom:0.5rem;"></textarea>
+                    <button type="submit" class="btn btn-primary" style="width:100%;">Resolve</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

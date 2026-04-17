@@ -1,0 +1,312 @@
+{% extends 'base.html.twig' %}
+{% block title %}Roommates - UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .roommate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 2rem; }
+    .roommate-card-v2 { background: white; border-radius: 24px; padding: 2rem; display: flex; flex-direction: column; gap: 1rem; border: 1px solid var(--color-surface-100); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .roommate-card-v2:hover { transform: translateY(-8px); box-shadow: 0 20px 40px -15px rgba(0,0,0,0.1); border-color: var(--color-primary-200); }
+    .pref-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: var(--color-surface-50); border-radius: 100px; font-size: 0.82rem; font-weight: 500; }
+    .avatar-main { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--color-brand), #4f46e5); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; }
+    .comp-gauge { position: relative; width: 64px; height: 64px; }
+    .comp-svg { transform: rotate(-90deg); width: 64px; height: 64px; }
+    .comp-bg { fill: none; stroke: var(--color-surface-100); stroke-width: 6; }
+    .comp-fill { fill: none; stroke: url(#compGradient); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1); }
+    .comp-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: 800; font-size: 0.9rem; color: var(--color-brand); }
+
+    .roommate-hero { position: relative; border-radius: var(--radius-2xl); background: linear-gradient(135deg, #4f46e5 0%, var(--color-brand) 100%); padding: 3rem 2.5rem; color: white; overflow: hidden; margin-bottom: 2.5rem; }
+
+    /* Preferences modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.55); backdrop-filter: blur(6px); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 1rem; }
+    .modal-overlay.active { display: flex; }
+    .pref-modal { background: white; border-radius: 24px; max-width: 560px; width: 100%; max-height: 92vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 40px 80px -20px rgba(0,0,0,0.4); }
+    .pref-modal-header { padding: 2rem 2rem 1rem; display: flex; justify-content: space-between; align-items: center; }
+    .pref-modal-header h2 { font-size: 1.75rem; margin: 0; background: linear-gradient(135deg, var(--color-brand) 0%, #4f46e5 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+    .pref-modal-close { border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; background: var(--color-surface-50); border: 1px solid var(--color-border); cursor: pointer; color: var(--color-text-muted); }
+    .pref-modal-close:hover { background: var(--color-surface-100); }
+    .pref-modal-body { padding: 0 2rem 1rem; overflow-y: auto; flex: 1; }
+    .pref-modal-footer { padding: 1.25rem 2rem 1.75rem; background: rgba(248,250,252,0.5); border-top: 1px solid var(--color-surface-100); }
+    .pref-group { margin-bottom: 1.5rem; }
+    .pref-group-title { display: block; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-surface-700); margin-bottom: 0.65rem; }
+
+    .visual-selector { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 0.5rem; }
+    .visual-option { cursor: pointer; border: 2px solid var(--color-surface-100); border-radius: 14px; padding: 0.75rem 0.5rem; text-align: center; background: white; transition: all 0.2s ease; position: relative; }
+    .visual-option input { position: absolute; opacity: 0; pointer-events: none; }
+    .visual-option:hover { border-color: #c7d2fe; background: var(--color-surface-50); transform: translateY(-2px); }
+    .visual-option.active { border-color: var(--color-brand); background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(79,70,229,0.08)); box-shadow: 0 4px 12px -4px rgba(99,102,241,0.25); }
+    .visual-option-icon { display: block; font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .visual-option-label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--color-surface-800); }
+
+    .pref-btn-primary { width: 100%; padding: 16px; font-weight: 800; font-size: 1.05rem; border-radius: 14px; background: linear-gradient(135deg, var(--color-brand) 0%, #4f46e5 100%); color: white; border: none; box-shadow: 0 10px 20px -5px rgba(99,102,241,0.4); display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.3s; }
+    .pref-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -5px rgba(99,102,241,0.5); }
+    .pref-small-input { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--color-border); font-size: 0.95rem; width: 100%; box-sizing: border-box; }
+    .pref-small-input:focus { border-color: var(--color-brand); outline: none; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+</style>
+<svg width="0" height="0" style="position: absolute;">
+    <defs>
+        <linearGradient id="compGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#6366f1" />
+            <stop offset="100%" stop-color="#4f46e5" />
+        </linearGradient>
+    </defs>
+</svg>
+{% endblock %}
+
+{% block body %}
+<div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div></div>
+
+{% set currentClean = preference and preference.cleanlinessLevel ? (cleanliness_map[preference.cleanlinessLevel] ?? '') : '' %}
+
+<main class="section" style="padding: 2rem 0 4rem;">
+    <div class="container">
+        <div class="roommate-hero fade-in-up">
+            <div style="position: absolute; width: 400px; height: 400px; background: rgba(255,255,255,0.06); border-radius: 50%; top: -150px; right: -100px; filter: blur(40px);"></div>
+            <div style="position: absolute; width: 250px; height: 250px; background: rgba(255,255,255,0.04); border-radius: 50%; bottom: -50px; left: -50px; filter: blur(30px);"></div>
+            <div style="position: relative; z-index: 2; max-width: 650px;">
+                <span class="section-tag" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(4px);">✨ Smart Matching</span>
+                <h1 style="color: white; margin: 1rem 0 1.25rem; font-size: 2.75rem; line-height: 1.1; font-weight: 800;">Find Your Ideal Roommate</h1>
+                <p style="font-size: 1.1rem; opacity: 0.92; line-height: 1.6; margin-bottom: 1.75rem;">Don't settle for just anyone. Our algorithm matches you with students who share your lifestyle, habits, and budget.</p>
+                <button type="button" onclick="showPreferencesModal()" class="btn hover-lift" style="background: white; color: var(--color-brand); font-weight: 800; padding: 14px 28px; border-radius: 14px; border: none; font-size: 1rem; box-shadow: 0 10px 20px -5px rgba(0,0,0,0.2);">
+                    ⚙️ Update My Preferences
+                </button>
+            </div>
+        </div>
+
+        {% for flash in app.flashes('success') %}<div class="flash-success" style="margin-bottom:1rem;">{{ flash }}</div>{% endfor %}
+
+        {% if preference is null %}
+            <div class="card premium-card text-center fade-in-up" style="padding: 4rem;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">🤝</div>
+                <h3 style="margin-bottom: 0.5rem;">Set Your Preferences First</h3>
+                <p class="text-muted" style="max-width: 400px; margin: 0 auto 1.5rem;">Tell us about your lifestyle and budget to find compatible roommates.</p>
+                <button type="button" class="btn btn-primary" onclick="showPreferencesModal()">Set Preferences</button>
+            </div>
+        {% elseif matches|length == 0 %}
+            <div class="card premium-card text-center fade-in-up" style="padding: 4rem;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">🏜️</div>
+                <h3 style="margin-bottom: 0.5rem;">No Matches Yet</h3>
+                <p class="text-muted">Try broadening your preferences to find more students.</p>
+                <button type="button" class="btn btn-primary" style="margin-top: 1rem;" onclick="showPreferencesModal()">Adjust Search</button>
+            </div>
+        {% else %}
+            <div class="roommate-grid">
+                {% for match in matches %}
+                    {% set score = match.score %}
+                    {% set dashOffset = 188.5 * (1 - score / 100) %}
+                    <div class="roommate-card-v2 fade-in-up stagger-{{ loop.index0 % 5 + 1 }}">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div class="avatar-main">{{ match.user.fullName|slice(0,1)|upper }}</div>
+                            <div class="comp-gauge">
+                                <svg class="comp-svg" viewBox="0 0 64 64">
+                                    <circle class="comp-bg" cx="32" cy="32" r="30"></circle>
+                                    <circle class="comp-fill" cx="32" cy="32" r="30" stroke-dasharray="188.4" stroke-dashoffset="{{ dashOffset }}"></circle>
+                                </svg>
+                                <span class="comp-text">{{ score }}%</span>
+                            </div>
+                        </div>
+                        <div style="flex-grow: 1;">
+                            <h3 style="font-size: 1.3rem; font-weight: 700; margin: 0 0 0.1rem;">{{ match.user.fullName }}</h3>
+                            <p style="font-size: 0.78rem; color: var(--color-text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">🎓 {{ match.user.university ?? 'University Student' }}</p>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 1rem;">
+                                {% set cIcons = {'very_clean': '🧼', 'clean': '✨', 'moderate': '🧹', 'relaxed': '🧸'} %}
+                                {% set sIcons = {'early_riser': '☀️', 'normal': '☕', 'night_owl': '🦉'} %}
+                                {% set cName = match.preference.cleanlinessLevel ? (cleanliness_map[match.preference.cleanlinessLevel] ?? 'clean') : 'clean' %}
+                                <div class="pref-pill">{{ cIcons[cName] ?? '✨' }} {{ cName|replace({'_': ' '}) }}</div>
+                                {% if match.preference.sleepSchedule %}
+                                    <div class="pref-pill">{{ sIcons[match.preference.sleepSchedule] ?? '☕' }} {{ match.preference.sleepSchedule|replace({'_': ' '}) }}</div>
+                                {% endif %}
+                                {% if match.preference.smokingPreference %}
+                                    <div class="pref-pill">{{ match.preference.smokingPreference == 'smoker' ? '🚬 Smoker' : '🚭 Non-Smoker' }}</div>
+                                {% endif %}
+                                {% if match.preference.budgetMax %}
+                                    <div class="pref-pill">💰 &lt; {{ match.preference.budgetMax }} TND</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div style="margin-top: auto; padding-top: 1.25rem; border-top: 1px solid var(--color-surface-50);">
+                            <button type="button" class="btn btn-primary hover-lift" style="width: 100%; padding: 12px; font-weight: 800; border-radius: 12px;"
+                                onclick="if(window.chatWidget){chatWidget.openConversationWith({{ match.user.id }})}">
+                                💬 Start Chat
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</main>
+
+{# ─── Preferences Modal ─── #}
+<div id="preferencesModal" class="modal-overlay">
+    <div class="pref-modal">
+        <div class="pref-modal-header">
+            <div>
+                <h2>Preferences</h2>
+                <p style="color: var(--color-text-muted); margin: 0.25rem 0 0; font-size: 0.9rem;">Tell us who you're looking for</p>
+            </div>
+            <button type="button" class="pref-modal-close" onclick="closePreferencesModal()">✕</button>
+        </div>
+
+        <form method="post" action="{{ path('roommate_preferences') }}" id="preferencesForm" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+            <div class="pref-modal-body">
+
+                <div class="pref-group">
+                    <span class="pref-group-title">Monthly Budget (TND)</span>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <input type="number" name="budget_min" class="pref-small-input" placeholder="Min (200)" value="{{ preference ? preference.budgetMin : '' }}">
+                        <input type="number" name="budget_max" class="pref-small-input" placeholder="Max (800)" value="{{ preference ? preference.budgetMax : '' }}">
+                    </div>
+                </div>
+
+                <div class="pref-group">
+                    <span class="pref-group-title">Cleanliness</span>
+                    <div class="visual-selector">
+                        {% for item in [{'v':'relaxed','l':'Relaxed','i':'🧸'},{'v':'moderate','l':'Moderate','i':'🧹'},{'v':'clean','l':'Clean','i':'✨'},{'v':'very_clean','l':'Very Clean','i':'🧼'}] %}
+                            {% set active = currentClean == item.v or (currentClean == '' and item.v == 'clean') %}
+                            <label class="visual-option{{ active ? ' active' }}">
+                                <input type="radio" name="cleanliness" value="{{ item.v }}"{{ active ? ' checked' }}>
+                                <span class="visual-option-icon">{{ item.i }}</span>
+                                <span class="visual-option-label">{{ item.l }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="pref-group">
+                    <span class="pref-group-title">Sleep Schedule</span>
+                    <div class="visual-selector">
+                        {% set cur = preference ? preference.sleepSchedule : null %}
+                        {% for item in [{'v':'early_riser','l':'Early Bird','i':'☀️'},{'v':'normal','l':'Normal','i':'☕'},{'v':'night_owl','l':'Night Owl','i':'🦉'}] %}
+                            {% set active = cur == item.v or (cur is null and item.v == 'normal') %}
+                            <label class="visual-option{{ active ? ' active' }}">
+                                <input type="radio" name="sleep" value="{{ item.v }}"{{ active ? ' checked' }}>
+                                <span class="visual-option-icon">{{ item.i }}</span>
+                                <span class="visual-option-label">{{ item.l }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="pref-group">
+                    <span class="pref-group-title">Smoking</span>
+                    <div class="visual-selector">
+                        {% set cur = preference ? preference.smokingPreference : null %}
+                        {% for item in [{'v':'non_smoker','l':'No','i':'🚭'},{'v':'smoker','l':'Yes','i':'🚬'},{'v':'no_preference','l':'Any','i':'🤷'}] %}
+                            {% set active = cur == item.v or (cur is null and item.v == 'non_smoker') %}
+                            <label class="visual-option{{ active ? ' active' }}">
+                                <input type="radio" name="smoking" value="{{ item.v }}"{{ active ? ' checked' }}>
+                                <span class="visual-option-icon">{{ item.i }}</span>
+                                <span class="visual-option-label">{{ item.l }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="pref-group">
+                    <span class="pref-group-title">Noise Tolerance</span>
+                    <div class="visual-selector">
+                        {% set cur = preference ? preference.noiseTolerance : null %}
+                        {% for item in [{'v':'quiet','l':'Quiet','i':'🤫'},{'v':'moderate','l':'Moderate','i':'🔉'},{'v':'social','l':'Social','i':'🎉'},{'v':'no_preference','l':'Any','i':'🤷'}] %}
+                            {% set active = cur == item.v or (cur is null and item.v == 'moderate') %}
+                            <label class="visual-option{{ active ? ' active' }}">
+                                <input type="radio" name="noise_tolerance" value="{{ item.v }}"{{ active ? ' checked' }}>
+                                <span class="visual-option-icon">{{ item.i }}</span>
+                                <span class="visual-option-label">{{ item.l }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="pref-group">
+                    <span class="pref-group-title">Gender Preference</span>
+                    <div class="visual-selector">
+                        {% set cur = preference ? preference.genderPreference : null %}
+                        {% for item in [{'v':'male','l':'Male','i':'👨'},{'v':'female','l':'Female','i':'👩'},{'v':'no_preference','l':'Any','i':'🤷'}] %}
+                            {% set active = cur == item.v or (cur is null and item.v == 'no_preference') %}
+                            <label class="visual-option{{ active ? ' active' }}">
+                                <input type="radio" name="gender_preference" value="{{ item.v }}"{{ active ? ' checked' }}>
+                                <span class="visual-option-icon">{{ item.i }}</span>
+                                <span class="visual-option-label">{{ item.l }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="pref-group">
+                    <span class="pref-group-title">Guests Policy</span>
+                    <div class="visual-selector">
+                        {% set cur = preference ? preference.guests : null %}
+                        {% for item in [{'v':'no_guests','l':'No Guests','i':'🚫'},{'v':'occasional','l':'Occasional','i':'👥'},{'v':'no_preference','l':'Any','i':'🤷'}] %}
+                            {% set active = cur == item.v or (cur is null and item.v == 'no_preference') %}
+                            <label class="visual-option{{ active ? ' active' }}">
+                                <input type="radio" name="guests" value="{{ item.v }}"{{ active ? ' checked' }}>
+                                <span class="visual-option-icon">{{ item.i }}</span>
+                                <span class="visual-option-label">{{ item.l }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="pref-group">
+                    <span class="pref-group-title">Pets</span>
+                    <div class="visual-selector">
+                        {% set cur = preference ? preference.pets : null %}
+                        {% for item in [{'v':'no_pets','l':'No Pets','i':'🚫'},{'v':'pets_ok','l':'Pets OK','i':'🐾'},{'v':'no_preference','l':'Any','i':'🤷'}] %}
+                            {% set active = cur == item.v or (cur is null and item.v == 'no_preference') %}
+                            <label class="visual-option{{ active ? ' active' }}">
+                                <input type="radio" name="pets" value="{{ item.v }}"{{ active ? ' checked' }}>
+                                <span class="visual-option-icon">{{ item.i }}</span>
+                                <span class="visual-option-label">{{ item.l }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="pref-group">
+                    <span class="pref-group-title">Age Range</span>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <input type="number" name="age_min" class="pref-small-input" placeholder="Min (18)" min="18" max="100" value="{{ preference ? preference.ageMin : '' }}">
+                        <input type="number" name="age_max" class="pref-small-input" placeholder="Max (35)" min="18" max="100" value="{{ preference ? preference.ageMax : '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="pref-modal-footer">
+                <button type="submit" class="pref-btn-primary">
+                    <span style="font-size: 1.2rem;">✨</span> Save Preferences &amp; Find Matches
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.visual-option').forEach(function(option) {
+            option.addEventListener('click', function() {
+                var input = option.querySelector('input');
+                if (!input) return;
+                document.querySelectorAll('input[name="' + input.name + '"]').forEach(function(i) {
+                    i.parentElement.classList.remove('active');
+                });
+                option.classList.add('active');
+                input.checked = true;
+            });
+        });
+
+        var modal = document.getElementById('preferencesModal');
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closePreferencesModal();
+        });
+    });
+
+    function showPreferencesModal() {
+        document.getElementById('preferencesModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closePreferencesModal() {
+        document.getElementById('preferencesModal').classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
+</script>
+{% endblock %}

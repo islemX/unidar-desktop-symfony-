@@ -1,0 +1,35 @@
+{% extends 'base.html.twig' %}
+{% block title %}Verifications - Admin{% endblock %}
+{% block body %}
+<div class="container">
+    <h2 style="margin-bottom:1.5rem;">Verification Queue ({{ verifications|length }} pending)</h2>
+    {% if verifications|length == 0 %}
+        <div class="card" style="text-align:center;padding:2rem;"><p style="color:var(--gray);">No pending verifications.</p></div>
+    {% endif %}
+    {% for v in verifications %}
+    <div class="card" style="margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:start;">
+            <div>
+                <strong>{{ v.user.fullName }}</strong> ({{ v.user.email }})
+                <div style="color:var(--gray);font-size:0.85rem;">Submitted: {{ v.submittedAt|date('d/m/Y') }}</div>
+                <div style="display:flex;gap:1rem;margin-top:0.75rem;">
+                    {% if v.studentIdFile %}<a href="/uploads/verifications/{{ v.studentIdFile }}" target="_blank" class="btn btn-outline btn-sm">📄 Student ID</a>{% endif %}
+                    {% if v.nationalIdFile %}<a href="/uploads/verifications/{{ v.nationalIdFile }}" target="_blank" class="btn btn-outline btn-sm">🪪 National ID</a>{% endif %}
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.5rem;min-width:200px;">
+                <form method="post" action="{{ path('admin_verification_review', {id: v.id}) }}">
+                    <input type="hidden" name="action" value="approve">
+                    <button type="submit" class="btn btn-secondary" style="width:100%;">✅ Approve</button>
+                </form>
+                <form method="post" action="{{ path('admin_verification_review', {id: v.id}) }}">
+                    <input type="hidden" name="action" value="reject">
+                    <input type="text" name="rejectionReason" class="form-control" placeholder="Rejection reason" style="margin-bottom:0.5rem;">
+                    <button type="submit" class="btn btn-danger" style="width:100%;">❌ Reject</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

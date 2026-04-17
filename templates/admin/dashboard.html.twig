@@ -1,0 +1,445 @@
+{% extends 'base.html.twig' %}
+{% block title %}Admin Dashboard - UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .admin-grid { display: grid; gap: var(--space-lg); }
+    .admin-grid-4 { grid-template-columns: repeat(4, 1fr); }
+    .admin-grid-2 { grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 900px) { .admin-grid-4, .admin-grid-2 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 600px) { .admin-grid-4, .admin-grid-2 { grid-template-columns: 1fr; } }
+
+    .stat-card-admin {
+        text-align: center; padding: var(--space-xl);
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        min-height: 120px; background: white; border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid var(--color-surface-100);
+    }
+    .stat-card-admin:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+    .stat-value { font-size: 2rem; font-weight: 800; margin-bottom: var(--space-xs); letter-spacing: -0.02em; }
+    .stat-label { color: var(--color-text-muted); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th, .data-table td { padding: 0.9rem; text-align: left; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+    .data-table th { font-weight: 600; color: var(--color-surface-700); background: var(--color-surface-50); font-size: 0.85rem; }
+    .data-table tbody tr:hover { background: var(--color-surface-50); }
+
+    .badge { display: inline-block; padding: 0.2rem 0.55rem; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 600; }
+    .badge-success { background: #d1fae5; color: #065f46; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-error   { background: #fee2e2; color: #991b1b; }
+    .badge-info    { background: #dbeafe; color: #1e40af; }
+    .btn-danger    { background-color: var(--color-error); color: white; border: none; }
+    .btn-danger:hover { background-color: #dc2626; }
+
+    .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); flex-wrap: wrap; gap: 0.5rem; }
+    .empty-state { padding: var(--space-2xl); text-align: center; color: var(--color-text-muted); }
+    .table-wrapper { overflow-x: auto; }
+    .action-buttons { display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap; }
+    .action-buttons form { display: inline; margin: 0; }
+    .filter-bar { display: flex; gap: var(--space-md); flex-wrap: wrap; }
+    .filter-bar .form-input { max-width: 250px; }
+    .filter-bar select { max-width: 150px; }
+
+    .contract-tile { background: white; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); }
+    .contract-tile h4 { margin: 0 0 0.5rem; font-size: 1rem; }
+    .contract-tile .muted { color: var(--color-text-muted); font-size: 0.8rem; }
+
+    #docViewerModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; overflow-y:auto; padding:20px; box-sizing:border-box; }
+    #docViewerModal .inner { background:white; border-radius:16px; max-width:900px; margin:0 auto; overflow:hidden; box-shadow:0 25px 50px rgba(0,0,0,0.5); }
+    #docViewerModal .head { padding:1.5rem 2rem; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }
+    #docViewerModal .body { padding:2rem; display:grid; grid-template-columns:1fr 1fr; gap:2rem; }
+    @media (max-width: 700px) { #docViewerModal .body { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block body %}
+<main class="section fade-in" style="padding: 2rem 0;">
+    <div class="container">
+
+        {# Header #}
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--space-xl); padding-bottom: var(--space-md); border-bottom: 2px solid var(--color-border); flex-wrap:wrap; gap:1rem;">
+            <div>
+                <h1 class="title-pro" style="margin:0; font-size: 2.5rem;">Admin Dashboard</h1>
+                <p class="text-muted" style="margin: 0.25rem 0 0;">
+                    Welcome, {{ app.user.fullName }}
+                    <span class="badge badge-error" style="margin-left:0.5rem;">Admin</span>
+                </p>
+            </div>
+            <a href="{{ path('app_logout') }}" class="btn btn-secondary">Logout</a>
+        </div>
+
+        {% for flash in app.flashes('success') %}<div class="flash-success" style="margin-bottom:1rem;">{{ flash }}</div>{% endfor %}
+        {% for flash in app.flashes('error') %}<div class="flash-error" style="margin-bottom:1rem;">{{ flash }}</div>{% endfor %}
+
+        {# Stats - Primary Row #}
+        <div class="admin-grid admin-grid-4" style="margin-bottom: var(--space-lg);">
+            <div class="card" style="border-left: 4px solid var(--color-brand);">
+                <div class="card-body stat-card-admin">
+                    <p class="stat-value" style="color: var(--color-brand);">{{ stats.total_users }}</p>
+                    <p class="stat-label">👥 Total Users</p>
+                </div>
+            </div>
+            <div class="card" style="border-left: 4px solid var(--color-brand);">
+                <div class="card-body stat-card-admin">
+                    <p class="stat-value" style="color: var(--color-brand);">{{ stats.active_listings }}</p>
+                    <p class="stat-label">🏠 Active Listings</p>
+                </div>
+            </div>
+            <div class="card" style="border-left: 4px solid var(--color-warning);">
+                <div class="card-body stat-card-admin">
+                    <p class="stat-value" style="color: var(--color-warning);">{{ stats.pending_verifications }}</p>
+                    <p class="stat-label">⏳ Pending Verifications</p>
+                </div>
+            </div>
+            <div class="card" style="border-left: 4px solid var(--color-error);">
+                <div class="card-body stat-card-admin">
+                    <p class="stat-value" style="color: var(--color-error);">{{ stats.open_reports }}</p>
+                    <p class="stat-label">⚠️ Open Reports</p>
+                </div>
+            </div>
+        </div>
+
+        {# Subscription highlight #}
+        <div style="margin-bottom: var(--space-lg);">
+            <div class="card" style="border-left: 4px solid #10b981; background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);">
+                <div class="card-body stat-card-admin">
+                    <p class="stat-value" style="color: #10b981; font-weight: 800;">{{ stats.active_subscriptions }}</p>
+                    <p class="stat-label" style="color: #047857;">💎 Active Subscriptions</p>
+                </div>
+            </div>
+        </div>
+
+        {# Stats - Financial Row #}
+        <div class="admin-grid admin-grid-4" style="margin-bottom: var(--space-xl);">
+            <div class="card" style="border-left: 4px solid var(--color-success);">
+                <div class="card-body stat-card-admin">
+                    <p class="stat-value" style="color: var(--color-success);">{{ stats.total_contracts }}</p>
+                    <p class="stat-label">📄 Signed Contracts</p>
+                </div>
+            </div>
+            <div class="card" style="border-left: 4px solid #8b5cf6;">
+                <div class="card-body stat-card-admin">
+                    <p class="stat-value" style="color: #8b5cf6;">{{ stats.total_payments }}</p>
+                    <p class="stat-label">💳 Total Payments</p>
+                </div>
+            </div>
+            <div class="card" style="border-left: 4px solid #06b6d4;">
+                <div class="card-body stat-card-admin">
+                    <p class="stat-value" style="color: #06b6d4;">{{ stats.total_revenue|number_format(0, '.', ' ') }} TND</p>
+                    <p class="stat-label">💰 Total Revenue</p>
+                </div>
+            </div>
+            <div class="card" style="border-left: 4px solid #10b981; background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);">
+                <div class="card-body stat-card-admin">
+                    <p class="stat-value" style="color: #10b981; font-weight: 800;">{{ stats.total_commission|number_format(0, '.', ' ') }} TND</p>
+                    <p class="stat-label" style="color: #047857;">🏦 Commission UNIDAR (5%)</p>
+                </div>
+            </div>
+        </div>
+
+        {# Pending Verifications #}
+        <section style="margin-bottom: var(--space-xl);">
+            <div class="card">
+                <div class="card-body">
+                    <div class="section-title"><h2 class="title-pro" style="font-size: 2rem; margin:0;">Pending Verifications</h2></div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th><th>Email</th><th>University</th>
+                                    <th>Submitted</th><th>Documents</th><th>Status</th>
+                                    <th style="text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for v in verifications %}
+                                <tr>
+                                    <td>{{ v.user.fullName ?? 'N/A' }}</td>
+                                    <td>{{ v.user.email ?? 'N/A' }}</td>
+                                    <td>{{ v.user.university ?? 'N/A' }}</td>
+                                    <td>{{ v.submittedAt ? v.submittedAt|date('d/m/Y H:i') : 'N/A' }}</td>
+                                    <td>
+                                        {% if v.studentIdFile or v.nationalIdFile %}
+                                            <button type="button" class="btn btn-primary btn-sm"
+                                                    onclick="viewDocs('{{ v.studentIdFile ?? '' }}', '{{ v.nationalIdFile ?? '' }}')">
+                                                👁 View Documents
+                                            </button>
+                                            <div style="font-size:0.7rem; color:var(--color-text-muted); margin-top:4px;">
+                                                {{ v.studentIdFile ? '🪪 Student ID' : '' }}
+                                                {{ v.studentIdFile and v.nationalIdFile ? ' · ' : '' }}
+                                                {{ v.nationalIdFile ? '🪪 National ID' : '' }}
+                                            </div>
+                                        {% else %}
+                                            <span class="badge badge-warning">No documents</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="badge badge-warning">Pending</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <form method="post" action="{{ path('admin_verification_review', {id: v.id}) }}" onsubmit="return confirm('Approve this verification?');">
+                                                <input type="hidden" name="action" value="approve">
+                                                <button class="btn btn-primary btn-sm" type="submit">Approve</button>
+                                            </form>
+                                            <form method="post" action="{{ path('admin_verification_review', {id: v.id}) }}" onsubmit="var r=prompt('Rejection reason:'); if(!r){return false;} this.rejectionReason.value=r; return true;">
+                                                <input type="hidden" name="action" value="reject">
+                                                <input type="hidden" name="rejectionReason" value="">
+                                                <button class="btn btn-danger btn-sm" type="submit">Reject</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr><td colspan="7" class="empty-state">No pending verifications</td></tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {# Recent Reports #}
+        <section style="margin-bottom: var(--space-xl);">
+            <div class="card">
+                <div class="card-body">
+                    <div class="section-title"><h2 class="title-pro" style="font-size:2rem; margin:0;">Recent Reports</h2></div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Reporter</th><th>Reported</th><th>Type</th>
+                                    <th>Reason</th><th>Description</th><th>Created</th>
+                                    <th style="text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for r in reports %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ r.reporter ? r.reporter.fullName : 'N/A' }}</strong><br>
+                                        <small class="text-muted">{{ r.reporter ? r.reporter.email : '' }}</small>
+                                    </td>
+                                    <td>
+                                        {% if r.reportedUser %}{{ r.reportedUser.fullName }}
+                                        {% elseif r.reportedListing %}Listing: {{ r.reportedListing.title }}
+                                        {% else %}N/A{% endif %}
+                                    </td>
+                                    <td><span class="badge badge-info">{{ r.reportType ?? 'N/A' }}</span></td>
+                                    <td>{{ (r.reason ?? '')|replace({'_': ' '}) }}</td>
+                                    <td>
+                                        <div title="{{ r.description }}" style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                            {{ r.description }}
+                                        </div>
+                                    </td>
+                                    <td>{{ r.createdAt ? r.createdAt|date('d/m/Y H:i') : '' }}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            {% if r.reportedUser %}
+                                                <form method="post" action="{{ path('admin_user_update', {id: r.reportedUser.id}) }}" onsubmit="return confirm('Ban this user?');">
+                                                    <input type="hidden" name="status" value="banned">
+                                                    <button class="btn btn-danger btn-sm" type="submit">Ban User</button>
+                                                </form>
+                                            {% endif %}
+                                            <form method="post" action="{{ path('admin_report_resolve', {id: r.id}) }}" onsubmit="return confirm('Dismiss this report?');">
+                                                <input type="hidden" name="report_resolution[action]" value="dismiss">
+                                                <input type="hidden" name="report_resolution[resolutionNotes]" value="Dismissed by admin">
+                                                <button class="btn btn-primary btn-sm" type="submit">Dismiss</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr><td colspan="7" class="empty-state">No open reports</td></tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {# Users Management #}
+        <section style="margin-bottom: var(--space-xl);">
+            <div class="card">
+                <div class="card-body">
+                    <div class="section-title">
+                        <h2 style="margin:0;">Users Management</h2>
+                        <form method="get" action="{{ path('admin_dashboard') }}" class="filter-bar">
+                            <input type="text" name="search" class="form-input" placeholder="Search users..." value="{{ search }}">
+                            <select name="role" class="form-input" onchange="this.form.submit()">
+                                <option value=""{% if role_filter == '' %} selected{% endif %}>All Roles</option>
+                                <option value="student"{% if role_filter == 'student' %} selected{% endif %}>Students</option>
+                                <option value="owner"{% if role_filter == 'owner' %} selected{% endif %}>Owners</option>
+                                <option value="admin"{% if role_filter == 'admin' %} selected{% endif %}>Admins</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                        </form>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th><th>Email</th><th>Role</th><th>Status</th>
+                                    <th style="text-align:center;">Reports</th>
+                                    <th style="text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for u in users %}
+                                <tr>
+                                    <td>{{ u.fullName ?? 'N/A' }}</td>
+                                    <td>{{ u.email }}</td>
+                                    <td><span class="badge badge-{{ u.role.value == 'student' ? 'info' : (u.role.value == 'admin' ? 'error' : 'warning') }}">{{ u.role.value }}</span></td>
+                                    <td><span class="badge badge-{{ u.status.value == 'active' ? 'success' : 'error' }}">{{ u.status.value }}</span></td>
+                                    <td style="text-align:center;">
+                                        <span class="badge {{ u.reports|length > 0 ? 'badge-error' : 'badge-success' }}">{{ u.reports|length }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            {% if u.status.value != 'banned' %}
+                                                <form method="post" action="{{ path('admin_user_update', {id: u.id}) }}" onsubmit="return confirm('Ban this user?');">
+                                                    <input type="hidden" name="status" value="banned">
+                                                    <button class="btn btn-danger btn-sm" type="submit">Ban</button>
+                                                </form>
+                                            {% else %}
+                                                <span class="badge badge-error">Banned</span>
+                                            {% endif %}
+                                            <form method="post" action="{{ path('admin_user_delete', {id: u.id}) }}" onsubmit="return confirm('PERMANENTLY DELETE this user? This cannot be undone.');">
+                                                <button class="btn btn-danger btn-sm" style="background-color:#991b1b;" type="submit">Delete</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr><td colspan="6" class="empty-state">No users found</td></tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {# Contract Termination Requests #}
+        <section style="margin-bottom: var(--space-xl);">
+            <div class="card">
+                <div class="card-body">
+                    <div class="section-title">
+                        <h2 class="title-pro" style="font-size:2rem; margin:0;">Contract Termination Requests</h2>
+                        <span class="badge badge-warning">{{ termination_requests|length }} pending</span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Contract</th><th>Requested By</th><th>Listing</th>
+                                    <th>Reason</th><th>Requested At</th>
+                                    <th style="text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for t in termination_requests %}
+                                <tr>
+                                    <td>#{{ t.contract.contractNumber|slice(0,8) }}...</td>
+                                    <td>
+                                        <strong>{{ t.requestedBy ? t.requestedBy.fullName : 'N/A' }}</strong><br>
+                                        <small class="text-muted">{{ t.requestedBy ? t.requestedBy.email : '' }}</small>
+                                    </td>
+                                    <td>{{ t.contract.listing ? t.contract.listing.title : '—' }}</td>
+                                    <td>
+                                        <div title="{{ t.reason }}" style="max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                            {{ t.reason }}
+                                        </div>
+                                    </td>
+                                    <td>{{ t.createdAt ? t.createdAt|date('d/m/Y H:i') : '' }}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <a href="{{ path('contract_show', {id: t.contract.id}) }}" class="btn btn-secondary btn-sm">View</a>
+                                            <form method="post" action="{{ path('contract_approve_termination', {id: t.contract.id, requestId: t.id}) }}" onsubmit="return confirm('Approve termination? The contract will be cancelled.');">
+                                                <button type="submit" class="btn btn-primary btn-sm">Approve</button>
+                                            </form>
+                                            <form method="post" action="{{ path('contract_reject_termination', {id: t.contract.id, requestId: t.id}) }}" onsubmit="return confirm('Reject this termination request?');">
+                                                <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr><td colspan="6" class="empty-state">No pending termination requests</td></tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {# All Contracts #}
+        <section style="margin-bottom: var(--space-xl);">
+            <div class="card">
+                <div class="card-body">
+                    <div class="section-title"><h2 style="margin:0;">All Contracts</h2></div>
+                    <div class="admin-grid admin-grid-4">
+                    {% for c in contracts %}
+                        <div class="contract-tile">
+                            <h4>#{{ c.contractNumber|slice(0,8) }}...</h4>
+                            <p class="muted" style="margin:0 0 0.25rem;">{{ c.listing ? c.listing.title : '—' }}</p>
+                            <p style="margin:0.25rem 0;"><strong>Student:</strong> {{ c.student ? c.student.fullName : '—' }}</p>
+                            <p style="margin:0.25rem 0;"><strong>Owner:</strong> {{ c.owner ? c.owner.fullName : '—' }}</p>
+                            <p style="margin:0.25rem 0;"><strong>Rent:</strong> {{ c.monthlyRent }} TND/mo</p>
+                            <p style="margin:0.25rem 0;"><span class="badge badge-info">{{ c.status.value }}</span></p>
+                            <a href="{{ path('contract_show', {id: c.id}) }}" class="btn btn-primary btn-sm" style="margin-top:0.5rem; display:block; text-align:center; font-size:0.8rem;">📄 View Contract</a>
+                        </div>
+                    {% else %}
+                        <div class="empty-state" style="grid-column: 1/-1;">No contracts yet.</div>
+                    {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</main>
+
+{# Document Viewer Modal #}
+<div id="docViewerModal">
+    <div class="inner">
+        <div class="head">
+            <h3 style="margin:0; font-size:1.3rem;">📋 Verification Documents</h3>
+            <button type="button" onclick="document.getElementById('docViewerModal').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#64748b;">✕</button>
+        </div>
+        <div class="body" id="docViewerContent"></div>
+    </div>
+</div>
+
+<script>
+function viewDocs(studentIdFile, nationalIdFile) {
+    const base = '{{ asset('uploads/verifications/') }}';
+    function renderDoc(label, file) {
+        if (!file) return `<div style="border:2px dashed #e2e8f0; border-radius:12px; padding:2rem; text-align:center; color:#94a3b8;"><p>No document</p></div>`;
+        const isPdf = file.toLowerCase().endsWith('.pdf');
+        const url = base + file;
+        if (isPdf) {
+            return `<div style="border:1px solid #e2e8f0; border-radius:12px; overflow:hidden;">
+                <div style="background:#f8fafc; padding:0.75rem 1rem; font-weight:600; font-size:0.85rem; color:#475569; border-bottom:1px solid #e2e8f0;">${label}</div>
+                <div style="padding:1.5rem; text-align:center;">
+                    <div style="font-size:3rem; margin-bottom:1rem;">📄</div>
+                    <p style="color:#64748b; margin-bottom:1rem;">PDF Document</p>
+                    <a href="${url}" target="_blank" class="btn btn-primary">Open PDF ↗</a>
+                </div>
+            </div>`;
+        }
+        return `<div style="border:1px solid #e2e8f0; border-radius:12px; overflow:hidden;">
+            <div style="background:#f8fafc; padding:0.75rem 1rem; font-weight:600; font-size:0.85rem; color:#475569; border-bottom:1px solid #e2e8f0;">${label}</div>
+            <div style="padding:0.5rem;"><img src="${url}" alt="${label}" style="width:100%; border-radius:8px; display:block;"></div>
+            <div style="padding:0.75rem; text-align:center;"><a href="${url}" target="_blank" class="btn btn-secondary btn-sm">Open Full Size ↗</a></div>
+        </div>`;
+    }
+    document.getElementById('docViewerContent').innerHTML = renderDoc('🪪 Student ID Card', studentIdFile) + renderDoc('🪪 National ID / Passport', nationalIdFile);
+    document.getElementById('docViewerModal').style.display = 'block';
+}
+</script>
+{% endblock %}

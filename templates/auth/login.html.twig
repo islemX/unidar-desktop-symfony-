@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+{% block voice_briefing %}
+<script>window.__vcPage__ = { page: 'login', role: 'guest', briefing: { en: "Login page. Sign in to your UNIDAR account. Say 'start dictation' to fill the form by voice.", fr: "Connexion. Dites 'commencer dictée' pour remplir le formulaire.", ar: "صفحة الدخول. قل 'ابدأ الإملاء' لملء النموذج صوتياً." }, suggestions: [ {label:'Start dictation', cmd:'start dictation'}, {label:'Register instead', cmd:'register'} ] };</script>
+{% endblock %}
+{% block title %}Login - UNIDAR{% endblock %}
+
+{% block body %}
+<div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div><div class="shape shape-3"></div></div>
+
+<div class="section" style="min-height: calc(100vh - 70px); display: flex; align-items: center; justify-content: center; position: relative; z-index: 1;">
+    <div class="container" style="max-width: 450px;">
+        <div class="card fade-in-up" style="padding: 0; overflow: hidden;">
+            <div class="card-header text-center" style="padding: 2rem;">
+                <div class="section-tag" data-i18n="login_welcome">Welcome Back</div>
+                <h1 style="font-size: 1.75rem; margin: 0.5rem 0 0.25rem;" data-i18n="login_title">Sign In</h1>
+                <p class="text-muted" data-i18n="login_subtitle">Access your UNIDAR account</p>
+            </div>
+            <div style="padding: 2rem;">
+                {% if error %}
+                    <div class="alert alert-error" style="margin-bottom: 1.5rem;">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+                {% endif %}
+
+                <form method="post" action="{{ path('app_login') }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                    <div class="form-group">
+                        <label class="form-label" for="email" data-i18n="register_email">Email Address</label>
+                        <input type="email" id="email" name="_username" class="form-input"
+                               value="{{ last_username }}" required autofocus
+                               placeholder="student@university.edu" data-i18n-placeholder="register_email_placeholder"
+                               data-voice-label="email" autocomplete="username">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="password" data-i18n="register_password">Password</label>
+                        <input type="password" id="password" name="_password" class="form-input"
+                               required placeholder="Min. 8 characters" data-i18n-placeholder="register_password_placeholder"
+                               data-voice-label="password" autocomplete="current-password">
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem; color: var(--color-surface-600);">
+                            <input type="checkbox" name="_remember_me" style="accent-color: var(--color-brand);"> <span data-i18n="login_remember">Remember me</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.875rem; font-size: 1rem;">
+                        <span data-i18n="nav_login">Sign In</span>
+                    </button>
+                </form>
+
+                <div class="text-center" style="margin-top: 1.5rem;">
+                    <p class="text-small text-muted">
+                        <span data-i18n="login_no_account">Don't have an account?</span>
+                        <a href="{{ path('app_register') }}" style="color: var(--color-brand); font-weight: 600;" data-i18n="register_signin">Sign up free</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

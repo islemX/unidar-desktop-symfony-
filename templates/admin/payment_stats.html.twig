@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+{% block title %}Payment Statistics - Admin{% endblock %}
+{% block body %}
+<div class="container">
+    <h2 style="margin-bottom:1.5rem;">Payment Statistics</h2>
+    <div class="grid grid-3">
+        {% for key, value in stats %}
+        <div class="card" style="text-align:center;">
+            <h3 style="color:var(--primary);">{{ value }}</h3>
+            <p style="color:var(--gray);">{{ key|replace({'_': ' '})|title }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
