@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="tn.unidar.desktop.controllers.OwnerListingsController"
+      spacing="0" style="-fx-background-color: #f8fafc;"
+      stylesheets="@../css/unidar-pages.css">
+
+    <!-- ── Page Header ── -->
+    <HBox style="-fx-background-color: white; -fx-padding: 24 36 24 36;
+                 -fx-border-color: transparent transparent #e2e8f0 transparent; -fx-border-width: 0 0 1 0;"
+          spacing="16" alignment="CENTER_LEFT">
+        <VBox spacing="4" HBox.hgrow="ALWAYS">
+            <Label fx:id="lblOwnerTitle" text="🏗️  My Property Listings" styleClass="page-title"/>
+            <Label fx:id="lblOwnerSubtitle" text="Manage your properties and contracts"
+                   styleClass="page-subtitle"/>
+        </VBox>
+        <Button fx:id="btnAddListing" text="+ Add Listing" styleClass="btn-primary" onAction="#openAddDialog"
+                prefHeight="40"/>
+    </HBox>
+    
+    <!-- ── Stats Summary ── -->
+    <HBox spacing="20" style="-fx-padding: 0 36 24 36; -fx-background-color: white;">
+        <VBox styleClass="card" HBox.hgrow="ALWAYS" spacing="4" style="-fx-padding: 16;">
+            <Label fx:id="lblStatTotalTitle" text="Total Listings" style="-fx-text-fill: #64748b; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+            <Label fx:id="lblStatTotal" text="0" style="-fx-font-size: 20px; -fx-font-weight: 800; -fx-text-fill: #0f172a;"/>
+        </VBox>
+        <VBox styleClass="card" HBox.hgrow="ALWAYS" spacing="4" style="-fx-padding: 16;">
+            <Label fx:id="lblStatActiveTitle" text="Active" style="-fx-text-fill: #64748b; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+            <Label fx:id="lblStatActive" text="0" style="-fx-font-size: 20px; -fx-font-weight: 800; -fx-text-fill: #10b981;"/>
+        </VBox>
+        <VBox styleClass="card" HBox.hgrow="ALWAYS" spacing="4" style="-fx-padding: 16;">
+            <Label fx:id="lblStatContractsTitle" text="Contracts" style="-fx-text-fill: #64748b; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+            <Label fx:id="lblStatContracts" text="0" style="-fx-font-size: 20px; -fx-font-weight: 800; -fx-text-fill: #4f46e5;"/>
+        </VBox>
+        <VBox styleClass="card" HBox.hgrow="ALWAYS" spacing="4" style="-fx-padding: 16;">
+            <Label fx:id="lblStatEarningsTitle" text="Total Earnings" style="-fx-text-fill: #64748b; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+            <Label fx:id="lblStatEarnings" text="0 TND" style="-fx-font-size: 20px; -fx-font-weight: 800; -fx-text-fill: #059669;"/>
+        </VBox>
+    </HBox>
+
+    <!-- ── Tab Bar ── -->
+    <HBox styleClass="tab-bar" style="-fx-padding: 0 36 0 36; -fx-background-color: white;">
+        <Button fx:id="tabListings"  text="My Listings"    styleClass="tab-btn, active" onAction="#showListings"/>
+        <Button fx:id="tabContracts" text="Contracts"      styleClass="tab-btn"         onAction="#showContracts"/>
+    </HBox>
+
+    <!-- ── Alerts ── -->
+    <VBox fx:id="alertError"   managed="false" visible="false" styleClass="alert-error"
+          style="-fx-padding: 12 36 0 36; -fx-margin: 0 0 0 0;">
+        <Label fx:id="lblError" text="" styleClass="alert-error-text" wrapText="true"/>
+    </VBox>
+    <VBox fx:id="alertSuccess" managed="false" visible="false" styleClass="alert-success"
+          style="-fx-padding: 12 36 0 36; -fx-margin: 0 0 0 0;">
+        <Label fx:id="lblSuccess" text="" styleClass="alert-success-text" wrapText="true"/>
+    </VBox>
+
+    <!-- ── LISTINGS TAB ── -->
+    <VBox fx:id="listingsPane" VBox.vgrow="ALWAYS">
+        <!-- Loading -->
+        <VBox fx:id="loadingPane" alignment="CENTER" spacing="12" style="-fx-padding: 60;"
+              managed="true" visible="true">
+            <ProgressIndicator prefWidth="48" prefHeight="48" style="-fx-accent: #4f46e5;"/>
+            <Label fx:id="lblLoading" text="Loading your listings..." style="-fx-text-fill: #64748b;"/>
+        </VBox>
+
+        <!-- Empty -->
+        <VBox fx:id="emptyListingsPane" alignment="CENTER" spacing="16" style="-fx-padding: 60;"
+              managed="false" visible="false">
+            <Label text="🏚️" style="-fx-font-size: 52px;"/>
+            <Label fx:id="lblEmptyListingsTitle" text="No listings yet" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #0f172a;"/>
+            <Label fx:id="lblEmptyListingsSub" text="Add your first property to start connecting with students." style="-fx-text-fill: #64748b;"/>
+            <Button fx:id="btnEmptyAdd" text="+ Add First Listing" styleClass="btn-primary" onAction="#openAddDialog"/>
+        </VBox>
+
+        <!-- Grid -->
+        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+                    style="-fx-background-color: transparent; -fx-background: transparent;">
+            <FlowPane fx:id="listingsGrid" hgap="20" vgap="20"
+                      style="-fx-background-color: transparent; -fx-padding: 24 36 24 36;"/>
+        </ScrollPane>
+    </VBox>
+
+    <!-- ── CONTRACTS TAB ── -->
+    <VBox fx:id="contractsPane" VBox.vgrow="ALWAYS" managed="false" visible="false">
+        <VBox fx:id="emptyContractsPane" alignment="CENTER" spacing="16" style="-fx-padding: 60;"
+              managed="true" visible="true">
+            <Label text="📋" style="-fx-font-size: 52px;"/>
+            <Label fx:id="lblEmptyContractsTitle" text="No contracts yet" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #0f172a;"/>
+            <Label fx:id="lblEmptyContractsSub" text="Contracts will appear here once students sign agreements for your properties." style="-fx-text-fill: #64748b;" wrapText="true" maxWidth="400" textAlignment="CENTER"/>
+        </VBox>
+
+        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+                    style="-fx-background-color: transparent; -fx-background: transparent;">
+            <VBox fx:id="contractsList" spacing="12"
+                  style="-fx-background-color: transparent; -fx-padding: 24 36 24 36;"/>
+        </ScrollPane>
+    </VBox>
+
+</VBox>

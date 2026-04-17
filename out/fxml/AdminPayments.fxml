@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<ScrollPane fitToWidth="true" xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.unidar.desktop.controllers.AdminPaymentsController"
+            style="-fx-background-color: #f1f5f9; -fx-background: #f1f5f9;"
+            stylesheets="@../css/unidar-pages.css">
+
+    <VBox style="-fx-padding: 32 40 48 40; -fx-background-color: #f1f5f9;" spacing="28">
+        
+        <!-- Header -->
+        <HBox alignment="CENTER_LEFT" spacing="20">
+            <Button text="←" onAction="#gotoDashboard" styleClass="btn-ghost" style="-fx-font-size: 18px;"/>
+            <VBox spacing="4" HBox.hgrow="ALWAYS">
+                <Label text="💳  Platform Payments" styleClass="page-title"/>
+                <Label text="Monitor transactions and platform commissions." styleClass="page-subtitle"/>
+            </VBox>
+            <HBox spacing="10">
+                <Button text="📥  Export CSV" styleClass="btn-secondary"/>
+                <Button text="🔄  Refresh" onAction="#loadPayments" styleClass="btn-primary"/>
+            </HBox>
+        </HBox>
+
+        <!-- Stats Overview -->
+        <HBox spacing="20">
+            <VBox styleClass="card" HBox.hgrow="ALWAYS" spacing="8" style="-fx-padding: 20;">
+                <Label text="Total Revenue" style="-fx-text-fill: #64748b; -fx-font-size: 13px; -fx-font-weight: bold;"/>
+                <Label fx:id="lblTotalRevenue" text="0.00 TND" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+            </VBox>
+            <VBox styleClass="card" HBox.hgrow="ALWAYS" spacing="8" style="-fx-padding: 20;">
+                <Label text="Total Commissions (5%)" style="-fx-text-fill: #64748b; -fx-font-size: 13px; -fx-font-weight: bold;"/>
+                <Label fx:id="lblTotalComm" text="0.00 TND" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #4f46e5;"/>
+            </VBox>
+            <VBox styleClass="card" HBox.hgrow="ALWAYS" spacing="8" style="-fx-padding: 20;">
+                <Label text="Total Transactions" style="-fx-text-fill: #64748b; -fx-font-size: 13px; -fx-font-weight: bold;"/>
+                <Label fx:id="lblTotalTrans" text="0" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #059669;"/>
+            </VBox>
+        </HBox>
+
+        <!-- Transactions Table -->
+        <VBox styleClass="card" spacing="16" style="-fx-padding: 0;">
+            <HBox style="-fx-padding: 20 24 0 24;" alignment="CENTER_LEFT">
+                <Label text="Recent Transactions" styleClass="section-header" HBox.hgrow="ALWAYS"/>
+                <TextField fx:id="txtSearch" promptText="Search by ID or user..." prefWidth="250" styleClass="search-field"/>
+            </HBox>
+            
+            <TableView fx:id="tablePayments" VBox.vgrow="ALWAYS" prefHeight="500" style="-fx-background-color: transparent; -fx-border-color: transparent;">
+                <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/></columnResizePolicy>
+                <columns>
+                    <TableColumn fx:id="colDate" text="Date" prefWidth="120"/>
+                    <TableColumn fx:id="colUser" text="Student" prefWidth="150"/>
+                    <TableColumn fx:id="colListing" text="Property" prefWidth="200"/>
+                    <TableColumn fx:id="colAmount" text="Total Amount" prefWidth="120"/>
+                    <TableColumn fx:id="colComm" text="Commission" prefWidth="100"/>
+                    <TableColumn fx:id="colMethod" text="Method" prefWidth="100"/>
+                    <TableColumn fx:id="colStatus" text="Status" prefWidth="100"/>
+                </columns>
+            </TableView>
+        </VBox>
+
+    </VBox>
+</ScrollPane>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #main-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+        }
+
+        #main-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: opacity 0.4s ease-in-out;
+            opacity: 0;
+        }
+
+        #main-image.loaded {
+            opacity: 1;
+        }
+
+        #nav-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            pointer-events: none;
+        }
+
+        .nav-btn {
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(10px);
+            border: none;
+            border-radius: 50%;
+            color: #1e293b;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.8);
+            transform: scale(1.05);
+        }
+
+        #counter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.75);
+            color: white;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        #thumbnails-container {
+            height: 80px;
+            background: white;
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            overflow-x: auto;
+            border-top: 1px solid #e2e8f0;
+            scrollbar-width: thin;
+        }
+
+        .thumb {
+            height: 60px;
+            min-width: 80px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 8px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .thumb.active {
+            opacity: 1;
+            border-color: #4f46e5;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="main-container">
+        <img id="main-image" src="" alt="Listing Image">
+        <div id="nav-overlay">
+            <button class="nav-btn" onclick="prev()">&#10094;</button>
+            <button class="nav-btn" onclick="next()">&#10095;</button>
+        </div>
+        <div id="counter">0 / 0</div>
+    </div>
+    <div id="thumbnails-container"></div>
+
+    <script>
+        let images = [];
+        let currentIndex = 0;
+
+        const mainImg = document.getElementById('main-image');
+        const counter = document.getElementById('counter');
+        const thumbsContainer = document.getElementById('thumbnails-container');
+
+        // Called from Java
+        function setImages(jsonArray) {
+            try {
+                images = JSON.parse(jsonArray);
+                if (!Array.isArray(images)) images = [];
+                renderThumbnails();
+                updateImage(0);
+            } catch (e) {
+                console.error("JSON parse error in setImages:", e);
+            }
+        }
+
+        // Called from Java or internal clicks
+        function updateImage(index) {
+            if (!images || images.length === 0) {
+                counter.innerText = '0 / 0';
+                return;
+            }
+            if (index < 0) index = images.length - 1;
+            if (index >= images.length) index = 0;
+            
+            currentIndex = index;
+            
+            mainImg.classList.remove('loaded');
+            
+            // Handle potentially broken or missing URLs
+            const url = images[currentIndex];
+            if (url) {
+                mainImg.src = url;
+            } else {
+                mainImg.src = ""; // Clear or set fallback
+            }
+            
+            mainImg.onload = () => {
+                mainImg.classList.add('loaded');
+            };
+
+            counter.innerText = (currentIndex + 1) + ' / ' + images.length;
+            
+            // Update thumbs
+            const allThumbs = document.querySelectorAll('.thumb');
+            allThumbs.forEach((t, i) => {
+                if (i === currentIndex) {
+                    t.classList.add('active');
+                    t.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                } else {
+                    t.classList.remove('active');
+                }
+            });
+        }
+
+        function renderThumbnails() {
+            thumbsContainer.innerHTML = '';
+            images.forEach((url, i) => {
+                const div = document.createElement('div');
+                div.className = 'thumb' + (i === currentIndex ? ' active' : '');
+                
+                // Escape URL for CSS
+                const escapedUrl = url.replace(/'/g, "\\'").replace(/"/g, '\\"');
+                div.style.backgroundImage = "url('" + escapedUrl + "')";
+                
+                div.onclick = () => updateImage(i);
+                thumbsContainer.appendChild(div);
+            });
+        }
+
+        function next() {
+            if (images.length <= 1) return;
+            updateImage(currentIndex + 1);
+        }
+
+        function prev() {
+            if (images.length <= 1) return;
+            updateImage(currentIndex - 1);
+        }
+
+        mainImg.onerror = () => {
+            console.error('Failed to load image:', mainImg.src);
+            // Hide broken image instead of showing a black box
+            mainImg.classList.remove('loaded');
+        };
+    </script>
+</body>
+</html>

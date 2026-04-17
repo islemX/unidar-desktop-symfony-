@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<ScrollPane fitToWidth="true" xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.unidar.desktop.controllers.VerificationController"
+            styleClass="scroll-pane"
+            stylesheets="@../css/unidar-pages.css">
+
+    <VBox style="-fx-padding: 40 36 60 36;" spacing="32" maxWidth="760" alignment="TOP_CENTER">
+
+        <!-- ── Header ── -->
+        <VBox spacing="8" alignment="CENTER">
+            <Label text="🛡️" style="-fx-font-size: 48px;"/>
+            <Label text="Identity Verification" styleClass="page-title"/>
+            <Label text="Verify your identity to unlock premium features including roommate matching, digital contracts, and more."
+                   styleClass="page-subtitle" wrapText="true" textAlignment="CENTER"/>
+        </VBox>
+
+        <!-- ── Status Card (shown if already submitted) ── -->
+        <VBox fx:id="statusCard" managed="false" visible="false" styleClass="verif-status-card" spacing="20" alignment="CENTER">
+            <Label text="Your Verification Status" styleClass="section-header"/>
+            <HBox spacing="16" alignment="CENTER">
+                <Label fx:id="lblStatusIcon"  text="⏳" style="-fx-font-size: 42px;"/>
+                <VBox spacing="6">
+                    <Label fx:id="lblStatusTitle" text="Pending Review"
+                           style="-fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: -fx-color-surface-900;"/>
+                    <Label fx:id="lblStatusDesc"  text="Your documents are being reviewed. This usually takes 24-48 hours."
+                           style="-fx-text-fill: -fx-color-surface-500; -fx-font-size: 14px;" wrapText="true" maxWidth="420"/>
+                </VBox>
+            </HBox>
+            <Label fx:id="badgeStatus" text="PENDING" styleClass="badge-warning" style="-fx-font-weight: 800; -fx-padding: 6 16; -fx-font-size: 13px;"/>
+        </VBox>
+
+        <!-- ── Alerts ── -->
+        <VBox fx:id="alertError"   managed="false" visible="false" styleClass="alert-error">
+            <Label fx:id="lblError" text="" styleClass="alert-error-text" wrapText="true"/>
+        </VBox>
+        <VBox fx:id="alertSuccess" managed="false" visible="false" styleClass="alert-success">
+            <Label fx:id="lblSuccess" text="" styleClass="alert-success-text" wrapText="true"/>
+        </VBox>
+
+        <!-- ── Upload Form ── -->
+        <VBox fx:id="uploadForm" styleClass="glow-card" spacing="28">
+            <Label text="Upload Your Documents" styleClass="section-header"/>
+
+            <!-- Student ID -->
+            <VBox spacing="14">
+                <Label text="1. Student ID Card" styleClass="form-label"
+                       style="-fx-font-size: 16px; -fx-font-weight: 800;"/>
+                <VBox styleClass="upload-zone" spacing="12" fx:id="dropZone1">
+                    <Label text="📁" style="-fx-font-size: 32px;"/>
+                    <Label fx:id="lblStudentFile" text="Click to select Student ID card"
+                           style="-fx-text-fill: -fx-color-surface-500; -fx-font-size: 14px;"/>
+                    <Button text="Choose File" styleClass="btn-secondary, btn-sm" onAction="#selectStudentId"/>
+                </VBox>
+            </VBox>
+
+            <!-- CIN -->
+            <VBox spacing="14">
+                <Label text="2. National ID (CIN)" styleClass="form-label"
+                       style="-fx-font-size: 16px; -fx-font-weight: 800;"/>
+                <VBox styleClass="upload-zone" spacing="12" fx:id="dropZone2">
+                    <Label text="📁" style="-fx-font-size: 32px;"/>
+                    <Label fx:id="lblCinFile" text="Click to select National ID (CIN)"
+                           style="-fx-text-fill: -fx-color-surface-500; -fx-font-size: 14px;"/>
+                    <Button text="Choose File" styleClass="btn-secondary, btn-sm" onAction="#selectCin"/>
+                </VBox>
+            </VBox>
+
+            <!-- Note -->
+            <HBox styleClass="alert-info" spacing="16" alignment="CENTER_LEFT">
+                <Label text="ℹ️" style="-fx-font-size: 20px;"/>
+                <Label text="Accepted formats: JPG, PNG, PDF (max 5MB each). Your documents are encrypted and reviewed only by UNIDAR staff."
+                       styleClass="alert-info-text" wrapText="true" HBox.hgrow="ALWAYS"/>
+            </HBox>
+
+            <Button fx:id="btnSubmit" text="Submit for Verification" styleClass="btn-primary"
+                    prefHeight="54" maxWidth="Infinity" onAction="#submitVerification"
+                    style="-fx-font-size: 16px; -fx-font-weight: 800;"/>
+        </VBox>
+
+        <!-- ── Benefits ── -->
+        <VBox styleClass="card" spacing="16">
+            <Label text="Why Verify?" styleClass="section-header"/>
+            <FlowPane hgap="16" vgap="16">
+                <VBox spacing="4" prefWidth="200">
+                    <Label text="🤝  Roommate Matching" style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
+                    <Label text="Access our AI matching system" style="-fx-text-fill: -fx-color-surface-500; -fx-font-size: 12px;"/>
+                </VBox>
+                <VBox spacing="4" prefWidth="200">
+                    <Label text="📋  Digital Contracts" style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
+                    <Label text="Sign binding lease agreements" style="-fx-text-fill: -fx-color-surface-500; -fx-font-size: 12px;"/>
+                </VBox>
+                <VBox spacing="4" prefWidth="200">
+                    <Label text="🔒  Trust Badge" style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
+                    <Label text="Get a verified badge on your profile" style="-fx-text-fill: -fx-color-surface-500; -fx-font-size: 12px;"/>
+                </VBox>
+                <VBox spacing="4" prefWidth="200">
+                    <Label text="💬  Unlimited Messaging" style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
+                    <Label text="Chat without daily limits" style="-fx-text-fill: -fx-color-surface-500; -fx-font-size: 12px;"/>
+                </VBox>
+            </FlowPane>
+        </VBox>
+
+    </VBox>
+</ScrollPane>

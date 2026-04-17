@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.unidar.desktop.controllers.ShellController"
+            stylesheets="@../css/unidar-pages.css">
+
+    <!-- ── Sidebar ─────────────────────────────────────── -->
+    <left>
+        <VBox styleClass="sidebar" spacing="2">
+
+            <!-- Logo -->
+            <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-padding: 0 0 32 10;">
+                <Label text="⬡" style="-fx-text-fill: -fx-color-primary-400; -fx-font-size: 26px; -fx-font-weight: 800;"/>
+                <Label text="UNIDAR" style="-fx-text-fill: white; -fx-font-size: 22px; -fx-font-weight: 800; -fx-letter-spacing: 1px;"/>
+            </HBox>
+
+            <!-- MAIN — Home always visible -->
+            <Label fx:id="lblNavMain" text="MAIN" styleClass="nav-section-label"/>
+            <Button fx:id="btnHome" text="🏠  Home" styleClass="nav-button" onAction="#handleHome"/>
+
+            <!-- Listings + Roommates — only shown when logged in -->
+            <VBox fx:id="mainNav" spacing="2" managed="false" visible="false">
+                <Button fx:id="btnList" text="🏢  Listings"  styleClass="nav-button" onAction="#handleListings"/>
+                <Button fx:id="btnRoom" text="🤝  Roommates" styleClass="nav-button" onAction="#handleRoommates"/>
+            </VBox>
+
+            <!-- Account nav — only when logged in -->
+            <VBox fx:id="authNav" spacing="2" managed="false" visible="false">
+                <Label fx:id="lblNavAccount" text="ACCOUNT" styleClass="nav-section-label" style="-fx-padding: 16 12 6 12;"/>
+                <Button fx:id="btnDash"  text="📊  Dashboard"   styleClass="nav-button" onAction="#handleDashboard"/>
+                <Button fx:id="btnVerif" text="🛡️  Verification" styleClass="nav-button" onAction="#handleVerification"/>
+                <Button fx:id="btnSub"   text="⭐  Premium"      styleClass="nav-button" onAction="#handleSubscription"/>
+                <Button fx:id="btnOwner" text="🏗️  My Listings"  styleClass="nav-button" onAction="#handleOwnerListings"
+                        managed="false" visible="false"/>
+            </VBox>
+
+            <Region VBox.vgrow="ALWAYS"/>
+
+            <!-- Language selector -->
+            <VBox spacing="5" style="-fx-padding: 0 0 12 0;">
+                <Label fx:id="lblNavLanguage" text="LANGUAGE" styleClass="nav-section-label" style="-fx-padding: 0 12 4 12;"/>
+                <ComboBox fx:id="langCombo" styleClass="lang-combo" maxWidth="Infinity" onAction="#handleLanguageChange"/>
+            </VBox>
+
+            <!-- User Profile (when logged in) -->
+            <VBox fx:id="userSection" styleClass="nav-user-card" spacing="8" managed="false" visible="false">
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label fx:id="lblAvatar" text="U" styleClass="nav-avatar"/>
+                    <VBox>
+                        <Label fx:id="lblUserName" text="User Name" styleClass="nav-user-name"/>
+                        <Label fx:id="lblUserRole" text="Student"   styleClass="nav-user-role"/>
+                    </VBox>
+                </HBox>
+                <Button fx:id="btnLogout" text="Sign Out" styleClass="btn-danger, btn-sm"
+                        maxWidth="Infinity" onAction="#handleLogout"/>
+            </VBox>
+
+            <!-- Login/Register (when NOT logged in) -->
+            <VBox fx:id="guestSection" spacing="8" style="-fx-padding: 8 0 0 0;">
+                <Button fx:id="btnLoginNav"    text="Sign In"  styleClass="btn-primary"   maxWidth="Infinity" onAction="#handleLoginNav"/>
+                <Button fx:id="btnRegisterNav" text="Register" styleClass="btn-secondary" maxWidth="Infinity" onAction="#handleRegisterNav"/>
+            </VBox>
+
+        </VBox>
+    </left>
+
+    <!-- ── Main Content + Floating Chat Bubble ────────── -->
+    <center>
+        <StackPane fx:id="contentWrapper" style="-fx-background-color: -fx-color-surface-50;">
+
+            <!-- Page content -->
+            <StackPane fx:id="mainContent"/>
+
+            <!-- Messages slide-in drawer (right overlay) -->
+            <HBox fx:id="msgDrawer" managed="false" visible="false" alignment="TOP_RIGHT"
+                  style="-fx-background-color: rgba(0,0,0,0.2);">
+                <!-- Dim area — click to close -->
+                <Region HBox.hgrow="ALWAYS" onMouseClicked="#closeMsgDrawer"/>
+                <!-- Panel -->
+                <VBox fx:id="msgPanelHost" prefWidth="400" minWidth="360"
+                      style="-fx-background-color: white;
+                             -fx-border-color: transparent transparent transparent #e2e8f0;
+                             -fx-border-width: 0 0 0 1;
+                             -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 28, 0, -4, 0);">
+                    <!-- Drawer header -->
+                    <HBox alignment="CENTER_LEFT" spacing="10"
+                          style="-fx-background-color: white; -fx-padding: 16 20 16 20;
+                                 -fx-border-color: transparent transparent -fx-color-surface-100 transparent;
+                                 -fx-border-width: 0 0 1 0;">
+                        <Label fx:id="lblDrawerTitle" text="💬  Messages"
+                               style="-fx-font-size: 17px; -fx-font-weight: bold; -fx-text-fill: -fx-color-surface-900;"
+                               HBox.hgrow="ALWAYS"/>
+                        <Button text="✕" onAction="#closeMsgDrawer"
+                                style="-fx-background-color: transparent; -fx-text-fill: -fx-color-surface-400;
+                                       -fx-font-size: 16px; -fx-cursor: hand; -fx-padding: 2 8 2 8;
+                                       -fx-background-radius: 6;"/>
+                    </HBox>
+                    <!-- Messages FXML loaded here dynamically -->
+                    <StackPane fx:id="msgContent" VBox.vgrow="ALWAYS"/>
+                </VBox>
+            </HBox>
+
+            <!-- Floating chat button (FAB) — bottom right, only when logged in -->
+            <Button fx:id="btnMsgFab"
+                    text="💬"
+                    onAction="#toggleMsgDrawer"
+                    StackPane.alignment="BOTTOM_RIGHT"
+                    managed="false" visible="false"
+                    styleClass="btn-primary"
+                    style="-fx-font-size: 22px;
+                           -fx-min-width: 60; -fx-min-height: 60;
+                           -fx-max-width: 60; -fx-max-height: 60;
+                           -fx-background-radius: 50;
+                           -fx-translate-x: -24; -fx-translate-y: -84;"/>
+
+        </StackPane>
+    </center>
+
+    <!-- ── Voice Bar ───────────────────────────────────── -->
+    <bottom>
+        <HBox styleClass="voice-bar" spacing="14" alignment="CENTER_LEFT">
+            <Button fx:id="btnMic" styleClass="mic-button" text="🎙" onAction="#toggleVoice"
+                    style="-fx-font-size: 18px; -fx-text-fill: white;"/>
+            <VBox spacing="2">
+                <Label fx:id="lblVoiceStatus" text="Voice Commander Ready" styleClass="voice-status-text"/>
+                <Label fx:id="lblVoiceHint"   text="Say: 'Go to listings', 'Find roommates', 'Open messages'" styleClass="voice-hint-text"/>
+            </VBox>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label text="Powered by Claude AI" style="-fx-text-fill: -fx-color-surface-400; -fx-font-size: 11px;"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

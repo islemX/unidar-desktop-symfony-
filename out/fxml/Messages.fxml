@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.unidar.desktop.controllers.MessagesController"
+            style="-fx-background-color: -fx-color-surface-50;"
+            stylesheets="@../css/unidar-pages.css">
+
+    <!-- ── Inbox Sidebar ── -->
+    <left>
+        <VBox styleClass="inbox-sidebar" minWidth="280" prefWidth="300">
+
+            <Label text="%shell.nav.messages" styleClass="inbox-header"/>
+
+            <!-- Search -->
+            <VBox style="-fx-padding: 0 20 20 20; -fx-border-color: transparent transparent -fx-color-surface-100 transparent; -fx-border-width: 0 0 1 0;">
+                <TextField fx:id="txtSearchConvo" promptText="%shell.search_convo"
+                           styleClass="form-input" prefHeight="44"
+                           onKeyReleased="#filterConversations"/>
+            </VBox>
+
+            <!-- Conversation List -->
+            <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+                        style="-fx-background-color: transparent; -fx-background: transparent;">
+                <VBox fx:id="convoList" spacing="0"/>
+            </ScrollPane>
+
+        </VBox>
+    </left>
+
+    <!-- ── Chat Window ── -->
+    <center>
+        <VBox style="-fx-background-color: -fx-color-surface-50;">
+
+            <!-- Empty state when no conversation selected -->
+            <VBox fx:id="noConvoPane" alignment="CENTER" spacing="16" VBox.vgrow="ALWAYS"
+                  style="-fx-padding: 80;">
+                <Label text="💬" style="-fx-font-size: 56px;"/>
+                <Label text="Select a conversation" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: -fx-color-surface-900;"/>
+                <Label text="Choose a conversation from the list to start chatting." style="-fx-text-fill: -fx-color-surface-500;"/>
+            </VBox>
+
+            <!-- Active chat -->
+            <VBox fx:id="chatPane" VBox.vgrow="ALWAYS" managed="false" visible="false">
+
+                <!-- Chat Header -->
+                <HBox styleClass="chat-header" spacing="14" alignment="CENTER_LEFT">
+                    <Label fx:id="lblChatAvatar" text="U" styleClass="avatar-indigo"
+                           style="-fx-min-width:40; -fx-min-height:40;
+                                  -fx-max-width:40; -fx-max-height:40;
+                                  -fx-font-size:15px;"/>
+                    <VBox spacing="1" HBox.hgrow="ALWAYS">
+                        <Label fx:id="lblChatName"   text="Name"    styleClass="chat-name"/>
+                        <Label fx:id="lblChatStatus" text="Online"  styleClass="chat-status"/>
+                    </VBox>
+                </HBox>
+
+                <!-- Messages Area -->
+                <ScrollPane fx:id="msgScrollPane" fitToWidth="true" VBox.vgrow="ALWAYS"
+                            style="-fx-background-color: -fx-color-surface-50; -fx-background: -fx-color-surface-50;">
+                    <VBox fx:id="msgContainer" spacing="10"
+                          style="-fx-padding: 20 24 20 24; -fx-background-color: -fx-color-surface-50;"/>
+                </ScrollPane>
+
+                <!-- Input Bar -->
+                <HBox styleClass="msg-input-bar" spacing="12" alignment="CENTER">
+                    <TextField fx:id="txtMessage" styleClass="msg-input"
+                               promptText="%shell.type_msg"
+                               HBox.hgrow="ALWAYS" prefHeight="48"
+                               onAction="#sendMessage"/>
+                    <Button text="Send ➤" styleClass="msg-send-btn" onAction="#sendMessage" prefHeight="48"/>
+                </HBox>
+
+            </VBox>
+        </VBox>
+    </center>
+
+</BorderPane>

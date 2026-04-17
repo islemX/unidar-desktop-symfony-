@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<ScrollPane fitToWidth="true" xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.unidar.desktop.controllers.AdminDashboardController"
+            styleClass="scroll-pane"
+            stylesheets="@../css/unidar-pages.css">
+
+    <VBox styleClass="page-bg" style="-fx-padding: 32 40 48 40;" spacing="28">
+
+        <!-- ── Admin Header ── -->
+        <HBox spacing="20" alignment="CENTER_LEFT">
+            <VBox spacing="4" HBox.hgrow="ALWAYS">
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="🛡️" style="-fx-font-size: 28px;"/>
+                    <Label text="%admin.title" styleClass="page-title"/>
+                </HBox>
+                <Label text="%admin.subtitle" styleClass="page-subtitle"/>
+            </VBox>
+            <Label fx:id="lblDateTime"
+                   style="-fx-text-fill: -fx-color-surface-500; -fx-font-size: 13px; -fx-background-color: -fx-color-surface-white;
+                          -fx-background-radius: 12; -fx-padding: 10 18 10 18; -fx-font-weight: bold;
+                          -fx-border-color: -fx-color-surface-200; -fx-border-radius: 12; -fx-border-width: 1;"/>
+        </HBox>
+
+        <!-- ── Stats Row ── -->
+        <HBox spacing="18">
+            <VBox styleClass="admin-stat-card" spacing="10" HBox.hgrow="ALWAYS">
+                <Label text="👥" style="-fx-font-size: 28px;"/>
+                <Label fx:id="lblTotalUsers" text="—" styleClass="admin-stat-number"/>
+                <Label text="%admin.stats.users" styleClass="admin-stat-label"/>
+            </VBox>
+            <VBox styleClass="admin-stat-card" spacing="10" HBox.hgrow="ALWAYS">
+                <Label text="🏢" style="-fx-font-size: 28px;"/>
+                <Label fx:id="lblTotalListings" text="—" styleClass="admin-stat-number"/>
+                <Label text="%admin.stats.listings" styleClass="admin-stat-label"/>
+            </VBox>
+            <VBox styleClass="admin-stat-card" spacing="10" HBox.hgrow="ALWAYS">
+                <Label text="🛡️" style="-fx-font-size: 28px;"/>
+                <Label fx:id="lblPendingVerif" text="—" styleClass="admin-stat-number"/>
+                <Label text="%admin.stats.verifs" styleClass="admin-stat-label"/>
+            </VBox>
+            <VBox styleClass="admin-stat-card" spacing="10" HBox.hgrow="ALWAYS">
+                <Label text="📋" style="-fx-font-size: 28px;"/>
+                <Label fx:id="lblTotalContracts" text="—" styleClass="admin-stat-number"/>
+                <Label text="%admin.stats.contracts" styleClass="admin-stat-label"/>
+            </VBox>
+            <VBox styleClass="admin-stat-card" spacing="10" HBox.hgrow="ALWAYS">
+                <Label text="⭐" style="-fx-font-size: 28px;"/>
+                <Label fx:id="lblPremiumUsers" text="—" styleClass="admin-stat-number"/>
+                <Label text="%admin.stats.premium" styleClass="admin-stat-label"/>
+            </VBox>
+        </HBox>
+
+        <!-- ── Two-column layout ── -->
+        <HBox spacing="20" VBox.vgrow="ALWAYS">
+
+            <!-- Left – Users + Verifications -->
+            <VBox spacing="20" HBox.hgrow="ALWAYS">
+
+                <!-- Recent Users -->
+                <VBox styleClass="card" spacing="14">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="%admin.recent_users" styleClass="section-header" HBox.hgrow="ALWAYS"/>
+                        <Button text="%admin.manage_all" styleClass="btn-ghost, btn-sm"
+                                onAction="#gotoUsers"/>
+                    </HBox>
+                    <VBox fx:id="usersPreview" spacing="8">
+                        <Label text="Loading users…" styleClass="empty-state" maxWidth="Infinity" alignment="CENTER"/>
+                    </VBox>
+                </VBox>
+
+                <!-- Pending Verifications -->
+                <VBox styleClass="card" spacing="14">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="%admin.pending_verifs" styleClass="section-header" HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="lblVerifBadge" text="0"
+                               style="-fx-background-color: -fx-color-error; -fx-background-radius: 10;
+                                      -fx-text-fill: white; -fx-font-weight: bold;
+                                      -fx-font-size: 11px; -fx-padding: 2 7 2 7;"/>
+                    </HBox>
+                    <VBox fx:id="verifPreview" spacing="8">
+                        <Label text="No pending verifications." styleClass="empty-state" maxWidth="Infinity" alignment="CENTER"/>
+                    </VBox>
+                    <Button text="Review Verifications →" styleClass="btn-secondary" maxWidth="Infinity"
+                            onAction="#gotoVerifications"/>
+                </VBox>
+
+                <!-- Recent Contracts -->
+                <VBox styleClass="card" spacing="14">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="%admin.recent_contracts" styleClass="section-header" HBox.hgrow="ALWAYS"/>
+                    </HBox>
+                    <VBox fx:id="contractsPreview" spacing="8">
+                        <Label text="No signed contracts." styleClass="empty-state" maxWidth="Infinity" alignment="CENTER"/>
+                    </VBox>
+                </VBox>
+
+                <!-- Recent Reports -->
+                <VBox styleClass="card" spacing="14">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label fx:id="lblRecentReportsTitle" text="🚩  Recent Reports" styleClass="section-header" HBox.hgrow="ALWAYS"/>
+                    </HBox>
+                    <VBox fx:id="reportsPreview" spacing="8">
+                        <Label text="No open reports." styleClass="empty-state" maxWidth="Infinity" alignment="CENTER"/>
+                    </VBox>
+                    <Button fx:id="btnManageReports" text="Manage Reports →" styleClass="btn-ghost" maxWidth="Infinity" onAction="#gotoReports"/>
+                </VBox>
+            </VBox>
+
+            <!-- Right – Listings + Quick Actions -->
+            <VBox spacing="20" HBox.hgrow="ALWAYS">
+
+                <!-- Recent Listings -->
+                <VBox styleClass="card" spacing="14">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="%admin.recent_listings" styleClass="section-header" HBox.hgrow="ALWAYS"/>
+                        <Button text="%admin.manage_all" styleClass="btn-ghost, btn-sm"
+                                onAction="#gotoListings"/>
+                    </HBox>
+                    <VBox fx:id="listingsPreview" spacing="8">
+                        <Label text="Loading listings…" styleClass="empty-state" maxWidth="Infinity" alignment="CENTER"/>
+                    </VBox>
+                </VBox>
+
+                <!-- Termination Requests -->
+                <VBox styleClass="card" spacing="14">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label fx:id="lblTerminationRequestsTitle" text="📄  Termination Requests" styleClass="section-header" HBox.hgrow="ALWAYS"/>
+                    </HBox>
+                    <VBox fx:id="termsPreview" spacing="8">
+                        <Label text="No pending requests." styleClass="empty-state" maxWidth="Infinity" alignment="CENTER"/>
+                    </VBox>
+                </VBox>
+
+                <!-- Active Subscriptions -->
+                <VBox styleClass="card" spacing="14">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label fx:id="lblRecentSubsTitle" text="✨  Recent Subscriptions" styleClass="section-header" HBox.hgrow="ALWAYS"/>
+                    </HBox>
+                    <VBox fx:id="subsPreview" spacing="8">
+                        <Label text="Loading subscriptions…" styleClass="empty-state" maxWidth="Infinity" alignment="CENTER"/>
+                    </VBox>
+                </VBox>
+
+                <!-- Quick Actions -->
+                <VBox styleClass="card" spacing="14">
+                    <Label text="%admin.quick_actions" styleClass="section-header"/>
+                    <HBox spacing="12" alignment="CENTER_LEFT" style="-fx-flex-wrap: wrap;">
+                        <Button fx:id="btnUsersQuick" text="👥&#10;Users" styleClass="admin-action-btn" onAction="#gotoUsers"/>
+                        <Button fx:id="btnListingsQuick" text="🏢&#10;Listings" styleClass="admin-action-btn" onAction="#gotoListings"/>
+                        <Button fx:id="btnVerifsQuick" text="🛡️&#10;Verifications" styleClass="admin-action-btn" onAction="#gotoVerifications"/>
+                        <Button fx:id="btnMsgsQuick" text="💬&#10;Messages" styleClass="admin-action-btn" onAction="#gotoMessagesAdmin"/>
+                        <Button fx:id="btnPaymentsQuick" text="💳&#10;Payments" styleClass="admin-action-btn" onAction="#gotoPaymentsAdmin"/>
+                    </HBox>
+                </VBox>
+
+                <!-- Platform Health -->
+                <VBox styleClass="card" spacing="12">
+                    <Label text="%admin.health" styleClass="section-header"/>
+                    <HBox spacing="16">
+                        <VBox spacing="4" alignment="CENTER" HBox.hgrow="ALWAYS">
+                            <Label fx:id="lblApiStatusLabel" text="API Status" style="-fx-text-fill: -fx-color-surface-500; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                            <Label fx:id="lblApiStatus" text="✅ Online"
+                                   style="-fx-text-fill: #16a34a; -fx-font-weight: bold; -fx-font-size: 14px;"/>
+                        </VBox>
+                        <VBox spacing="4" alignment="CENTER" HBox.hgrow="ALWAYS">
+                            <Label fx:id="lblDbStatusLabel" text="DB Status" style="-fx-text-fill: -fx-color-surface-500; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                            <Label fx:id="lblDbStatus" text="✅ Online"
+                                   style="-fx-text-fill: #16a34a; -fx-font-weight: bold; -fx-font-size: 14px;"/>
+                        </VBox>
+                        <VBox spacing="4" alignment="CENTER" HBox.hgrow="ALWAYS">
+                            <Label fx:id="lblVersionLabel" text="Version" style="-fx-text-fill: -fx-color-surface-500; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                            <Label text="v1.0.0"
+                                   style="-fx-text-fill: #4f46e5; -fx-font-weight: bold; -fx-font-size: 14px;"/>
+                        </VBox>
+                    </HBox>
+                </VBox>
+            </VBox>
+        </HBox>
+    </VBox>
+</ScrollPane>

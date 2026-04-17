@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.unidar.desktop.controllers.ListingsController"
+            style="-fx-background-color: -fx-color-surface-50;"
+            stylesheets="@../css/unidar-pages.css">
+
+    <!-- ── Page Header ── -->
+    <top>
+        <VBox style="-fx-background-color: white; -fx-padding: 24 36 20 36; -fx-border-color: transparent transparent -fx-color-surface-100 transparent; -fx-border-width: 0 0 1 0;">
+            <HBox spacing="16" alignment="CENTER_LEFT">
+                <VBox HBox.hgrow="ALWAYS" spacing="4">
+                    <Label text="%list.title" styleClass="page-title"/>
+                    <Label fx:id="lblResultCount" text="%list.loading" styleClass="page-subtitle"/>
+                </VBox>
+                <TextField fx:id="txtSearch" promptText="%list.search_prompt"
+                           styleClass="form-input" prefWidth="260"
+                           onAction="#handleSearch"/>
+                <Button text="%list.search_btn" styleClass="btn-primary" onAction="#handleSearch"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- ── Filter Sidebar + Content ── -->
+    <left>
+        <!-- Filter Panel -->
+        <ScrollPane fitToWidth="true" prefWidth="250"
+                    style="-fx-background-color: white; -fx-border-color: transparent -fx-color-surface-100 transparent transparent; -fx-border-width: 0 1 0 0;">
+            <VBox spacing="20" style="-fx-padding: 24 20 24 20; -fx-background-color: white;">
+                <Label text="%list.filters" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: -fx-color-surface-900;"/>
+
+                <!-- Price Range -->
+                <VBox spacing="8">
+                    <Label text="%list.price_range" styleClass="form-label"/>
+                    <HBox spacing="8">
+                        <TextField fx:id="txtMinPrice" promptText="%list.min" styleClass="form-input" prefWidth="95"/>
+                        <Label text="–" style="-fx-text-fill: -fx-color-surface-400; -fx-padding: 10 0 0 0;"/>
+                        <TextField fx:id="txtMaxPrice" promptText="%list.max" styleClass="form-input" prefWidth="95"/>
+                    </HBox>
+                </VBox>
+
+                <!-- Bedrooms -->
+                <VBox spacing="8">
+                    <Label text="%list.bedrooms" styleClass="form-label"/>
+                    <ComboBox fx:id="comboBedrooms" maxWidth="Infinity" styleClass="combo-box"
+                              promptText="%list.any"/>
+                </VBox>
+
+                <!-- Property Type -->
+                <VBox spacing="8">
+                    <Label text="%list.type" styleClass="form-label"/>
+                    <ComboBox fx:id="comboType" maxWidth="Infinity" styleClass="combo-box"
+                              promptText="%list.all_types"/>
+                </VBox>
+
+                <!-- Gender Preference -->
+                <VBox spacing="8">
+                    <Label text="%list.gender" styleClass="form-label"/>
+                    <ComboBox fx:id="comboGender" maxWidth="Infinity" styleClass="combo-box"
+                              promptText="%list.no_pref"/>
+                </VBox>
+
+                <Button text="%list.apply" styleClass="btn-primary" maxWidth="Infinity"
+                        onAction="#handleFilter"/>
+                <Button text="%list.clear" styleClass="btn-ghost" maxWidth="Infinity"
+                        onAction="#clearFilters"/>
+
+                <Separator/>
+
+                <!-- Sort -->
+                <VBox spacing="8">
+                    <Label text="%list.sort_by" styleClass="form-label"/>
+                    <ComboBox fx:id="comboSort" maxWidth="Infinity" styleClass="combo-box"/>
+                </VBox>
+            </VBox>
+        </ScrollPane>
+    </left>
+
+    <!-- ── Listings Grid ── -->
+    <center>
+        <VBox style="-fx-background-color: -fx-color-surface-50;">
+            <!-- Loading Indicator -->
+            <VBox fx:id="loadingPane" alignment="CENTER" spacing="12"
+                  style="-fx-padding: 80;" managed="true" visible="true">
+                <ProgressIndicator styleClass="spinner" prefWidth="48" prefHeight="48"
+                                   style="-fx-accent: -fx-color-primary-600;"/>
+                <Label text="%list.loading" style="-fx-text-fill: -fx-color-surface-500;"/>
+            </VBox>
+
+            <!-- Empty State -->
+            <VBox fx:id="emptyPane" alignment="CENTER" spacing="16"
+                  style="-fx-padding: 80;" managed="false" visible="false">
+                <Label text="🏚️" style="-fx-font-size: 48px;"/>
+                <Label text="%list.no_results" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -fx-color-surface-900;"/>
+                <Label text="%list.adjust_filters" style="-fx-text-fill: -fx-color-surface-500;"/>
+                <Button text="%list.clear" styleClass="btn-secondary" onAction="#clearFilters"/>
+            </VBox>
+
+            <!-- Grid -->
+            <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent; -fx-background: transparent;">
+                <FlowPane fx:id="listingsGrid" hgap="20" vgap="20"
+                          prefWrapLength="860"
+                          style="-fx-background-color: transparent; -fx-padding: 24;"/>
+            </ScrollPane>
+        </VBox>
+    </center>
+
+</BorderPane>

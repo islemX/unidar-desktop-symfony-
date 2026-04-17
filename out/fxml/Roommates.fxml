@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="tn.unidar.desktop.controllers.RoommatesController"
+      spacing="0" style="-fx-background-color: -fx-color-surface-50;"
+      stylesheets="@../css/unidar-pages.css">
+
+    <!-- ── Hero Banner ── -->
+    <VBox styleClass="roommate-hero" spacing="14" alignment="CENTER_LEFT">
+        <Label text="⭐ %shell.nav.premium" styleClass="badge-premium-gold"/>
+        <Label text="%room.title"
+               style="-fx-font-size: 34px; -fx-font-weight: 800; -fx-text-fill: white;"
+               wrapText="true" maxWidth="600"/>
+        <Label text="%room.subtitle"
+               style="-fx-text-fill: rgba(255,255,255,0.8); -fx-font-size: 15px;"
+               wrapText="true" maxWidth="500"/>
+        <Button text="⚙️  %room.set_prefs" styleClass="btn-white" onAction="#openPreferences"
+                style="-fx-padding: 12 28 12 28; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+    </VBox>
+
+    <!-- ── Content ── -->
+    <VBox style="-fx-padding: 36 36 40 36; -fx-background-color: #f8fafc;" spacing="24" VBox.vgrow="ALWAYS">
+
+        <!-- Preferences Summary (shown after prefs are set) -->
+        <HBox fx:id="prefSummaryBar" managed="false" visible="false"
+              styleClass="alert-info" spacing="16" alignment="CENTER_LEFT">
+            <Label text="🎯" style="-fx-font-size: 18px;"/>
+            <Label fx:id="lblPrefSummary" text="%room.pref_summary"
+                   style="-fx-text-fill: #1d4ed8; -fx-font-size: 14px; -fx-font-weight: bold;"
+                   HBox.hgrow="ALWAYS"/>
+            <Button text="%common.edit" styleClass="btn-secondary, btn-sm" onAction="#openPreferences"/>
+        </HBox>
+
+        <!-- Loading -->
+        <VBox fx:id="loadingPane" alignment="CENTER" spacing="12" style="-fx-padding: 60;">
+            <ProgressIndicator prefWidth="48" prefHeight="48" style="-fx-accent: -fx-color-primary-600;"/>
+            <Label text="%room.loading" style="-fx-text-fill: -fx-color-surface-500;"/>
+        </VBox>
+
+        <!-- Empty State -->
+        <VBox fx:id="emptyPane" alignment="CENTER" spacing="16" style="-fx-padding: 60;"
+              managed="false" visible="false">
+            <Label text="🤝" style="-fx-font-size: 52px;"/>
+            <Label text="%room.no_results" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -fx-color-surface-900;"/>
+            <Label text="%room.set_prefs_hint" style="-fx-text-fill: -fx-color-surface-500;"/>
+            <Button text="%room.set_prefs_btn" styleClass="btn-primary" onAction="#openPreferences"/>
+        </VBox>
+
+        <!-- Matches Grid -->
+        <Label text="%room.matches_title" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: -fx-color-surface-900;"/>
+
+        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+                    style="-fx-background-color: transparent; -fx-background: transparent;">
+            <FlowPane fx:id="matchesGrid" hgap="20" vgap="20"
+                      style="-fx-background-color: transparent;"/>
+        </ScrollPane>
+    </VBox>
+
+    <!-- ══════════════════════════════════════════════════
+         PREFERENCES DIALOG (overlay) – managed by controller
+         ══════════════════════════════════════════════════ -->
+    <!-- Preferences are shown as a programmatic dialog via controller -->
+
+</VBox>

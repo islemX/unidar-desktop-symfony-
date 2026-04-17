@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.shape.Circle?>
+
+<ScrollPane fitToWidth="true" xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.unidar.desktop.controllers.SubscriptionController"
+            styleClass="scroll-pane"
+            stylesheets="@../css/unidar-pages.css">
+
+    <VBox style="-fx-padding: 48 60 60 60;" spacing="0">
+
+        <!-- ── Header ── -->
+        <VBox spacing="10" alignment="CENTER" style="-fx-padding: 0 0 40 0;">
+            <Label text="⭐ %subscription.activate" styleClass="badge-gradient" style="-fx-padding: 6 18; -fx-font-weight: 800; -fx-font-size: 13px;"/>
+            <Label text="%sub.title" styleClass="page-title"/>
+            <Label text="%sub.subtitle"
+                   styleClass="page-subtitle" wrapText="true" textAlignment="CENTER"/>
+        </VBox>
+
+        <HBox spacing="40" alignment="TOP_CENTER">
+
+            <!-- Left – Features & Evidence -->
+            <VBox spacing="24" HBox.hgrow="ALWAYS" maxWidth="480">
+                
+                <VBox styleClass="card" spacing="16">
+                    <Label text="%sub.benefits_title" styleClass="section-header"/>
+                    <VBox spacing="12">
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <Label text="✓" styleClass="benefit-check-student"/><Label text="%sub.benefit.listings" styleClass="benefit-text"/>
+                        </HBox>
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <Label text="✓" styleClass="benefit-check-student"/><Label text="%sub.benefit.msg" styleClass="benefit-text"/>
+                        </HBox>
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <Label text="✓" styleClass="benefit-check-student"/><Label text="%sub.benefit.contract" styleClass="benefit-text"/>
+                        </HBox>
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <Label text="✓" styleClass="benefit-check-student"/><Label text="%sub.benefit.maps" styleClass="benefit-text"/>
+                        </HBox>
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <Label text="✓" styleClass="benefit-check-student"/><Label text="%sub.benefit.roommates" styleClass="benefit-text"/>
+                        </HBox>
+                    </VBox>
+                </VBox>
+
+                <!-- Virtual Card Preview (BOOSTED) -->
+                <VBox spacing="16">
+                    <Label text="%sub.card_preview" style="-fx-font-weight: 800; -fx-text-fill: -fx-color-surface-400; -fx-font-size: 13px;"/>
+                    <StackPane fx:id="cardPreview" styleClass="virtual-card">
+                        <VBox spacing="36">
+                            <HBox alignment="CENTER_LEFT">
+                                <VBox fx:id="cardChip" styleClass="card-chip"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="UNIDAR" style="-fx-text-fill: white; -fx-font-weight: 900; -fx-font-size: 22px; -fx-opacity: 0.8;"/>
+                            </HBox>
+                            
+                            <Label fx:id="lblCardNumber" text="•••• •••• •••• ••••" styleClass="card-number-display"/>
+                            
+                            <HBox spacing="40" alignment="BOTTOM_LEFT">
+                                <VBox spacing="4">
+                                    <Label text="%sub.card_holder_label" styleClass="card-label-small"/>
+                                    <Label fx:id="lblCardHolder" text="YOUR NAME" styleClass="card-value-small" wrapText="true" maxWidth="150"/>
+                                </VBox>
+                                <VBox spacing="4">
+                                    <Label text="%sub.expires_label" styleClass="card-label-small"/>
+                                    <Label fx:id="lblCardExpiry" text="MM/YY" styleClass="card-value-small"/>
+                                </VBox>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="%sub.premium_badge" styleClass="badge-premium-gold" style="-fx-padding: 6 14; -fx-font-size: 12px;"/>
+                            </HBox>
+                        </VBox>
+                    </StackPane>
+                </VBox>
+            </VBox>
+
+            <!-- Right – Pricing & Payment -->
+            <VBox styleClass="pricing-card-premium" spacing="28" prefWidth="420">
+                <VBox spacing="4" alignment="CENTER">
+                    <Label text="%sub.popular" styleClass="badge-premium-gold"/>
+                    <HBox alignment="BASELINE_CENTER" spacing="4">
+                        <Label text="25" styleClass="pricing-price-premium"/>
+                        <Label text="%sub.per_year" style="-fx-text-fill: -fx-color-surface-500; -fx-font-weight: bold;"/>
+                    </HBox>
+                </VBox>
+
+                <VBox spacing="20">
+                    <VBox spacing="8">
+                        <Label text="%reg.full_name" styleClass="form-label"/>
+                        <TextField fx:id="txtName" promptText="As on your profile" styleClass="form-input"/>
+                    </VBox>
+                    <VBox spacing="8">
+                        <Label text="%sub.card_number" styleClass="form-label"/>
+                        <TextField fx:id="txtCardNumber" promptText="0000 0000 0000 0000" styleClass="form-input"/>
+                    </VBox>
+                    <HBox spacing="16">
+                        <VBox spacing="8" HBox.hgrow="ALWAYS">
+                            <Label text="%sub.card_expiry" styleClass="form-label"/>
+                            <TextField fx:id="txtExpiry" promptText="MM/YY" styleClass="form-input"/>
+                        </VBox>
+                        <VBox spacing="8" HBox.hgrow="ALWAYS">
+                            <Label text="%sub.card_cvv" styleClass="form-label"/>
+                            <PasswordField fx:id="txtCvv" promptText="•••" styleClass="form-input"/>
+                        </VBox>
+                    </HBox>
+                </VBox>
+
+                <VBox spacing="16">
+                    <Button fx:id="btnSubscribe" text="⭐  %subscription.activate" styleClass="btn-primary" 
+                            maxWidth="Infinity" prefHeight="58" onAction="#subscribe"
+                            style="-fx-font-size: 16px; -fx-font-weight: 800;"/>
+                    <Label text="🔒 %subscription.secure" alignment="CENTER" maxWidth="Infinity"
+                           style="-fx-text-fill: -fx-color-surface-400; -fx-font-size: 12px;"/>
+                </VBox>
+
+                <!-- Alert: already active -->
+                <VBox fx:id="alertActive" spacing="8" visible="false" managed="false"
+                      style="-fx-background-color: #f0fdf4; -fx-background-radius: 10; -fx-padding: 14;
+                             -fx-border-color: #86efac; -fx-border-radius: 10; -fx-border-width: 1;">
+                    <Label text="✅  You already have an active Premium subscription!"
+                           style="-fx-text-fill: #15803d; -fx-font-weight: bold; -fx-font-size: 13px;" wrapText="true"/>
+                </VBox>
+
+                <!-- Alert: error -->
+                <VBox fx:id="alertError" spacing="8" visible="false" managed="false"
+                      style="-fx-background-color: #fef2f2; -fx-background-radius: 10; -fx-padding: 14;
+                             -fx-border-color: #fca5a5; -fx-border-radius: 10; -fx-border-width: 1;">
+                    <Label fx:id="lblError" text=""
+                           style="-fx-text-fill: #dc2626; -fx-font-size: 13px;" wrapText="true"/>
+                </VBox>
+            </VBox>
+        </HBox>
+    </VBox>
+</ScrollPane>

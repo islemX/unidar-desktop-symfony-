@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<ScrollPane fitToWidth="true" xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="tn.unidar.desktop.controllers.HomeController"
+            style="-fx-background-color: white; -fx-background: white;"
+            stylesheets="@../css/unidar-pages.css">
+
+    <VBox spacing="0">
+
+        <!-- ══ HERO ══════════════════════════════════════════════════ -->
+        <VBox styleClass="home-hero" spacing="28" style="-fx-padding: 90 80 90 80;">
+
+            <!-- Badge -->
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Label text="●" style="-fx-text-fill: -fx-color-success; -fx-font-size: 9px;"/>
+                <Label text="%home.hero.badge"
+                       style="-fx-text-fill: rgba(255,255,255,0.9); -fx-font-size: 12px;
+                              -fx-font-weight: bold; -fx-background-color: rgba(255,255,255,0.12);
+                              -fx-background-radius: 20; -fx-padding: 5 14 5 14;"/>
+            </HBox>
+
+            <!-- Title -->
+            <Label text="%home.hero.title"
+                   styleClass="home-hero-title" wrapText="true" maxWidth="640"/>
+
+            <!-- Subtitle -->
+            <Label text="%home.hero.sub"
+                   styleClass="home-hero-sub" wrapText="true" maxWidth="540"/>
+
+            <!-- Actions -->
+            <HBox spacing="16" style="-fx-padding: 8 0 0 0;">
+                <Button text="%home.hero.btn_listings" styleClass="btn-hero-primary"   onAction="#gotoListings"/>
+                <Button text="%home.hero.btn_roommates"   styleClass="btn-hero-secondary" onAction="#gotoRoommates"/>
+            </HBox>
+
+            <!-- Stats -->
+            <HBox spacing="52" style="-fx-padding: 28 0 0 0;">
+                <VBox spacing="3">
+                    <Label text="500+"  styleClass="home-stat-number"/>
+                    <Label text="%home.stat.listings"    styleClass="home-stat-label"/>
+                </VBox>
+                <VBox spacing="3">
+                    <Label text="2,000+" styleClass="home-stat-number"/>
+                    <Label text="%home.stat.students"      styleClass="home-stat-label"/>
+                </VBox>
+                <VBox spacing="3">
+                    <Label text="15+"   styleClass="home-stat-number"/>
+                    <Label text="%home.stat.universities" styleClass="home-stat-label"/>
+                </VBox>
+                <VBox spacing="3">
+                    <Label text="98%"   styleClass="home-stat-number"/>
+                    <Label text="%home.stat.satisfaction"    styleClass="home-stat-label"/>
+                </VBox>
+            </HBox>
+        </VBox>
+
+        <!-- ══ FEATURES ══════════════════════════════════════════════ -->
+        <VBox spacing="40" style="-fx-background-color: white; -fx-padding: 80 60 80 60;">
+            <VBox spacing="12" alignment="CENTER">
+                <Label text="%home.features.tag" styleClass="section-tag"/>
+                <Label text="%home.features.title"
+                       styleClass="section-title" style="-fx-text-alignment: center;"/>
+                <Label text="%home.features.sub"
+                       styleClass="section-subtitle" style="-fx-text-alignment: center;"
+                       wrapText="true" maxWidth="500"/>
+            </VBox>
+
+            <HBox spacing="20">
+                <VBox styleClass="feature-card" spacing="10" HBox.hgrow="ALWAYS">
+                    <HBox styleClass="feature-icon-blue" alignment="CENTER"
+                          style="-fx-min-width:52; -fx-min-height:52; -fx-max-width:52; -fx-max-height:52; -fx-background-radius:14;">
+                        <Label text="🛡️" style="-fx-font-size:24px;"/>
+                    </HBox>
+                    <Label text="%home.features.card1.title" styleClass="feature-card-title"/>
+                    <Label text="%home.features.card1.desc"
+                           styleClass="feature-card-desc" wrapText="true"/>
+                </VBox>
+                <VBox styleClass="feature-card" spacing="10" HBox.hgrow="ALWAYS">
+                    <HBox styleClass="feature-icon-green" alignment="CENTER"
+                          style="-fx-min-width:52; -fx-min-height:52; -fx-max-width:52; -fx-max-height:52; -fx-background-radius:14;">
+                        <Label text="📍" style="-fx-font-size:24px;"/>
+                    </HBox>
+                    <Label text="%home.features.card2.title" styleClass="feature-card-title"/>
+                    <Label text="%home.features.card2.desc"
+                           styleClass="feature-card-desc" wrapText="true"/>
+                </VBox>
+                <VBox styleClass="feature-card" spacing="10" HBox.hgrow="ALWAYS">
+                    <HBox styleClass="feature-icon-purple" alignment="CENTER"
+                          style="-fx-min-width:52; -fx-min-height:52; -fx-max-width:52; -fx-max-height:52; -fx-background-radius:14;">
+                        <Label text="🤝" style="-fx-font-size:24px;"/>
+                    </HBox>
+                    <Label text="%home.features.card3.title" styleClass="feature-card-title"/>
+                    <Label text="%home.features.card3.desc"
+                           styleClass="feature-card-desc" wrapText="true"/>
+                </VBox>
+            </HBox>
+
+            <HBox spacing="20">
+                <VBox styleClass="feature-card" spacing="10" HBox.hgrow="ALWAYS">
+                    <HBox styleClass="feature-icon-orange" alignment="CENTER"
+                          style="-fx-min-width:52; -fx-min-height:52; -fx-max-width:52; -fx-max-height:52; -fx-background-radius:14;">
+                        <Label text="💬" style="-fx-font-size:24px;"/>
+                    </HBox>
+                    <Label text="%home.features.card4.title" styleClass="feature-card-title"/>
+                    <Label text="%home.features.card4.desc"
+                           styleClass="feature-card-desc" wrapText="true"/>
+                </VBox>
+                <VBox styleClass="feature-card" spacing="10" HBox.hgrow="ALWAYS">
+                    <HBox styleClass="feature-icon-pink" alignment="CENTER"
+                          style="-fx-min-width:52; -fx-min-height:52; -fx-max-width:52; -fx-max-height:52; -fx-background-radius:14;">
+                        <Label text="📋" style="-fx-font-size:24px;"/>
+                    </HBox>
+                    <Label text="%home.features.card5.title" styleClass="feature-card-title"/>
+                    <Label text="%home.features.card5.desc"
+                           styleClass="feature-card-desc" wrapText="true"/>
+                </VBox>
+                <VBox styleClass="feature-card" spacing="10" HBox.hgrow="ALWAYS">
+                    <HBox styleClass="feature-icon-cyan" alignment="CENTER"
+                          style="-fx-min-width:52; -fx-min-height:52; -fx-max-width:52; -fx-max-height:52; -fx-background-radius:14;">
+                        <Label text="⚡" style="-fx-font-size:24px;"/>
+                    </HBox>
+                    <Label text="%home.features.card6.title" styleClass="feature-card-title"/>
+                    <Label text="%home.features.card6.desc"
+                           styleClass="feature-card-desc" wrapText="true"/>
+                </VBox>
+            </HBox>
+        </VBox>
+
+        <!-- ══ FOR STUDENTS ══════════════════════════════════════════ -->
+        <HBox spacing="0" style="-fx-background-color: -fx-color-surface-50;">
+            <!-- Visual card stack -->
+            <VBox HBox.hgrow="ALWAYS" alignment="CENTER"
+                  style="-fx-padding: 70 40 70 60; -fx-min-width: 340;">
+                <StackPane>
+                    <!-- Back card -->
+                    <VBox styleClass="visual-card"
+                          style="-fx-translate-x: -16; -fx-translate-y: 56; -fx-rotate: -5; -fx-opacity: 0.7;">
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <Label text="★" style="-fx-background-color: #fbbf24; -fx-background-radius: 20;
+                                               -fx-min-width:36; -fx-min-height:36; -fx-max-width:36; -fx-max-height:36;
+                                               -fx-text-fill: white; -fx-alignment:CENTER; -fx-font-size:16px;"/>
+                            <VBox spacing="2">
+                                <Label text="%home.security.badge1"
+                                       style="-fx-font-weight:bold; -fx-font-size:12px; -fx-text-fill:#0f172a;"/>
+                                <Label text="%home.security.viz.sub1"
+                                       style="-fx-font-size:11px; -fx-text-fill:#64748b;"/>
+                            </VBox>
+                        </HBox>
+                    </VBox>
+                    <!-- Mid card -->
+                    <VBox styleClass="visual-card"
+                          style="-fx-translate-x: 18; -fx-translate-y: 28; -fx-rotate: 4; -fx-opacity: 0.85;">
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <Label text="🏠" style="-fx-background-color: #dbeafe; -fx-background-radius: 20;
+                                               -fx-min-width:36; -fx-min-height:36; -fx-max-width:36; -fx-max-height:36;
+                                               -fx-text-fill: -fx-color-primary-600; -fx-alignment:CENTER; -fx-font-size:16px;"/>
+                            <VBox spacing="2">
+                                <Label text="%home.security.viz.title2"
+                                       style="-fx-font-weight:bold; -fx-font-size:12px; -fx-text-fill:#0f172a;"/>
+                                <Label text="%home.security.viz.sub2"
+                                       style="-fx-font-size:11px; -fx-text-fill:#64748b;"/>
+                            </VBox>
+                        </HBox>
+                    </VBox>
+                    <!-- Front card -->
+                    <VBox styleClass="visual-card" spacing="10">
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <Label text="🤝" style="-fx-background-color: #d1fae5; -fx-background-radius: 20;
+                                               -fx-min-width:36; -fx-min-height:36; -fx-max-width:36; -fx-max-height:36;
+                                               -fx-text-fill: -fx-color-success; -fx-alignment:CENTER; -fx-font-size:16px;"/>
+                            <VBox spacing="2">
+                                <Label text="%home.security.viz.title3"
+                                       style="-fx-font-weight:bold; -fx-font-size:13px; -fx-text-fill:#0f172a;"/>
+                                <Label text="%home.security.viz.sub3"
+                                       style="-fx-font-size:11px; -fx-text-fill:#10b981; -fx-font-weight:bold;"/>
+                            </VBox>
+                        </HBox>
+                        <VBox spacing="5">
+                            <HBox style="-fx-background-color: #c7d2fe; -fx-background-radius: 4; -fx-pref-height:6; -fx-pref-width:220;"/>
+                            <HBox style="-fx-background-color: #c7d2fe; -fx-background-radius: 4; -fx-pref-height:6; -fx-pref-width:160; -fx-opacity:0.6;"/>
+                            <HBox style="-fx-background-color: #c7d2fe; -fx-background-radius: 4; -fx-pref-height:6; -fx-pref-width:110; -fx-opacity:0.3;"/>
+                        </VBox>
+                    </VBox>
+                </StackPane>
+            </VBox>
+
+            <!-- Text -->
+            <VBox spacing="20" HBox.hgrow="ALWAYS" style="-fx-padding: 70 60 70 40;">
+                <Label text="%home.students.tag" styleClass="section-tag"/>
+                <Label text="%home.students.title"
+                       style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: -fx-color-surface-900;"
+                       wrapText="true" maxWidth="380"/>
+                <Label text="%home.students.desc"
+                       style="-fx-text-fill: -fx-color-surface-500; -fx-font-size: 14px;"
+                       wrapText="true" maxWidth="380"/>
+                <VBox spacing="10">
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <Label text="✓" styleClass="benefit-check-student"/>
+                        <Label text="%home.students.benefit1" styleClass="benefit-text"/>
+                    </HBox>
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <Label text="✓" styleClass="benefit-check-student"/>
+                        <Label text="%home.students.benefit2" styleClass="benefit-text"/>
+                    </HBox>
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <Label text="✓" styleClass="benefit-check-student"/>
+                        <Label text="%home.students.benefit3" styleClass="benefit-text"/>
+                    </HBox>
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <Label text="✓" styleClass="benefit-check-student"/>
+                        <Label text="%home.students.benefit4" styleClass="benefit-text"/>
+                    </HBox>
+                </VBox>
+                <Button text="%home.students.btn" styleClass="btn-primary" onAction="#gotoListings"/>
+            </VBox>
+        </HBox>
+
+        <!-- ══ FOR OWNERS ════════════════════════════════════════════ -->
+        <HBox spacing="0" styleClass="owners-section">
+            <!-- Text -->
+            <VBox spacing="20" HBox.hgrow="ALWAYS" style="-fx-padding: 70 40 70 60;">
+                <Label text="%home.owners.tag" styleClass="section-tag-light"/>
+                <Label text="%home.owners.title"
+                       style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: white;"
+                       wrapText="true" maxWidth="380"/>
+                <Label text="%home.owners.desc"
+                       style="-fx-text-fill: rgba(255,255,255,0.8); -fx-font-size: 14px;"
+                       wrapText="true" maxWidth="380"/>
+                <VBox spacing="10">
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <Label text="✓" styleClass="benefit-check-owner"/>
+                        <Label text="%home.owners.benefit1" styleClass="benefit-text-light"/>
+                    </HBox>
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <Label text="✓" styleClass="benefit-check-owner"/>
+                        <Label text="%home.owners.benefit2" styleClass="benefit-text-light"/>
+                    </HBox>
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <Label text="✓" styleClass="benefit-check-owner"/>
+                        <Label text="%home.owners.benefit3" styleClass="benefit-text-light"/>
+                    </HBox>
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <Label text="✓" styleClass="benefit-check-owner"/>
+                        <Label text="%home.owners.benefit4" styleClass="benefit-text-light"/>
+                    </HBox>
+                </VBox>
+                <Button text="%home.owners.btn" styleClass="btn-hero-primary" onAction="#gotoListings"/>
+            </VBox>
+
+            <!-- Stats glow card -->
+            <VBox HBox.hgrow="ALWAYS" alignment="CENTER" style="-fx-padding: 70 60 70 40; -fx-min-width: 340;">
+                <VBox styleClass="glow-card" spacing="0">
+                    <Label text="%home.owners.stats.title"
+                           style="-fx-font-size:15px; -fx-font-weight:bold; -fx-text-fill:#0f172a; -fx-padding:0 0 16 0;"/>
+                    <HBox>
+                        <VBox styleClass="stat-item" HBox.hgrow="ALWAYS" alignment="CENTER" spacing="5">
+                            <Label text="95%" styleClass="stat-item-number"/>
+                            <Label text="%home.owners.stats.occ_rate" styleClass="stat-item-label"/>
+                        </VBox>
+                        <VBox styleClass="stat-item" HBox.hgrow="ALWAYS" alignment="CENTER" spacing="5">
+                            <Label text="24h" styleClass="stat-item-number"/>
+                            <Label text="%home.owners.stats.avg_resp" styleClass="stat-item-label"/>
+                        </VBox>
+                    </HBox>
+                    <HBox>
+                        <VBox styleClass="stat-item" HBox.hgrow="ALWAYS" alignment="CENTER" spacing="5">
+                            <Label text="4.9/5" styleClass="stat-item-number"/>
+                            <Label text="%home.owners.stats.satisfaction" styleClass="stat-item-label"/>
+                        </VBox>
+                        <VBox styleClass="stat-item" HBox.hgrow="ALWAYS" alignment="CENTER" spacing="5">
+                            <Label text="100k+" styleClass="stat-item-number"/>
+                            <Label text="%home.owners.stats.reached" styleClass="stat-item-label"/>
+                        </VBox>
+                    </HBox>
+                </VBox>
+            </VBox>
+        </HBox>
+
+        <!-- ══ HOW IT WORKS ══════════════════════════════════════════ -->
+        <VBox spacing="48" style="-fx-background-color: white; -fx-padding: 80 60 80 60;" alignment="CENTER">
+            <VBox spacing="12" alignment="CENTER">
+                <Label text="%home.how.tag" styleClass="section-tag"/>
+                <Label text="%home.how.title"
+                       styleClass="section-title" style="-fx-text-alignment: center;"/>
+                <Label text="%home.how.sub"
+                       styleClass="section-subtitle" style="-fx-text-alignment: center;"/>
+            </VBox>
+
+            <HBox spacing="32" alignment="CENTER">
+                <VBox styleClass="step-card" spacing="14" alignment="CENTER" prefWidth="240">
+                    <Label text="1" styleClass="step-number-circle"/>
+                    <Label text="%home.how.step1.title"
+                           style="-fx-font-size:17px; -fx-font-weight:bold; -fx-text-fill:#0f172a;
+                                  -fx-text-alignment:center;" wrapText="true"/>
+                    <Label text="%home.how.step1.desc"
+                           style="-fx-text-fill:#64748b; -fx-font-size:13px; -fx-text-alignment:center;" wrapText="true"/>
+                </VBox>
+                <Label text="→" style="-fx-text-fill:#e2e8f0; -fx-font-size:32px;"/>
+                <VBox styleClass="step-card" spacing="14" alignment="CENTER" prefWidth="240">
+                    <Label text="2" styleClass="step-number-circle"/>
+                    <Label text="%home.how.step2.title"
+                           style="-fx-font-size:17px; -fx-font-weight:bold; -fx-text-fill:#0f172a;
+                                  -fx-text-alignment:center;" wrapText="true"/>
+                    <Label text="%home.how.step2.desc"
+                           style="-fx-text-fill:#64748b; -fx-font-size:13px; -fx-text-alignment:center;" wrapText="true"/>
+                </VBox>
+                <Label text="→" style="-fx-text-fill:#e2e8f0; -fx-font-size:32px;"/>
+                <VBox styleClass="step-card" spacing="14" alignment="CENTER" prefWidth="240">
+                    <Label text="3" styleClass="step-number-circle"/>
+                    <Label text="%home.how.step3.title"
+                           style="-fx-font-size:17px; -fx-font-weight:bold; -fx-text-fill:#0f172a;
+                                  -fx-text-alignment:center;" wrapText="true"/>
+                    <Label text="%home.how.step3.desc"
+                           style="-fx-text-fill:#64748b; -fx-font-size:13px; -fx-text-alignment:center;" wrapText="true"/>
+                </VBox>
+            </HBox>
+        </VBox>
+
+        <!-- ══ TRUST & SAFETY ════════════════════════════════════════ -->
+        <VBox spacing="40" style="-fx-background-color: -fx-color-surface-50; -fx-padding: 70 60 70 60;" alignment="CENTER">
+            <VBox spacing="10" alignment="CENTER">
+                <Label text="%home.security.tag" styleClass="section-tag"/>
+                <Label text="%home.security.title"
+                       styleClass="section-title" style="-fx-text-alignment: center;"/>
+            </VBox>
+            <HBox spacing="14" alignment="CENTER">
+                <VBox styleClass="trust-badge" spacing="8" alignment="CENTER" prefWidth="170">
+                    <Label text="🎓" style="-fx-font-size: 28px;"/>
+                    <Label text="%home.security.badge1"
+                           styleClass="trust-badge-text" wrapText="true" style="-fx-text-alignment:center;"/>
+                </VBox>
+                <VBox styleClass="trust-badge" spacing="8" alignment="CENTER" prefWidth="170">
+                    <Label text="🔒" style="-fx-font-size: 28px;"/>
+                    <Label text="%home.security.badge2"
+                           styleClass="trust-badge-text" wrapText="true" style="-fx-text-alignment:center;"/>
+                </VBox>
+                <VBox styleClass="trust-badge" spacing="8" alignment="CENTER" prefWidth="170">
+                    <Label text="✅" style="-fx-font-size: 28px;"/>
+                    <Label text="%home.security.badge3"
+                           styleClass="trust-badge-text" wrapText="true" style="-fx-text-alignment:center;"/>
+                </VBox>
+                <VBox styleClass="trust-badge" spacing="8" alignment="CENTER" prefWidth="170">
+                    <Label text="🛡️" style="-fx-font-size: 28px;"/>
+                    <Label text="%home.security.badge4"
+                           styleClass="trust-badge-text" wrapText="true" style="-fx-text-alignment:center;"/>
+                </VBox>
+                <VBox styleClass="trust-badge" spacing="8" alignment="CENTER" prefWidth="170">
+                    <Label text="⭐" style="-fx-font-size: 28px;"/>
+                    <Label text="%home.security.badge5"
+                           styleClass="trust-badge-text" wrapText="true" style="-fx-text-alignment:center;"/>
+                </VBox>
+            </HBox>
+        </VBox>
+
+        <!-- ══ CTA BANNER ════════════════════════════════════════════ -->
+        <VBox styleClass="home-cta-section" spacing="20" alignment="CENTER"
+              style="-fx-padding: 90 60 90 60;">
+            <Label text="%home.cta.title"
+                   style="-fx-text-fill: rgba(255,255,255,0.8); -fx-font-size: 13px; -fx-font-weight: bold;"/>
+            <Label text="%home.cta.subtitle"
+                   style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: white;
+                          -fx-text-alignment: center;" wrapText="true" maxWidth="600"/>
+            <Label text="%home.cta.desc"
+                   style="-fx-text-fill: rgba(255,255,255,0.8); -fx-font-size: 15px; -fx-text-alignment: center;"
+                   wrapText="true" maxWidth="500"/>
+            <HBox spacing="16" alignment="CENTER" style="-fx-padding: 10 0 0 0;">
+                <Button text="%home.cta.get_started" styleClass="btn-hero-primary"   onAction="#gotoRegister"/>
+                <Button text="%home.cta.browse"     styleClass="btn-hero-secondary" onAction="#gotoListings"/>
+            </HBox>
+        </VBox>
+
+        <!-- ══ FOOTER ════════════════════════════════════════════════ -->
+        <VBox styleClass="home-footer" spacing="0">
+            <HBox spacing="0" style="-fx-padding: 56 60 40 60;">
+                <VBox spacing="12" HBox.hgrow="ALWAYS" maxWidth="260">
+                    <HBox spacing="6" alignment="CENTER_LEFT">
+                        <Label text="⬡" style="-fx-text-fill: #818cf8; -fx-font-size: 20px;"/>
+                        <Label text="UNIDAR"
+                               style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;"/>
+                    </HBox>
+                    <Label text="%home.footer.desc"
+                           style="-fx-text-fill: #94a3b8; -fx-font-size: 13px;"
+                           wrapText="true" maxWidth="220"/>
+                </VBox>
+
+                <VBox spacing="10" HBox.hgrow="ALWAYS" style="-fx-padding: 0 0 0 40;">
+                    <Label text="%home.footer.platform" styleClass="footer-col-title"/>
+                    <Hyperlink text="%shell.nav.listings" styleClass="footer-link" onAction="#gotoListings"/>
+                    <Hyperlink text="%shell.nav.roommates"  styleClass="footer-link" onAction="#gotoRoommates"/>
+                    <Hyperlink text="%home.how.tag"    styleClass="footer-link"/>
+                </VBox>
+
+                <VBox spacing="10" HBox.hgrow="ALWAYS" style="-fx-padding: 0 0 0 40;">
+                    <Label text="%home.footer.owners" styleClass="footer-col-title"/>
+                    <Hyperlink text="%admin.stats.listings"   styleClass="footer-link" onAction="#gotoRegister"/>
+                    <Hyperlink text="%admin.title" styleClass="footer-link"/>
+                    <Hyperlink text="%sub.title"         styleClass="footer-link"/>
+                </VBox>
+
+                <VBox spacing="10" HBox.hgrow="ALWAYS" style="-fx-padding: 0 0 0 40;">
+                    <Label text="%home.footer.support" styleClass="footer-col-title"/>
+                    <Hyperlink text="%home.footer.help" styleClass="footer-link"/>
+                    <Hyperlink text="%home.footer.contact"  styleClass="footer-link"/>
+                    <Hyperlink text="%home.footer.privacy"     styleClass="footer-link"/>
+                </VBox>
+            </HBox>
+
+            <HBox alignment="CENTER_LEFT"
+                  style="-fx-border-color: rgba(255,255,255,0.08) transparent transparent transparent;
+                         -fx-border-width: 1 0 0 0; -fx-padding: 20 60 20 60;">
+                <Label text="%home.footer.rights"
+                       style="-fx-text-fill: #475569; -fx-font-size: 12px;" HBox.hgrow="ALWAYS"/>
+                <Label text="%home.footer.made_with"
+                       style="-fx-text-fill: #475569; -fx-font-size: 12px;"/>
+            </HBox>
+        </VBox>
+
+    </VBox>
+</ScrollPane>
