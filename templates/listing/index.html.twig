@@ -6,103 +6,333 @@
 
 {% block stylesheets %}
 <style>
-    .listings-grid { display:grid; gap:1.5rem; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); }
-    .card-image-wrapper { position:relative; height:220px; overflow:hidden; }
-    .card-image-wrapper img { width:100%; height:100%; object-fit:cover; transition:transform 0.5s ease; }
-    .listing-card:hover .card-image-wrapper img { transform:scale(1.05); }
-    .price-tag { font-size:1.25rem; font-weight:800; color:var(--color-brand); }
-    .badge-type { position:absolute; top:12px; left:12px; background:rgba(255,255,255,0.92); backdrop-filter:blur(8px); color:var(--color-surface-800); padding:4px 12px; border-radius:50px; font-size:0.75rem; font-weight:600; border:1px solid rgba(255,255,255,0.5); }
+/* ============ Page shell ============ */
+.lst-page { padding: 2.5rem 0 5rem; position: relative; }
+.lst-page::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 420px;
+    background: radial-gradient(1200px 420px at 50% -200px, rgba(99,102,241,0.18), transparent 60%),
+                radial-gradient(900px 320px at 85% -150px, rgba(168,85,247,0.14), transparent 60%);
+    pointer-events: none; z-index: 0;
+}
+.lst-page > .container { position: relative; z-index: 1; }
 
-    /* Filter panel (PHP look) */
-    .filter-panel-pro { background: white; border: 1px solid var(--color-surface-100); border-radius: var(--radius-2xl); padding: 1.75rem; box-shadow: var(--shadow-sm); margin-bottom: 1.5rem; }
-    .filter-panel-pro .grid-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; }
-    .filter-panel-pro .form-label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-surface-700); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.35rem; }
-    .filter-panel-pro .form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 0.95rem; background: white; }
-    .filter-panel-pro .form-input:focus { border-color: var(--color-brand); outline: none; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+/* ============ Hero ============ */
+.lst-hero {
+    background: rgba(255,255,255,0.65);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 28px;
+    padding: 2rem 2.25rem;
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 10px 30px -12px rgba(15, 23, 42, 0.08);
+    display: flex; justify-content: space-between; align-items: flex-end;
+    flex-wrap: wrap; gap: 1.5rem;
+}
+.lst-hero-left { min-width: 260px; }
+.lst-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 6px 12px; border-radius: 50px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.12));
+    color: #6366f1; border: 1px solid rgba(99,102,241,0.2); margin-bottom: 0.9rem;
+}
+.lst-title {
+    font-size: clamp(1.7rem, 3.3vw, 2.4rem);
+    font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; margin: 0;
+    background: linear-gradient(135deg, #0f172a 0%, #4f46e5 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.lst-sub { margin: 0.5rem 0 0; color: #64748b; font-size: 0.95rem; }
 
-    /* View toggles */
-    .view-toggle { display: inline-flex; background: var(--color-surface-50); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 4px; gap: 4px; }
-    .view-toggle button { border: none; background: transparent; padding: 8px 16px; border-radius: var(--radius-md); cursor: pointer; font-size: 0.88rem; font-weight: 600; color: var(--color-text-muted); transition: all 0.2s; }
-    .view-toggle button.active { background: white; color: var(--color-brand); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+/* ============ View toggle ============ */
+.lst-view-toggle {
+    display: inline-flex; padding: 4px; gap: 4px;
+    background: #f1f5f9; border: 1px solid #e2e8f0;
+    border-radius: 14px;
+}
+.lst-view-toggle button {
+    border: none; background: transparent; padding: 8px 16px;
+    border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+    color: #64748b; display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.25s ease;
+}
+.lst-view-toggle button.active {
+    background: white; color: #4f46e5;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+}
+.lst-view-toggle button:not(.active):hover { color: #0f172a; }
 
-    /* Map */
-    #listingsMap { height: 600px; border-radius: var(--radius-xl); overflow: hidden; border: 1px solid var(--color-border); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08); }
-    .map-popup-card { min-width: 200px; }
-    .map-popup-card img { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; margin-bottom: 6px; }
-    .map-popup-card strong { display: block; font-size: 0.95rem; margin-bottom: 2px; }
-    .map-popup-card .price { color: var(--color-brand); font-weight: 800; }
-    .map-popup-card a { display: inline-block; margin-top: 6px; font-size: 0.8rem; color: var(--color-brand); }
+/* ============ Filter bar (pro) ============ */
+.lst-filters {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 22px;
+    padding: 1.4rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 14px -6px rgba(15,23,42,0.08), 0 1px 2px rgba(15,23,42,0.04);
+    position: relative;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.lst-filters:focus-within {
+    border-color: rgba(99,102,241,0.35);
+    box-shadow: 0 10px 25px -8px rgba(99,102,241,0.25), 0 2px 4px rgba(15,23,42,0.04);
+}
+.lst-filters-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap;
+}
+.lst-filters-head h2 {
+    margin: 0; font-size: 0.88rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.08em; color: #475569;
+    display: inline-flex; align-items: center; gap: 8px;
+}
+.lst-filters-head h2 .lst-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    box-shadow: 0 0 0 4px rgba(99,102,241,0.12);
+}
+.lst-filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.9rem;
+}
+.lst-field { position: relative; }
+.lst-field label {
+    display: block;
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: #475569; margin-bottom: 0.35rem;
+    display: inline-flex; align-items: center; gap: 5px;
+}
+.lst-field .form-input,
+.lst-field input[type="number"],
+.lst-field select {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 0.92rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    color: #0f172a;
+    transition: all 0.2s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+}
+.lst-field select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M1 1l5 5 5-5'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+    cursor: pointer;
+}
+.lst-field input:hover, .lst-field select:hover {
+    border-color: #cbd5e1; background: white;
+}
+.lst-field input:focus, .lst-field select:focus {
+    outline: none;
+    border-color: #6366f1;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(99,102,241,0.12);
+}
+.lst-field input::-webkit-outer-spin-button,
+.lst-field input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.lst-filters-actions {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 1.25rem; padding-top: 1rem;
+    border-top: 1px dashed #e2e8f0;
+    gap: 0.75rem; flex-wrap: wrap;
+}
+.lst-active-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.lst-active-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px 5px 12px;
+    border-radius: 50px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.08));
+    border: 1px solid rgba(99,102,241,0.2);
+    color: #4338ca;
+    font-size: 0.76rem; font-weight: 600;
+}
+.lst-buttons { display: inline-flex; gap: 0.6rem; }
+.lst-btn-clear {
+    padding: 10px 18px; font-size: 0.85rem; font-weight: 600;
+    background: transparent; border: 1px solid #e2e8f0; border-radius: 12px;
+    color: #64748b; cursor: pointer; text-decoration: none;
+    transition: all 0.2s ease;
+}
+.lst-btn-clear:hover { border-color: #cbd5e1; color: #0f172a; }
+.lst-btn-apply {
+    padding: 10px 22px; font-size: 0.88rem; font-weight: 700;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white; border: none; border-radius: 12px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    box-shadow: 0 8px 18px -6px rgba(79, 70, 229, 0.5);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+.lst-btn-apply:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -6px rgba(79,70,229,0.6); }
+.lst-btn-apply:active { transform: translateY(0); }
+
+/* ============ Results header ============ */
+.lst-results-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.25rem; padding: 0.4rem 0.25rem;
+    flex-wrap: wrap; gap: 0.75rem;
+}
+.lst-results-count { font-size: 0.95rem; color: #64748b; }
+.lst-results-count strong {
+    color: #0f172a; font-size: 1.15rem; font-weight: 800;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+/* ============ Empty state ============ */
+.lst-empty {
+    padding: 4rem 2rem;
+    background: white;
+    border: 1px dashed #e2e8f0;
+    border-radius: 22px;
+    text-align: center;
+}
+.lst-empty-icon { font-size: 3.5rem; margin-bottom: 0.5rem; display: inline-block;
+    filter: drop-shadow(0 6px 14px rgba(99,102,241,0.2));
+    animation: lstFloat 4s ease-in-out infinite;
+}
+@keyframes lstFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+/* ============ Grid ============ */
+.listings-grid { display: grid; gap: 1.75rem; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+
+/* ============ Map ============ */
+#listingsMap { height: 640px; border-radius: 22px; overflow: hidden;
+    border: 1px solid #e2e8f0; box-shadow: 0 10px 30px -12px rgba(15,23,42,0.12); }
+.map-popup-card { min-width: 200px; }
+.map-popup-card img { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; margin-bottom: 6px; }
+.map-popup-card strong { display: block; font-size: 0.95rem; margin-bottom: 2px; }
+.map-popup-card .price { color: var(--color-brand, #6366f1); font-weight: 800; }
+.map-popup-card a { display: inline-block; margin-top: 6px; font-size: 0.8rem; color: var(--color-brand, #6366f1); }
+
+/* ============ Pagination touch-up ============ */
+.pagination { display: flex; justify-content: center; margin-top: 2.5rem; }
+.pagination ul { display: inline-flex; gap: 4px; list-style: none; padding: 6px; margin: 0;
+    background: white; border: 1px solid #e2e8f0; border-radius: 14px;
+    box-shadow: 0 4px 12px -6px rgba(15,23,42,0.08); }
+.pagination li a, .pagination li span { display: inline-flex; align-items: center; justify-content: center;
+    min-width: 36px; height: 36px; padding: 0 12px;
+    border-radius: 10px; text-decoration: none; color: #64748b; font-weight: 600; font-size: 0.88rem;
+    transition: all 0.2s ease; }
+.pagination li a:hover { background: #f1f5f9; color: #4f46e5; }
+.pagination li.current span { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white;
+    box-shadow: 0 6px 14px -4px rgba(79,70,229,0.5); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .lst-empty-icon { animation: none; }
+    .lst-btn-apply { transition: none; }
+}
 </style>
 {% endblock %}
 
 {% block body %}
 <div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div></div>
 
-<main style="padding:2.5rem 0 4rem;">
+{# Build a compact list of the currently-applied filters for the chip strip #}
+{% set applied_chips = [] %}
+{% if app.request.query.get('listing_filter') %}
+    {% set qf = app.request.query.all('listing_filter') %}
+    {% if qf.minPrice is defined and qf.minPrice %}{% set applied_chips = applied_chips|merge([{'label': 'Min ' ~ qf.minPrice ~ ' TND'}]) %}{% endif %}
+    {% if qf.maxPrice is defined and qf.maxPrice %}{% set applied_chips = applied_chips|merge([{'label': 'Max ' ~ qf.maxPrice ~ ' TND'}]) %}{% endif %}
+    {% if qf.bedrooms is defined and qf.bedrooms %}{% set applied_chips = applied_chips|merge([{'label': qf.bedrooms ~ '+ bed' ~ (qf.bedrooms > 1 ? 's' : '')}]) %}{% endif %}
+    {% if qf.propertyType is defined and qf.propertyType %}{% set applied_chips = applied_chips|merge([{'label': qf.propertyType|replace({'_': ' '})|title}]) %}{% endif %}
+    {% if qf.genderPreference is defined and qf.genderPreference %}{% set applied_chips = applied_chips|merge([{'label': qf.genderPreference|capitalize ~ ' only'}]) %}{% endif %}
+{% endif %}
+
+<main class="lst-page">
     <div class="container">
-        <div class="section-header-pro fade-in-up" style="margin-bottom:1.5rem;">
-            <span class="section-tag" data-i18n="listings_marketplace">Marketplace</span>
-            <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem;">
-                <div>
-                    <h1 class="title-pro" data-i18n="listings_title">Find Your Perfect Home</h1>
-                    <p class="text-muted" style="margin-top:0.5rem;">Browse verified student housing across Tunisia.</p>
+
+        {# ——— Hero ——— #}
+        <div class="lst-hero fade-in-up">
+            <div class="lst-hero-left">
+                <span class="lst-tag">✨ <span data-i18n="listings_marketplace">Marketplace</span></span>
+                <h1 class="lst-title" data-i18n="listings_title">Find Your Perfect Home</h1>
+                <p class="lst-sub">Browse verified student housing across Tunisia — filter, compare, and contact owners in a click.</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <div class="lst-view-toggle" role="tablist" aria-label="View mode">
+                    <button type="button" id="viewGridBtn" class="active" onclick="setView('grid')">🔲 <span>Grid</span></button>
+                    <button type="button" id="viewMapBtn" onclick="setView('map')">🗺️ <span>Map</span></button>
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <div class="view-toggle" role="tablist" aria-label="View mode">
-                        <button type="button" id="viewGridBtn" class="active" onclick="setView('grid')">🔲 Grid</button>
-                        <button type="button" id="viewMapBtn" onclick="setView('map')">🗺️ Map</button>
-                    </div>
-                    {% if is_granted('ROLE_OWNER') %}
-                        <a href="{{ path('listing_new') }}" class="btn btn-primary">+ Add Listing</a>
-                    {% endif %}
-                </div>
+                {% if is_granted('ROLE_OWNER') %}
+                    <a href="{{ path('listing_new') }}" class="lst-btn-apply" style="text-decoration:none;">+ Add Listing</a>
+                {% endif %}
             </div>
         </div>
 
-        <div class="filter-panel-pro fade-in-up stagger-1">
+        {# ——— Filter bar ——— #}
+        <div class="lst-filters fade-in-up stagger-1">
+            <div class="lst-filters-head">
+                <h2><span class="lst-dot"></span> Filters</h2>
+                {% if applied_chips|length > 0 %}
+                    <div class="lst-active-chips">
+                        {% for c in applied_chips %}
+                            <span class="lst-active-chip">{{ c.label }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
             {{ form_start(filter_form, {'method': 'GET', 'action': path('listing_index'), 'attr': {'style': 'margin:0'}}) }}
-            <div class="grid-filters">
-                <div>
-                    <label class="form-label" data-i18n="filter_min_price">Min Price (TND)</label>
-                    {{ form_widget(filter_form.minPrice, {'attr': {'class': 'form-input', 'placeholder': 'e.g. 200'}}) }}
+            <div class="lst-filters-grid">
+                <div class="lst-field">
+                    <label data-i18n="filter_min_price">💰 Min Price <span style="color:#94a3b8;font-weight:500;">(TND)</span></label>
+                    {{ form_widget(filter_form.minPrice, {'attr': {'placeholder': '200'}}) }}
                 </div>
-                <div>
-                    <label class="form-label" data-i18n="filter_max_price">Max Price (TND)</label>
-                    {{ form_widget(filter_form.maxPrice, {'attr': {'class': 'form-input', 'placeholder': 'e.g. 1200'}}) }}
+                <div class="lst-field">
+                    <label data-i18n="filter_max_price">💰 Max Price <span style="color:#94a3b8;font-weight:500;">(TND)</span></label>
+                    {{ form_widget(filter_form.maxPrice, {'attr': {'placeholder': '1200'}}) }}
                 </div>
-                <div>
-                    <label class="form-label" data-i18n="filter_bedrooms">Bedrooms</label>
-                    {{ form_widget(filter_form.bedrooms, {'attr': {'class': 'form-input'}}) }}
+                <div class="lst-field">
+                    <label data-i18n="filter_bedrooms">🛏 Bedrooms</label>
+                    {{ form_widget(filter_form.bedrooms, {'attr': {'placeholder': 'Any'}}) }}
                 </div>
-                <div>
-                    <label class="form-label" data-i18n="filter_property_type">Property Type</label>
-                    {{ form_widget(filter_form.propertyType, {'attr': {'class': 'form-input'}}) }}
+                <div class="lst-field">
+                    <label data-i18n="filter_property_type">🏠 Property Type</label>
+                    {{ form_widget(filter_form.propertyType) }}
                 </div>
-                <div>
-                    <label class="form-label">Gender</label>
-                    {{ form_widget(filter_form.genderPreference, {'attr': {'class': 'form-input'}}) }}
+                <div class="lst-field">
+                    <label>👥 Gender</label>
+                    {{ form_widget(filter_form.genderPreference) }}
                 </div>
             </div>
-            <div style="display:flex; justify-content: flex-end; margin-top: 1.25rem; gap: 0.75rem;">
-                <a href="{{ path('listing_index') }}" class="btn btn-secondary btn-sm">Clear</a>
-                <button type="submit" class="btn btn-primary hover-lift" data-i18n="btn_apply_filters">Apply Filters</button>
+
+            <div class="lst-filters-actions">
+                <div class="lst-results-count" aria-live="polite">
+                    <strong>{{ listings.getTotalItemCount() }}</strong> listings match
+                </div>
+                <div class="lst-buttons">
+                    <a href="{{ path('listing_index') }}" class="lst-btn-clear">Clear</a>
+                    <button type="submit" class="lst-btn-apply" data-i18n="btn_apply_filters">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                        Apply Filters
+                    </button>
+                </div>
             </div>
             {{ form_end(filter_form) }}
         </div>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
-            <p style="color:var(--color-text-muted);font-size:0.9rem;">
-                <strong style="color:var(--color-surface-900);">{{ listings.getTotalItemCount() }}</strong> listings found
-            </p>
-        </div>
-
-        {# Grid view #}
+        {# ——— Grid view ——— #}
         <div id="gridView">
             {% if listings|length == 0 %}
-                <div class="card premium-card text-center" style="padding:4rem;">
-                    <div style="font-size:4rem;margin-bottom:1rem;">🏠</div>
-                    <h3 style="margin-bottom:0.5rem;">No listings found</h3>
-                    <p class="text-muted">Try adjusting your filters or check back later.</p>
+                <div class="lst-empty fade-in-up">
+                    <div class="lst-empty-icon">🏜️</div>
+                    <h3 style="margin: 0 0 0.5rem; font-size: 1.25rem; color: #0f172a;">No listings match your filters</h3>
+                    <p style="color: #64748b; margin: 0 0 1.5rem;">Try widening the price range or clearing filters.</p>
+                    <a href="{{ path('listing_index') }}" class="lst-btn-apply" style="text-decoration:none;">Reset filters</a>
                 </div>
             {% else %}
                 <div class="listings-grid">
@@ -110,11 +340,11 @@
                         {% include 'listing/_card.html.twig' %}
                     {% endfor %}
                 </div>
-                <div class="pagination" style="margin-top: 2rem;">{{ knp_pagination_render(listings) }}</div>
+                <div class="pagination">{{ knp_pagination_render(listings) }}</div>
             {% endif %}
         </div>
 
-        {# Map view #}
+        {# ——— Map view ——— #}
         <div id="mapView" style="display: none;">
             <div id="listingsMap"></div>
         </div>
@@ -175,7 +405,7 @@
         _listingsData.forEach(function(l) {
             var priceIcon = L.divIcon({
                 className: 'price-marker',
-                html: '<div style="background: var(--color-brand, #6366f1); color: white; padding: 4px 10px; border-radius: 50px; font-weight: 700; font-size: 0.8rem; box-shadow: 0 4px 10px rgba(0,0,0,0.25); white-space: nowrap; border: 2px solid white;">' + l.price + ' TND</div>',
+                html: '<div style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 5px 12px; border-radius: 50px; font-weight: 700; font-size: 0.8rem; box-shadow: 0 6px 14px rgba(79,70,229,0.5); white-space: nowrap; border: 2px solid white;">' + l.price + ' TND</div>',
                 iconSize: [null, null],
                 iconAnchor: [30, 12]
             });

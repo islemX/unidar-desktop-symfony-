@@ -32,9 +32,29 @@ class ListingController extends AbstractController
         ]);
         $filterForm->handleRequest($request);
 
-        $filters = $filterForm->isSubmitted() && $filterForm->isValid()
-            ? $filterForm->getData()
+        $rawFilters = $filterForm->isSubmitted() && $filterForm->isValid()
+            ? (array) $filterForm->getData()
             : [];
+
+        // Map form camelCase keys to repository snake_case keys, dropping null/empty values
+        $keyMap = [
+            'minPrice'         => 'min_price',
+            'maxPrice'         => 'max_price',
+            'bedrooms'         => 'bedrooms',
+            'propertyType'     => 'property_type',
+            'genderPreference' => 'gender_preference',
+            'lat'              => 'lat',
+            'lng'              => 'lng',
+        ];
+        $filters = [];
+        foreach ($keyMap as $formKey => $repoKey) {
+            if (array_key_exists($formKey, $rawFilters)
+                && $rawFilters[$formKey] !== null
+                && $rawFilters[$formKey] !== ''
+            ) {
+                $filters[$repoKey] = $rawFilters[$formKey];
+            }
+        }
 
         $query = $listingRepo->findByFilters($filters);
 
@@ -60,11 +80,28 @@ class ListingController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $listing->setOwner($this->getUser());
 
+            // Location is required — map must have been clicked to set lat/lng
+            if ($listing->getLatitude() === null || $listing->getLongitude() === null) {
+                $this->addFlash('error', 'Please select a location on the map before publishing.');
+                return $this->render('listing/new.html.twig', [
+                    'form' => $form,
+                    'my_listings' => $em->getRepository(Listing::class)->findBy(['owner' => $this->getUser()], ['createdAt' => 'DESC'], 6),
+                ]);
+            }
+
+            // Fallback: if reverse-geocode didn't populate address, derive from coords
+            if (!$listing->getAddress()) {
+                $listing->setAddress(sprintf('%.4f, %.4f', $listing->getLatitude(), $listing->getLongitude()));
+            }
+
             // Owner signature is required on creation
             $signature = (string) $form->get('ownerSignature')->getData();
             if ($signature === '') {
                 $this->addFlash('error', 'A digital signature is required to publish a listing.');
-                return $this->render('listing/new.html.twig', ['form' => $form]);
+                return $this->render('listing/new.html.twig', [
+                    'form' => $form,
+                    'my_listings' => $em->getRepository(Listing::class)->findBy(['owner' => $this->getUser()], ['createdAt' => 'DESC'], 6),
+                ]);
             }
             $signaturePath = $this->saveOwnerSignature($signature);
             if ($signaturePath !== null) {
@@ -101,7 +138,10 @@ class ListingController extends AbstractController
             return $this->redirectToRoute('listing_show', ['id' => $listing->getId()]);
         }
 
-        return $this->render('listing/new.html.twig', ['form' => $form]);
+        return $this->render('listing/new.html.twig', [
+            'form' => $form,
+            'my_listings' => $em->getRepository(Listing::class)->findBy(['owner' => $this->getUser()], ['createdAt' => 'DESC'], 6)
+        ]);
     }
 
     #[Route('/listings/{id}/edit', name: 'listing_edit', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
@@ -156,7 +196,8 @@ class ListingController extends AbstractController
     #[Route('/listings/{id}', name: 'listing_show', requirements: ['id' => '\d+'])]
     public function show(
         Listing $listing,
-        SavedListingRepository $savedRepo
+        SavedListingRepository $savedRepo,
+        \App\Repository\SubscriptionRepository $subscriptionRepo
     ): Response {
         $isSaved = false;
         if ($this->getUser()) {
@@ -164,9 +205,47 @@ class ListingController extends AbstractController
             $isSaved = $saved !== null;
         }
 
+        // Occupancy: who currently holds a signed & paid contract on this listing?
+        // Once at least one student has a contract in Active/Paid state, additional students
+        // must contact the existing tenant(s) instead of the owner, and they can no longer
+        // generate a new contract from this page.
+        $activeStatuses = [
+            \App\Enum\ContractStatus::Active,
+            \App\Enum\ContractStatus::Paid,
+        ];
+        $occupantContracts = [];
+        foreach ($listing->getContracts() as $c) {
+            if (in_array($c->getStatus(), $activeStatuses, true) && $c->getStudent() !== null) {
+                $occupantContracts[] = $c;
+            }
+        }
+        // Sort by creation date ASC so the "first signer" comes out on top.
+        usort($occupantContracts, fn($a, $b) => $a->getCreatedAt() <=> $b->getCreatedAt());
+
+        $firstTenant     = !empty($occupantContracts) ? $occupantContracts[0]->getStudent() : null;
+        $occupiedCount   = count($occupantContracts);
+        $capacity        = $listing->getCapacity() ?? 1;
+        $isFull          = $occupiedCount >= $capacity;
+        $viewerIsTenant  = $this->getUser() !== null
+            && $firstTenant !== null
+            && array_filter($occupantContracts, fn($c) => $c->getStudent() === $this->getUser());
+
+        // Subscription status (students only — owners/admins are not gated).
+        $hasSubscription = true;
+        if ($this->getUser() && $this->isGranted('ROLE_STUDENT')
+            && !$this->isGranted('ROLE_OWNER') && !$this->isGranted('ROLE_ADMIN')
+        ) {
+            $hasSubscription = $subscriptionRepo->findActiveByUser($this->getUser()) !== null;
+        }
+
         return $this->render('listing/show.html.twig', [
-            'listing'  => $listing,
-            'is_saved' => $isSaved,
+            'listing'          => $listing,
+            'is_saved'         => $isSaved,
+            'first_tenant'     => $firstTenant,
+            'occupied_count'   => $occupiedCount,
+            'is_full'          => $isFull,
+            'viewer_is_tenant' => (bool) $viewerIsTenant,
+            'has_subscription' => $hasSubscription,
         ]);
     }
 

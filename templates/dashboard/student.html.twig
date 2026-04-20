@@ -17,6 +17,78 @@
     }
     .dashboard-hero h1 { font-size: 1.75rem; color: white; margin-bottom: 0.5rem; position: relative; z-index: 1; }
     .dashboard-hero p { color: rgba(255,255,255,0.7); position: relative; z-index: 1; }
+
+    /* ── Status notification stack ── */
+    .status-stack { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
+    .status-bar {
+        position: relative; overflow: hidden;
+        display: flex; align-items: center; gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: var(--radius-xl);
+        border: 1px solid transparent;
+        background: #fff;
+        box-shadow: 0 6px 22px -10px rgba(0,0,0,0.18);
+        animation: statusSlide 0.55s cubic-bezier(.2,.8,.2,1) both;
+    }
+    .status-bar::before {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%);
+        transform: translateX(-120%);
+        animation: shimmerBar 3.4s ease-in-out infinite;
+        pointer-events: none;
+    }
+    .status-bar .status-icon {
+        flex: 0 0 46px; width: 46px; height: 46px;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 1.25rem; color: #fff;
+        border-radius: 14px;
+        box-shadow: 0 6px 18px -4px currentColor;
+        animation: statusPulse 2.4s ease-in-out infinite;
+    }
+    .status-bar .status-body { flex: 1 1 auto; min-width: 0; }
+    .status-bar .status-title { font-weight: 700; font-size: 0.98rem; margin-bottom: 2px; color: #111827; }
+    .status-bar .status-msg { font-size: 0.83rem; color: #4b5563; }
+    .status-bar .status-cta {
+        flex: 0 0 auto;
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        padding: 0.55rem 1rem;
+        border-radius: 10px;
+        font-weight: 700; font-size: 0.82rem;
+        text-decoration: none;
+        color: #fff;
+        background: linear-gradient(135deg, var(--ga,#6366f1), var(--gb,#ec4899));
+        box-shadow: 0 8px 20px -6px rgba(0,0,0,0.25);
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .status-bar .status-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 26px -8px rgba(0,0,0,0.3); }
+
+    .status-bar--danger  { --ga:#ef4444; --gb:#f97316; border-color:#fecaca; background:linear-gradient(100deg,#fff5f5,#fff); }
+    .status-bar--danger  .status-icon { background:linear-gradient(135deg,#ef4444,#f97316); color:#ef4444; }
+    .status-bar--warn    { --ga:#f59e0b; --gb:#ef4444; border-color:#fde68a; background:linear-gradient(100deg,#fffaf0,#fff); }
+    .status-bar--warn    .status-icon { background:linear-gradient(135deg,#f59e0b,#f97316); color:#f59e0b; }
+    .status-bar--info    { --ga:#6366f1; --gb:#8b5cf6; border-color:#c7d2fe; background:linear-gradient(100deg,#eef2ff,#fff); }
+    .status-bar--info    .status-icon { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#6366f1; }
+
+    @keyframes statusSlide {
+        from { opacity:0; transform: translateY(-8px) scale(0.98); }
+        to   { opacity:1; transform: translateY(0) scale(1); }
+    }
+    @keyframes shimmerBar {
+        0%, 10% { transform: translateX(-120%); }
+        45%, 100% { transform: translateX(120%); }
+    }
+    @keyframes statusPulse {
+        0%,100% { transform: scale(1); box-shadow: 0 6px 18px -4px currentColor; }
+        50%     { transform: scale(1.06); box-shadow: 0 10px 26px -4px currentColor; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .status-bar, .status-bar::before, .status-bar .status-icon { animation: none !important; }
+    }
+    @media (max-width: 640px) {
+        .status-bar { flex-wrap: wrap; }
+        .status-bar .status-cta { width: 100%; justify-content: center; }
+    }
 </style>
 {% endblock %}
 
@@ -30,6 +102,62 @@
             <h1>Welcome back, {{ app.user.fullName }}!</h1>
             <p>Here's your UNIDAR activity at a glance.</p>
         </div>
+
+        {# ── Account-health notification bar ── #}
+        {% if (not is_verified) or (not has_subscription) %}
+            <div class="status-stack fade-in-up">
+                {% if not is_verified %}
+                    {% set vstyle = verification_status == 'rejected' ? 'danger' : (verification_status == 'pending' ? 'info' : 'warn') %}
+                    <div class="status-bar status-bar--{{ vstyle }}">
+                        <span class="status-icon">
+                            {% if verification_status == 'rejected' %}❌
+                            {% elseif verification_status == 'pending' %}⏳
+                            {% else %}🪪
+                            {% endif %}
+                        </span>
+                        <div class="status-body">
+                            <div class="status-title">
+                                {% if verification_status == 'rejected' %}
+                                    Your verification was rejected
+                                {% elseif verification_status == 'pending' %}
+                                    Verification under review
+                                {% else %}
+                                    Verify your identity to unlock UNIDAR
+                                {% endif %}
+                            </div>
+                            <div class="status-msg">
+                                {% if verification_status == 'rejected' %}
+                                    Our team couldn't validate your documents. Please re-submit a clearer copy of your student ID and national ID.
+                                {% elseif verification_status == 'pending' %}
+                                    Our team is reviewing your documents — this usually takes less than 24 hours. You'll be notified once approved.
+                                {% else %}
+                                    Upload your student ID and national ID so owners know they're dealing with a real student.
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if verification_status != 'pending' %}
+                            <a href="{{ path('verification_submit') }}" class="status-cta">
+                                {{ verification_status == 'rejected' ? 'Re-submit' : 'Verify now' }} →
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {% if not has_subscription %}
+                    <div class="status-bar status-bar--warn">
+                        <span class="status-icon">⭐</span>
+                        <div class="status-body">
+                            <div class="status-title">A subscription is required to rent on UNIDAR</div>
+                            <div class="status-msg">
+                                Without an active subscription you <strong>can't generate a contract</strong> or
+                                <strong>message owners and potential roommates</strong>. Pick a plan to unlock everything.
+                            </div>
+                        </div>
+                        <a href="{{ path('subscription_index') }}" class="status-cta">Subscribe →</a>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
 
         <!-- Stats row -->
         <div class="grid grid-3 fade-in-up stagger-1" style="margin-bottom: 2rem;">
@@ -83,10 +211,14 @@
                                 <div style="font-size: 0.8rem; color: var(--color-text-muted);">{{ contract.monthlyRent }} TND/mo</div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span class="badge {% if contract.status.value == 'active' %}badge-success{% elseif contract.status.value == 'signed_by_both' %}badge-info{% else %}badge-warning{% endif %}">
+                                <span class="badge {% if contract.status.value == 'active' %}badge-success{% elseif contract.status.value == 'signed_by_both' %}badge-info{% elseif contract.status.value == 'cancelled' %}badge-danger{% else %}badge-warning{% endif %}">
                                     {{ contract.status.value|replace({'_': ' '})|title }}
                                 </span>
-                                <a href="{{ path('contract_show', {id: contract.id}) }}" class="btn btn-secondary btn-sm">View</a>
+                                {% if contract.status.value != 'cancelled' %}
+                                    <a href="{{ path('contract_show', {id: contract.id}) }}" class="btn btn-secondary btn-sm">View</a>
+                                {% else %}
+                                    <span class="btn btn-sm" style="opacity:0.5;cursor:not-allowed;" title="Contract cancelled">Unavailable</span>
+                                {% endif %}
                             </div>
                         </div>
                         {% endfor %}

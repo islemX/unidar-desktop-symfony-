@@ -338,10 +338,26 @@
         if (newFinal) finalText += newFinal;
         updateTranscript((finalText + ' ' + interim).trim());
 
-        // Dictation: commit each final chunk immediately, keep session alive.
+        // Dictation: commit each final chunk immediately, keep session alive —
+        // but first, intercept command phrases ("done", "stop", "next field", etc.)
+        // so they run their function instead of being typed as text.
         if (stickyMode === 'dictation') {
           if (newFinal.trim()) {
-            commitDictationChunk(newFinal.trim());
+            const chunk = newFinal.trim();
+            if (isDictationCommand(chunk)) {
+              // Command phrase — strip any stale interim preview, then handle.
+              if (dictationInterim && dictationTarget && dictationTarget.value.endsWith(dictationInterim)) {
+                dictationTarget.value = dictationTarget.value.slice(0, -dictationInterim.length);
+                dictationTarget.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+              dictationInterim = '';
+              finalText = '';
+              // Stop the continuous session so handleTranscript can route the command.
+              try { recognition.abort(); } catch (_) {}
+              handleTranscript(chunk);
+              return;
+            }
+            commitDictationChunk(chunk);
             finalText = ''; // don't double-handle when session ends
           } else if (interim && dictationTarget) {
             showDictationInterim(interim);
@@ -468,7 +484,9 @@
     }
 
     // ── Universal exit: "quit / stop / done / exit" from any sticky mode ──
-    if (isStickyState(stickyMode) && /^(quit|stop|exit|done|cancel|finish|arrêter|arrêt|quitter|terminer|خروج|إيقاف|انتهى|كفى)$/i.test(text.trim())) {
+    // Strip trailing punctuation the ASR engine often appends ("done." → "done").
+    const cleaned = text.trim().toLowerCase().replace(/[.,!?؟،]+$/, '');
+    if (isStickyState(stickyMode) && /^(quit|stop|exit|done|cancel|finish|arrêter|arrêt|quitter|terminer|خروج|إيقاف|انتهى|كفى)$/i.test(cleaned)) {
       exitCurrentMode();
       return;
     }
@@ -1036,6 +1054,25 @@
     dictationTarget = null;
     setState('idle');
     showRibbon('Dictation off. Microphone stopped.', 'Dictation', 'success');
+  }
+
+  /**
+   * Returns true when the transcript is a command phrase that should run its
+   * function instead of being typed as dictation text (exit, next/prev field,
+   * submit, clear, select mode, etc.).
+   */
+  function isDictationCommand(text) {
+    const t = (text || '').toLowerCase().trim().replace(/[.,!?؟،]$/, '');
+    if (!t) return false;
+    // Universal exit words
+    if (/^(quit|stop|exit|done|cancel|finish|arrêter|arrêt|quitter|terminer|خروج|إيقاف|انتهى|كفى)$/i.test(t)) return true;
+    // Field navigation / form actions
+    if (/^(next|next field|next input|previous|previous field|prev field|tab|champ suivant|champ précédent|الحقل التالي|الحقل السابق)$/i.test(t)) return true;
+    if (/^(submit|submit form|send|save|valider|soumettre|envoyer|إرسال|حفظ)$/i.test(t)) return true;
+    if (/^(clear|clear form|reset|reset form|effacer|réinitialiser|مسح)$/i.test(t)) return true;
+    if (/^(select mode|selection mode|click mode|mode sélection|mode selection|وضع التحديد)$/i.test(t)) return true;
+    if (/^(read page|read this page|lire la page|اقرأ الصفحة)$/i.test(t)) return true;
+    return false;
   }
 
   /**

@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\RoommatePreference;
 use App\Repository\RoommatePreferenceRepository;
+use App\Repository\SubscriptionRepository;
 use App\Service\RoommateMatchingService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -23,15 +24,17 @@ class RoommateController extends AbstractController
     #[Route('', name: 'roommate_index')]
     public function index(
         RoommateMatchingService      $matchingService,
-        RoommatePreferenceRepository $prefRepo
+        RoommatePreferenceRepository $prefRepo,
+        SubscriptionRepository       $subscriptionRepo
     ): Response {
         $pref = $prefRepo->findOneBy(['user' => $this->getUser()]);
         $matches = $pref ? $matchingService->findMatches($this->getUser(), $pref) : [];
 
         return $this->render('roommate/index.html.twig', [
-            'matches'         => $matches,
-            'preference'      => $pref,
-            'cleanliness_map' => self::INT_TO_CLEAN,
+            'matches'          => $matches,
+            'preference'       => $pref,
+            'cleanliness_map'  => self::INT_TO_CLEAN,
+            'has_subscription' => $subscriptionRepo->findActiveByUser($this->getUser()) !== null,
         ]);
     }
 
@@ -48,6 +51,9 @@ class RoommateController extends AbstractController
         }
 
         $nullable = fn(string $k): ?string => ($v = trim((string)$request->request->get($k, ''))) === '' ? null : $v;
+        // Treat the "Any" option as "no preference" → stored as NULL so the matching service
+        // can use it as a wildcard (otherwise strict equality would always fail against a real value).
+        $pickOrNull = fn(string $k): ?string => (($v = $nullable($k)) === null || $v === 'no_preference') ? null : $v;
 
         $pref->setBudgetMin($nullable('budget_min'));
         $pref->setBudgetMax($nullable('budget_max'));
@@ -57,12 +63,12 @@ class RoommateController extends AbstractController
         $cleanliness = $nullable('cleanliness');
         $pref->setCleanlinessLevel($cleanliness !== null ? (self::CLEAN_TO_INT[$cleanliness] ?? null) : null);
 
-        $pref->setSleepSchedule($nullable('sleep'));
-        $pref->setSmokingPreference($nullable('smoking'));
-        $pref->setNoiseTolerance($nullable('noise_tolerance'));
-        $pref->setGenderPreference($nullable('gender_preference'));
-        $pref->setGuests($nullable('guests'));
-        $pref->setPets($nullable('pets'));
+        $pref->setSleepSchedule($pickOrNull('sleep'));
+        $pref->setSmokingPreference($pickOrNull('smoking'));
+        $pref->setNoiseTolerance($pickOrNull('noise_tolerance'));
+        $pref->setGenderPreference($pickOrNull('gender_preference'));
+        $pref->setGuests($pickOrNull('guests'));
+        $pref->setPets($pickOrNull('pets'));
         $pref->setUpdatedAt(new \DateTimeImmutable());
 
         $em->persist($pref);

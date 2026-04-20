@@ -7,6 +7,7 @@ use App\Repository\ContractRepository;
 use App\Repository\ListingRepository;
 use App\Repository\MessageRepository;
 use App\Repository\SavedListingRepository;
+use App\Repository\SubscriptionRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -19,7 +20,8 @@ class DashboardController extends AbstractController
     public function student(
         ContractRepository $contractRepo,
         MessageRepository $messageRepo,
-        SavedListingRepository $savedRepo
+        SavedListingRepository $savedRepo,
+        SubscriptionRepository $subscriptionRepo
     ): Response {
         $user = $this->getUser();
 
@@ -35,10 +37,22 @@ class DashboardController extends AbstractController
         $unreadCount = $messageRepo->countUnreadByUser($user);
         $savedCount  = count($savedRepo->findBy(['user' => $user]));
 
+        // ── Access-gating signals for the notification bar ──
+        $verification = $user?->getVerification();
+        $verificationStatus = $verification?->getStatus()?->value;   // pending | approved | rejected | null
+        $isVerified = $verificationStatus === 'approved';
+
+        $activeSub = $user ? $subscriptionRepo->findActiveByUser($user) : null;
+        $hasSubscription = $activeSub !== null;
+
         return $this->render('dashboard/student.html.twig', [
-            'contracts'    => $contracts,
-            'unread_count' => $unreadCount,
-            'saved_count'  => $savedCount,
+            'contracts'          => $contracts,
+            'unread_count'       => $unreadCount,
+            'saved_count'        => $savedCount,
+            'verification_status'=> $verificationStatus,
+            'is_verified'        => $isVerified,
+            'has_subscription'   => $hasSubscription,
+            'active_subscription'=> $activeSub,
         ]);
     }
 

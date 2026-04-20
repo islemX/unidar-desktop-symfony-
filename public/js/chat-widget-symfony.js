@@ -53,8 +53,47 @@ class ChatWidget {
             credentials: 'same-origin'
         };
         const resp = await fetch(url, { ...defaults, ...options });
+        if (resp.status === 402) {
+            // Subscription required — surface a nice prompt instead of a generic error.
+            let body = {};
+            try { body = await resp.json(); } catch (_) {}
+            const err = new Error(body.message || 'Subscription required.');
+            err.subscriptionRequired = true;
+            err.subscriptionUrl = body.subscription_url || '/subscription';
+            throw err;
+        }
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         return resp.json();
+    }
+
+    showSubscriptionBlocker(msg, url) {
+        // Inline modal — no alert() spam. Removes itself on close.
+        if (document.getElementById('chatSubBlocker')) return;
+        const overlay = document.createElement('div');
+        overlay.id = 'chatSubBlocker';
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1rem;animation:cwbFade 0.22s ease both;';
+        overlay.innerHTML = `
+            <style>
+                @keyframes cwbFade { from{opacity:0} to{opacity:1} }
+                @keyframes cwbPop  { from{opacity:0;transform:translateY(12px) scale(.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+            </style>
+            <div style="background:#fff;border-radius:20px;max-width:420px;width:100%;box-shadow:0 30px 80px -20px rgba(0,0,0,0.35);overflow:hidden;animation:cwbPop 0.3s cubic-bezier(.2,.8,.2,1) both;">
+                <div style="padding:1.5rem 1.5rem 0.75rem;background:linear-gradient(135deg,#6366f1,#ec4899);color:#fff;">
+                    <div style="font-size:2rem;line-height:1;margin-bottom:0.5rem;">⭐</div>
+                    <div style="font-weight:800;font-size:1.1rem;">Subscription required</div>
+                </div>
+                <div style="padding:1.25rem 1.5rem;color:#374151;font-size:0.92rem;line-height:1.5;">
+                    ${msg || 'You need an active subscription to send messages on UNIDAR.'}
+                </div>
+                <div style="padding:0 1.5rem 1.5rem;display:flex;gap:0.625rem;">
+                    <button id="cwbClose" style="flex:1;padding:0.7rem 1rem;border-radius:10px;border:1px solid #e5e7eb;background:#fff;font-weight:600;cursor:pointer;">Later</button>
+                    <a href="${url}" style="flex:1.3;padding:0.7rem 1rem;border-radius:10px;background:linear-gradient(135deg,#6366f1,#ec4899);color:#fff;font-weight:700;text-align:center;text-decoration:none;">Subscribe now →</a>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+        const close = () => overlay.remove();
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+        overlay.querySelector('#cwbClose').addEventListener('click', close);
     }
 
     async init() {
@@ -407,6 +446,10 @@ class ChatWidget {
             await this.fetchMessages();
             this.loadConversations(true);
         } catch (e) {
+            if (e && e.subscriptionRequired) {
+                this.showSubscriptionBlocker(e.message, e.subscriptionUrl);
+                return;
+            }
             alert('Failed to send message.');
         }
     }
@@ -431,6 +474,10 @@ class ChatWidget {
                 await this.loadConversation(result.conversation_id);
             }
         } catch (e) {
+            if (e && e.subscriptionRequired) {
+                this.showSubscriptionBlocker(e.message, e.subscriptionUrl);
+                return;
+            }
             alert('Could not start conversation.');
         }
     }

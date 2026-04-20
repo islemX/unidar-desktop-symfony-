@@ -45,9 +45,6 @@ class ListingFilterType extends AbstractType
             ->add('lng', HiddenType::class, [
                 'required' => false,
             ])
-            ->add('maxDistance', NumberType::class, [
-                'required' => false,
-            ])
         ;
     }
 

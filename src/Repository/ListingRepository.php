@@ -63,8 +63,13 @@ class ListingRepository extends ServiceEntityRepository
         }
 
         if (isset($filters['property_type'])) {
+            $value = $filters['property_type'];
+            // Accept either a PropertyType enum or its string value
+            if ($value instanceof \App\Enum\PropertyType) {
+                $value = $value->value;
+            }
             $qb->andWhere('l.propertyType = :propertyType')
-                ->setParameter('propertyType', $filters['property_type']);
+                ->setParameter('propertyType', $value);
         }
 
         if (isset($filters['gender_preference'])) {
@@ -103,7 +108,9 @@ class ListingRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('l')
             ->andWhere('l.owner = :owner')
+            ->andWhere('l.status != :removed')
             ->setParameter('owner', $owner)
+            ->setParameter('removed', 'removed')
             ->orderBy('l.createdAt', 'DESC')
             ->getQuery()
             ->getResult();

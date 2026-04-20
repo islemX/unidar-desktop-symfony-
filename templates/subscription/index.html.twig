@@ -67,6 +67,42 @@
 
     /* Already subscribed */
     .sub-active-card { grid-column: 1 / -1; background: linear-gradient(135deg, #ecfdf5, #f0fdf4); border: 2px solid #10b981; border-radius: 24px; padding: 2.5rem; text-align: center; }
+
+    /* ── Benefits Showcase ── */
+    .benefits-section { grid-column: 1 / -1; margin-bottom: 0.25rem; }
+    .benefits-title { text-align: center; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--color-brand); margin: 0 0 1.25rem; }
+    .benefits-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    @media (max-width: 700px) { .benefits-grid { grid-template-columns: repeat(2, 1fr); } }
+    .benefit-card {
+        position: relative; overflow: hidden;
+        background: white; border: 1px solid var(--color-surface-100);
+        border-radius: 18px; padding: 1.4rem 1rem 1.2rem; text-align: center;
+        transition: all 0.35s cubic-bezier(.2,.8,.2,1);
+        animation: benefitPop 0.5s cubic-bezier(.2,.8,.2,1) both;
+    }
+    .benefit-card:nth-child(1) { animation-delay: 0.05s; }
+    .benefit-card:nth-child(2) { animation-delay: 0.12s; }
+    .benefit-card:nth-child(3) { animation-delay: 0.19s; }
+    .benefit-card:nth-child(4) { animation-delay: 0.26s; }
+    .benefit-card::before {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%);
+        transform: translateX(-120%);
+        animation: benefitShimmer 4s 1.2s ease-in-out infinite;
+        pointer-events: none;
+    }
+    .benefit-card:hover { transform: translateY(-5px); box-shadow: 0 12px 28px -8px rgba(99,102,241,0.18); border-color: var(--color-primary-200); }
+    .benefit-icon {
+        width: 52px; height: 52px; margin: 0 auto 0.75rem;
+        border-radius: 16px; display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; color: white;
+        box-shadow: 0 8px 20px -6px var(--bi-shadow, rgba(99,102,241,0.4));
+    }
+    .benefit-card h4 { font-size: 0.88rem; font-weight: 800; margin: 0 0 0.3rem; color: var(--color-surface-900); }
+    .benefit-card p  { font-size: 0.78rem; line-height: 1.4; color: var(--color-surface-500); margin: 0; }
+    @keyframes benefitPop  { from { opacity:0; transform: translateY(14px) scale(.95); } to { opacity:1; transform: translateY(0) scale(1); } }
+    @keyframes benefitShimmer { 0%,10% { transform: translateX(-120%); } 45%,100% { transform: translateX(120%); } }
+    @media (prefers-reduced-motion: reduce) { .benefit-card, .benefit-card::before { animation: none !important; } }
 </style>
 {% endblock %}
 
@@ -82,6 +118,35 @@
             <h1>Choose Your Plan</h1>
             <p>Get full access to Listings, Roommate Matching, and all platform features.</p>
         </div>
+
+        {# ── What you unlock ── #}
+        {% if not current %}
+        <div class="benefits-section">
+            <p class="benefits-title">What you unlock with a subscription</p>
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);--bi-shadow:rgba(99,102,241,0.4);">💬</div>
+                    <h4>Message Anyone</h4>
+                    <p>Contact property owners and potential roommates directly through our built-in messenger.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon" style="background:linear-gradient(135deg,#10b981,#34d399);--bi-shadow:rgba(16,185,129,0.4);">📝</div>
+                    <h4>Generate Contracts</h4>
+                    <p>Create, sign, and manage rental contracts for any listing — all handled digitally on UNIDAR.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon" style="background:linear-gradient(135deg,#f59e0b,#f97316);--bi-shadow:rgba(245,158,11,0.4);">🤝</div>
+                    <h4>Roommate Chat</h4>
+                    <p>Found a compatible roommate? Start chatting instantly and plan your shared living together.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon" style="background:linear-gradient(135deg,#ec4899,#f43f5e);--bi-shadow:rgba(236,72,153,0.4);">🔓</div>
+                    <h4>Full Platform Access</h4>
+                    <p>Unlock every UNIDAR feature — smart search, saved listings, directions, and priority support.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         {% if current %}
             {# Already subscribed #}
@@ -101,10 +166,10 @@
                     <div class="plan-price">25 <span>TND / month</span></div>
                     <p class="plan-desc">Billed monthly - Cancel any time</p>
                     <ul class="plan-features">
-                        <li>Browse all student listings</li>
-                        <li>Roommate matching system</li>
-                        <li>Direct messaging</li>
-                        <li>Contract management</li>
+                        <li>Contact owners & roommates via messenger</li>
+                        <li>Generate and sign rental contracts</li>
+                        <li>Smart roommate matching & chat</li>
+                        <li>Full access to listings, maps & directions</li>
                     </ul>
                 </label>
 
@@ -116,8 +181,9 @@
                     <p class="plan-desc">That's 20.83 TND/month - save 50 TND</p>
                     <ul class="plan-features">
                         <li>Everything in Monthly</li>
-                        <li>Priority support</li>
+                        <li>Priority support & faster responses</li>
                         <li>Early access to new features</li>
+                        <li>Save 50 TND over 12 months</li>
                     </ul>
                 </label>
             </div>

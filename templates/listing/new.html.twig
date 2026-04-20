@@ -2,322 +2,468 @@
 {% block voice_briefing %}
 <script>window.__vcPage__ = { page: 'listing_new', role: 'owner', briefing: { en: "New property form. Fill in all required fields. Say 'start dictation' or 'fill title with...' to use voice input. Say 'submit form' when done.", fr: "Formulaire nouveau logement. Dites 'commencer dictée' ou 'remplis titre avec...' pour saisie vocale.", ar: "نموذج إضافة عقار. قل 'ابدأ الإملاء' أو 'اكتب في العنوان...' للإدخال الصوتي." }, suggestions: [ {label:'Start dictation', cmd:'start dictation'}, {label:'Fill title with...', cmd:'fill title with '}, {label:'Set price to...', cmd:'set price to '}, {label:'Set type to apartment', cmd:'set type to apartment'}, {label:'Next field', cmd:'next field'}, {label:'Submit form', cmd:'submit form'} ] };</script>
 {% endblock %}
-{% block title %}Add New Property - UNIDAR{% endblock %}
+{% block title %}My Properties - UNIDAR{% endblock %}
 
 {% block stylesheets %}
 <style>
-    .property-form-page {
-        max-width: 720px;
-        margin: 0 auto;
+    /* Premium components from PHP version */
+    .glow-card {
+        background: rgba(15, 23, 42, 0.85); /* Deep dark glass */
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-xl);
+        padding: var(--space-xl);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
     }
-    .form-section-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin: 0 0 var(--space-xs);
+
+    .glow-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle at center, rgba(99, 102, 241, 0.15) 0%, transparent 50%);
+        animation: glowRotate 10s linear infinite;
     }
-    .form-section-sub {
-        color: var(--color-text-muted, #6b7280);
-        font-size: 0.875rem;
-        margin-bottom: var(--space-lg);
+
+    @keyframes glowRotate {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
-    .field-grid-3 {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: var(--space-md);
+
+    .glow-card-content {
+        position: relative;
+        z-index: 1;
     }
-    .field-grid-2 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: var(--space-md);
-    }
+
+    /* Map Styling */
     #propertyMap {
         width: 100%;
-        height: 260px;
-        border-radius: var(--radius-lg);
+        height: 300px;
+        border-radius: var(--radius-xl);
         overflow: hidden;
-        border: 1px solid var(--color-surface-200, #e5e7eb);
-        margin-top: var(--space-sm);
+        border: 1px solid var(--color-surface-200);
+        box-shadow: var(--shadow-sm);
     }
+
+    .property-form-card {
+        top: 2rem;
+        position: sticky;
+    }
+
+    /* Image Preview Styling */
     .image-previews {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
         gap: var(--space-xs);
         margin-top: var(--space-sm);
     }
+
     .preview-item {
         position: relative;
         aspect-ratio: 1;
         border-radius: var(--radius-md);
         overflow: hidden;
-        border: 1px solid var(--color-surface-200, #e5e7eb);
+        border: 1px solid var(--color-surface-200);
     }
+
     .preview-item img {
         width: 100%;
         height: 100%;
         object-fit: cover;
     }
-    .preview-remove {
+
+    /* Floating Shapes Background */
+    .floating-shapes {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: -1;
+    }
+
+    .shape {
         position: absolute;
-        top: 3px;
-        right: 3px;
-        background: rgba(0,0,0,0.55);
-        color: #fff;
-        border: none;
         border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        font-size: 11px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+        animation: float 25s ease-in-out infinite;
     }
-    .required-star { color: var(--color-danger, #ef4444); }
-    #mapCoordHint { font-size: 0.78rem; color: var(--color-brand, #6366f1); font-weight: 500; margin-top: 0.3rem; }
-    #formAlert {
-        display: none;
-        border-radius: var(--radius-lg);
-        padding: var(--space-sm) var(--space-md);
-        margin-bottom: var(--space-md);
+
+    .shape-1 {
+        width: 800px;
+        height: 800px;
+        top: -300px;
+        right: -200px;
     }
-    #formAlert.alert-error { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+    .shape-2 {
+        width: 500px;
+        height: 500px;
+        bottom: -150px;
+        left: -150px;
+        animation-delay: -5s;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(30px, -30px); }
+    }
+
+    @keyframes slideInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in-up {
+        animation: slideInUp 0.6s ease-out forwards;
+    }
+
+    /* Badge and Grid Utilities */
+    .badge {
+        padding: 4px 12px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+    .badge-success { background: #ecfdf5; color: #10b981; }
+    .badge-warning { background: #fffbeb; color: #f59e0b; }
+    .badge-error { background: #fef2f2; color: #ef4444; }
+
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    
+    .text-brand { color: var(--color-brand); }
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="container property-form-page">
-
-    {# ── Page header ── #}
-    <div class="fade-in-up" style="margin-bottom: var(--space-xl);">
-        <div class="section-tag">Management</div>
-        <h1 class="form-section-title" style="font-size:2rem; margin-top: var(--space-xs);">Add New Property</h1>
-        <p class="form-section-sub">Fill in the details to create a new listing. All fields marked with <span class="required-star">*</span> are required.</p>
-    </div>
-
-    <div class="card" style="padding: var(--space-xl);">
-        <div id="formAlert"></div>
-
-        {{ form_start(form, {
-            'attr': {
-                'enctype': 'multipart/form-data',
-                'id': 'createListingForm',
-                'novalidate': 'novalidate'
-            }
-        }) }}
-
-        {# ── Title ── #}
-        <div class="form-group">
-            <label class="form-label" for="{{ form.title.vars.id }}">Title <span class="required-star">*</span></label>
-            {{ form_widget(form.title, {'attr': {'class': 'form-input', 'placeholder': 'e.g. Luxury Studio near Campus'}}) }}
-            {{ form_errors(form.title) }}
-        </div>
-
-        {# ── Description ── #}
-        <div class="form-group">
-            <label class="form-label" for="{{ form.description.vars.id }}">Description <span class="required-star">*</span></label>
-            {{ form_widget(form.description, {'attr': {'class': 'form-input', 'rows': '4', 'placeholder': 'Tell students about the property, nearby facilities, rules...'}}) }}
-            {{ form_errors(form.description) }}
-        </div>
-
-        {# ── Address + Map ── #}
-        <div class="form-group">
-            <label class="form-label" for="{{ form.address.vars.id }}">Address <span class="required-star">*</span></label>
-            {{ form_widget(form.address, {'attr': {'class': 'form-input', 'id': 'addressInput', 'placeholder': 'Street name, City'}}) }}
-            {{ form_errors(form.address) }}
-            <label class="form-label" style="margin-top: var(--space-md);">Location on Map <span class="required-star">*</span></label>
-            <div id="propertyMap"></div>
-            {{ form_widget(form.latitude,  {'attr': {'id': 'latInput'}}) }}
-            {{ form_widget(form.longitude, {'attr': {'id': 'lngInput'}}) }}
-            <div id="mapCoordHint"></div>
-        </div>
-
-        {# ── Price / Bedrooms / Rooms ── #}
-        <div class="field-grid-3">
-            <div class="form-group">
-                <label class="form-label" for="{{ form.price.vars.id }}">Price (TND/mo) <span class="required-star">*</span></label>
-                {{ form_widget(form.price, {'attr': {'class': 'form-input', 'placeholder': '0.00'}}) }}
-                {{ form_errors(form.price) }}
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="{{ form.bedrooms.vars.id }}">Bedrooms <span class="required-star">*</span></label>
-                {{ form_widget(form.bedrooms, {'attr': {'class': 'form-input', 'min': '1'}}) }}
-                {{ form_errors(form.bedrooms) }}
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="{{ form.bedsCount.vars.id }}">Rooms <span class="required-star">*</span></label>
-                {{ form_widget(form.bedsCount, {'attr': {'class': 'form-input', 'min': '1'}}) }}
-                {{ form_errors(form.bedsCount) }}
-            </div>
-        </div>
-
-        {# ── Total Student Capacity ── #}
-        <div class="form-group">
-            <label class="form-label" for="{{ form.capacity.vars.id }}">Total Student Capacity <span class="required-star">*</span></label>
-            {{ form_widget(form.capacity, {'attr': {'class': 'form-input', 'placeholder': 'Max students allowed', 'min': '1'}}) }}
-            {{ form_errors(form.capacity) }}
-        </div>
-
-        {# ── Bathrooms ── #}
-        <div class="form-group" style="max-width:200px;">
-            <label class="form-label" for="{{ form.bathrooms.vars.id }}">Bathrooms <span class="required-star">*</span></label>
-            {{ form_widget(form.bathrooms, {'attr': {'class': 'form-input', 'min': '1'}}) }}
-            {{ form_errors(form.bathrooms) }}
-        </div>
-
-        {# ── Property Type ── #}
-        <div class="form-group">
-            <label class="form-label" for="{{ form.propertyType.vars.id }}">Property Type <span class="required-star">*</span></label>
-            {{ form_widget(form.propertyType, {'attr': {'class': 'form-input'}}) }}
-            {{ form_errors(form.propertyType) }}
-        </div>
-
-        {# ── Gender Preference ── #}
-        <div class="form-group">
-            <label class="form-label" for="{{ form.genderPreference.vars.id }}">Gender Preference <span class="required-star">*</span></label>
-            {{ form_widget(form.genderPreference, {'attr': {'class': 'form-input'}}) }}
-            {{ form_errors(form.genderPreference) }}
-            <span class="form-hint">Specify if this listing is restricted to a specific gender.</span>
-        </div>
-
-        {# ── Availability ── #}
-        <div class="field-grid-2">
-            <div class="form-group">
-                <label class="form-label" for="{{ form.availableFrom.vars.id }}">Available From</label>
-                {{ form_widget(form.availableFrom, {'attr': {'class': 'form-input'}}) }}
-                {{ form_errors(form.availableFrom) }}
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="{{ form.availableUntil.vars.id }}">Available Until</label>
-                {{ form_widget(form.availableUntil, {'attr': {'class': 'form-input'}}) }}
-                {{ form_errors(form.availableUntil) }}
-            </div>
-        </div>
-
-        {# ── Property Images ── #}
-        <div class="form-group">
-            <label class="form-label" for="{{ form.images.vars.id }}">
-                Property Images <span class="required-star">*</span>
-                <span style="font-weight:400; font-size:0.8rem; color: var(--color-text-muted,#6b7280);">(Select one or more)</span>
-            </label>
-            {{ form_widget(form.images, {'attr': {'class': 'form-input', 'accept': 'image/*', 'id': 'propertyImagesInput'}}) }}
-            {{ form_errors(form.images) }}
-            <div id="imagePreviews" class="image-previews"></div>
-        </div>
-
-        {# ── Digital Signature ── #}
-        <div class="form-group">
-            <label class="form-label">
-                Digital Signature <span class="required-star">*</span>
-            </label>
-            <div id="signature-pad-container"></div>
-            {{ form_widget(form.ownerSignature, {'attr': {'id': 'ownerSignatureInput'}}) }}
-            <p class="form-hint" style="margin-top:0.5rem;">
-                Please sign to authorize contract generation. This signature will appear on all contracts for this property.
-            </p>
-        </div>
-
-        <button type="submit" class="btn btn-primary" style="width:100%; padding: var(--space-md); margin-top: var(--space-md); font-size:1rem;" id="createListingBtn">
-            Create Listing
-        </button>
-
-        {{ form_end(form) }}
-    </div>
+<div class="floating-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
 </div>
+
+<main class="section" style="position: relative; z-index: 1;">
+    <div class="container">
+        <div class="fade-in-up mb-xl">
+            <div class="section-tag">Management</div>
+            <h1 style="font-size: 2.5rem; margin-top: var(--space-xs);">My Properties</h1>
+            <p class="text-muted">Create and manage the properties you list on UNIDAR.</p>
+        </div>
+
+        <div class="grid" style="display: grid; grid-template-columns: 1fr 400px; gap: var(--space-xl); align-items: flex-start;">
+            
+            {# ── Existing Properties (left) ── #}
+            <section>
+                <div class="flex justify-between items-center mb-lg">
+                    <h2 style="font-size: 1.5rem;">Existing Properties</h2>
+                    <button type="button" class="btn btn-secondary" onclick="window.location.reload();"
+                        style="padding: var(--space-xs) var(--space-md); font-size: 0.85rem;">
+                        🔄 Refresh List
+                    </button>
+                </div>
+                
+                <div id="ownerListingsContainer" class="grid grid-2" style="display: grid; gap: var(--space-lg);">
+                    {% if my_listings is empty %}
+                        <p class="text-muted">You have not created any properties yet. Use the form on the right to add your first property.</p>
+                    {% else %}
+                        {% for listing in my_listings %}
+                            <article class="card fade-in-up" 
+                                     style="animation-delay: {{ loop.index0 * 0.1 }}s; cursor: pointer;" 
+                                     onclick="window.location.href='{{ path('listing_show', {id: listing.id}) }}'">
+                                <div class="card-image-wrapper" style="height: 180px; overflow: hidden; border-bottom: 1px solid var(--color-surface-100);">
+                                    {% set firstImage = listing.images|first %}
+                                    <img src="{{ firstImage ? '/uploads/listings/' ~ firstImage.imagePath : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=300&fit=crop' }}" 
+                                         alt="{{ listing.title }}" 
+                                         class="card-image" 
+                                         onerror="this.src='https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=300&fit=crop'"
+                                         style="width: 100%; height: 100%; object-fit: cover;">
+                                </div>
+                                <div class="card-body" style="padding: 1rem;">
+                                    <div class="flex gap-sm mb-sm">
+                                        <span class="badge {{ listing.status == 'active' ? 'badge-success' : 'badge-warning' }}">
+                                            {{ listing.status|capitalize }}
+                                        </span>
+                                    </div>
+                                    <h3 class="card-title text-truncate" style="font-size: 1.1rem; margin-bottom: 0.25rem;">{{ listing.title }}</h3>
+                                    <p class="card-text" style="font-size: 0.85rem; color: var(--color-text-muted);">
+                                        🛏️ {{ listing.bedrooms }} bed • 🚿 {{ listing.bathrooms }} bath
+                                    </p>
+                                    <p class="card-text" style="color: var(--color-brand); font-weight: 600; font-size: 0.85rem;">
+                                        👥 {{ listing.contracts|length }}/{{ listing.capacity }} Students
+                                    </p>
+                                    <p class="text-small text-muted text-truncate mb-md">📍 {{ listing.address }}</p>
+                                    <div class="flex justify-between items-center mt-md pt-md" style="border-top: 1px solid var(--color-surface-50);">
+                                        <span class="price-tag" style="font-size: 1rem; font-weight: 700;">{{ listing.price|number_format(0) }} TND</span>
+                                        <button type="button" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.75rem;">View</button>
+                                    </div>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </section>
+
+            {# ── Add New Property Form (right sidebar) ── #}
+            <aside class="property-form-card">
+                <div class="glow-card">
+                    <div class="glow-card-content">
+                        <h2 class="mb-sm" style="font-size: 1.5rem; color: white;">Add New Property</h2>
+                        <p class="text-small text-muted mb-lg" style="color: rgba(255,255,255,0.7) !important;">
+                            Fill in the details to create a new listing. All fields marked with * are required.
+                        </p>
+
+                        {{ form_start(form, {
+                            'attr': {
+                                'id': 'createListingForm',
+                                'novalidate': 'novalidate',
+                                'enctype': 'multipart/form-data'
+                            }
+                        }) }}
+                            <div class="form-group">
+                                <label class="form-label" style="color: white;">Title *</label>
+                                {{ form_widget(form.title, {'attr': {'class': 'form-input', 'placeholder': 'Luxury Studio near Campus'}}) }}
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" style="color: white;">Description *</label>
+                                {{ form_widget(form.description, {'attr': {'class': 'form-input', 'rows': '4', 'placeholder': 'Tell students about the property...'}}) }}
+                            </div>
+
+                            {# Address is auto-filled from map reverse geocoding — hidden from UI #}
+                            {{ form_widget(form.address, {'attr': {'id': 'addressInput', 'style': 'display:none;'}}) }}
+
+                            <div class="form-group">
+                                <label class="form-label" style="color: white;">Location on Map *</label>
+                                <div id="propertyMap" class="mb-sm"></div>
+                                {{ form_widget(form.latitude, {'attr': {'id': 'latitude'}}) }}
+                                {{ form_widget(form.longitude, {'attr': {'id': 'longitude'}}) }}
+                                <div id="selectedPropertyLocation" class="text-small text-brand" style="color: #818cf8; font-weight: 500;"></div>
+                            </div>
+
+                            <div class="grid grid-3 mb-md" style="display: grid; gap: 10px;">
+                                <div class="form-group">
+                                    <label class="form-label" style="color: white;">Price *</label>
+                                    {{ form_widget(form.price, {'attr': {'class': 'form-input', 'style': 'padding: 8px;'}}) }}
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" style="color: white;">Bedrooms *</label>
+                                    {{ form_widget(form.bedrooms, {'attr': {'class': 'form-input', 'style': 'padding: 8px;'}}) }}
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" style="color: white;">Rooms *</label>
+                                    {{ form_widget(form.bedsCount, {'attr': {'class': 'form-input', 'style': 'padding: 8px;'}}) }}
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" style="color: white;">Total Student Capacity *</label>
+                                {{ form_widget(form.capacity, {'attr': {'class': 'form-input', 'placeholder': 'Max students allowed'}}) }}
+                            </div>
+
+                            <div class="grid grid-2 mb-md" style="display: grid; gap: 10px;">
+                                <div class="form-group">
+                                    <label class="form-label" style="color: white;">Bathrooms *</label>
+                                    {{ form_widget(form.bathrooms, {'attr': {'class': 'form-input', 'style': 'padding: 8px;'}}) }}
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" style="color: white;">Property Type *</label>
+                                {{ form_widget(form.propertyType, {'attr': {'class': 'form-input'}}) }}
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" style="color: white;">Gender Preference *</label>
+                                {{ form_widget(form.genderPreference, {'attr': {'class': 'form-input'}}) }}
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" style="color: white;">Available From</label>
+                                {{ form_widget(form.availableFrom, {'attr': {'class': 'form-input'}}) }}
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" style="color: white;">Property Images *</label>
+                                {{ form_widget(form.images, {'attr': {'class': 'form-input', 'id': 'property_images', 'multiple': 'multiple'}}) }}
+                                <div id="imagePreviews" class="image-previews"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" style="color: white;">Digital Signature *</label>
+                                <div id="signature-pad-container" style="background: white; border-radius: var(--radius-md);"></div>
+                                {{ form_widget(form.ownerSignature, {'attr': {'id': 'owner_signature_data'}}) }}
+                                <p class="text-small text-muted mt-2" style="color: rgba(255,255,255,0.6) !important;">Please sign to authorize contract generation.</p>
+                            </div>
+
+                            <div id="formError" class="alert alert-error shadow-sm" style="display: none; border-radius: var(--radius-lg); margin-bottom: 1rem;"></div>
+                            
+                            <button type="submit" class="btn btn-primary" id="createListingBtn"
+                                    style="width: 100%; padding: var(--space-md); margin-top: var(--space-md); background: linear-gradient(135deg, #6366f1, #a855f7); color: white; border: none;">
+                                Create Listing
+                            </button>
+                        {{ form_end(form) }}
+                    </div>
+                </div>
+            </aside>
+
+        </div>
+    </div>
+</main>
 {% endblock %}
 
 {% block javascripts %}
 <script src="/js/signature-pad.js"></script>
 <script>
-// ── Map picker ──────────────────────────────────────────────────────────────
-const map = L.map('propertyMap').setView([36.8, 10.1], 10);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-}).addTo(map);
-let marker;
-map.on('click', function(e) {
-    const { lat, lng } = e.latlng;
-    document.getElementById('latInput').value = lat.toFixed(6);
-    document.getElementById('lngInput').value = lng.toFixed(6);
-    document.getElementById('mapCoordHint').textContent = '📍 Selected: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
-    if (marker) marker.setLatLng(e.latlng);
-    else marker = L.marker(e.latlng).addTo(map);
-});
+    // 1. Signature Pad Initialization (isolated)
+    (function() {
+        var ownerPad = null;
+        try {
+            ownerPad = new UnidarSignaturePad('signature-pad-container', {
+                width: 360, height: 150, backgroundColor: '#ffffff'
+            });
+        } catch(err) { console.error('Pad init failed:', err); }
+        window.__ownerPad = ownerPad;
 
-// ── Image previews ──────────────────────────────────────────────────────────
-const imagesInput = document.getElementById('propertyImagesInput');
-const previewsContainer = document.getElementById('imagePreviews');
-let selectedFiles = [];
+        // Continuously sync signature to hidden field so it's always populated on submit
+        function syncSignature() {
+            if (!ownerPad || ownerPad.isEmpty()) return;
+            var field = document.getElementById('owner_signature_data')
+                || document.querySelector('input[name*="ownerSignature"]');
+            if (field) field.value = ownerPad.toDataURL();
+        }
+        var canvas = document.querySelector('#signature-pad-container canvas');
+        if (canvas) {
+            ['mouseup', 'touchend', 'pointerup'].forEach(function(evt) {
+                canvas.addEventListener(evt, syncSignature);
+            });
+            window.addEventListener('mouseup', syncSignature);
+        }
+    })();
 
-imagesInput.addEventListener('change', function() {
-    selectedFiles = Array.from(this.files);
-    renderPreviews();
-});
+    // 2. Map & Form Logic — mirrors register page pattern
+    (function() {
+        var latInput = document.getElementById('latitude')
+            || document.querySelector('input[name="listing[latitude]"]');
+        var lngInput = document.getElementById('longitude')
+            || document.querySelector('input[name="listing[longitude]"]');
+        var addrInput = document.getElementById('addressInput')
+            || document.querySelector('input[name="listing[address]"]');
+        var display = document.getElementById('selectedPropertyLocation');
+        var mapEl = document.getElementById('propertyMap');
+        if (!mapEl || typeof L === 'undefined') { console.error('Leaflet or map container missing'); return; }
 
-function renderPreviews() {
-    previewsContainer.innerHTML = '';
-    selectedFiles.forEach(function(file, idx) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const item = document.createElement('div');
-            item.className = 'preview-item';
-            item.innerHTML =
-                '<img src="' + e.target.result + '" alt="preview">' +
-                '<button type="button" class="preview-remove" data-idx="' + idx + '">✕</button>';
-            previewsContainer.appendChild(item);
-        };
-        reader.readAsDataURL(file);
+        var propertyMap = L.map('propertyMap').setView([36.8065, 10.1815], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(propertyMap);
+
+        // Force tile render in case container was not sized at init
+        setTimeout(function() { propertyMap.invalidateSize(); }, 100);
+
+        var propertyMarker;
+        propertyMap.on('click', function(e) {
+            var lat = e.latlng.lat, lng = e.latlng.lng;
+            if (propertyMarker) propertyMap.removeLayer(propertyMarker);
+            propertyMarker = L.marker([lat, lng]).addTo(propertyMap);
+
+            if (latInput) latInput.value = lat;
+            if (lngInput) lngInput.value = lng;
+
+            var coords = lat.toFixed(4) + ', ' + lng.toFixed(4);
+            if (addrInput) addrInput.value = coords;
+            if (display) display.textContent = '📍 Locating...';
+
+            fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var addr = data.display_name || coords;
+                    if (addrInput) addrInput.value = addr;
+                    if (display) display.textContent = '📍 ' + addr;
+                })
+                .catch(function() {
+                    if (addrInput) addrInput.value = coords;
+                    if (display) display.textContent = '📍 ' + coords;
+                });
+        });
+    })();
+
+    // 3. Image Previews
+    document.getElementById('property_images').addEventListener('change', function(e) {
+        var container = document.getElementById('imagePreviews');
+        container.innerHTML = "";
+        Array.from(e.target.files).forEach(file => {
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                var div = document.createElement("div");
+                div.className = "preview-item";
+                div.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
+                container.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
     });
-}
 
-previewsContainer.addEventListener('click', function(e) {
-    if (e.target.classList.contains('preview-remove')) {
-        const idx = parseInt(e.target.dataset.idx, 10);
-        selectedFiles.splice(idx, 1);
-        // Rebuild the FileList via DataTransfer
-        const dt = new DataTransfer();
-        selectedFiles.forEach(function(f) { dt.items.add(f); });
-        imagesInput.files = dt.files;
-        renderPreviews();
-    }
-});
+    // 4. Form Validation
+    document.getElementById('createListingForm').addEventListener('submit', function(e) {
+        var errorDiv = document.getElementById('formError');
+        errorDiv.style.display = 'none';
 
-// ── Signature pad ────────────────────────────────────────────────────────────
-const ownerPad = new UnidarSignaturePad('signature-pad-container', {
-    width: 620, height: 160, backgroundColor: '#f8fafc'
-});
+        var latEl = document.getElementById('latitude')
+            || document.querySelector('input[name="listing[latitude]"]');
+        var lat = latEl ? latEl.value : '';
+        var pad = window.__ownerPad;
 
-// ── Form submit validation ───────────────────────────────────────────────────
-document.getElementById('createListingForm').addEventListener('submit', function(e) {
-    const alert = document.getElementById('formAlert');
-    alert.style.display = 'none';
+        if (!lat) {
+            e.preventDefault();
+            errorDiv.textContent = 'Please select a location on the map.';
+            errorDiv.style.display = 'block';
+            return;
+        }
 
-    const lat = document.getElementById('latInput').value;
-    const lng = document.getElementById('lngInput').value;
-    if (!lat || !lng) {
-        e.preventDefault();
-        alert.className = 'alert-error';
-        alert.textContent = 'Please click on the map to select the property location.';
-        alert.style.display = 'block';
-        document.getElementById('propertyMap').scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return false;
-    }
+        if (!pad || pad.isEmpty()) {
+            e.preventDefault();
+            errorDiv.textContent = 'Digital signature is required.';
+            errorDiv.style.display = 'block';
+            return;
+        }
 
-    if (!ownerPad || ownerPad.isEmpty()) {
-        e.preventDefault();
-        alert.className = 'alert-error';
-        alert.textContent = 'Please draw your digital signature before publishing the listing.';
-        alert.style.display = 'block';
-        document.getElementById('signature-pad-container').scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return false;
-    }
+        // Set the signature data BEFORE the form submits
+        var sigData = pad.toDataURL();
+        var sigField = document.getElementById('owner_signature_data');
+        if (sigField) {
+            sigField.value = sigData;
+            console.log('Signature set, length:', sigData.length);
+        } else {
+            // Fallback: find by name pattern
+            var fallback = document.querySelector('input[name*="ownerSignature"]');
+            if (fallback) {
+                fallback.value = sigData;
+                console.log('Signature set via fallback, length:', sigData.length);
+            } else {
+                e.preventDefault();
+                errorDiv.textContent = 'Could not find signature field. Please refresh and try again.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+        }
 
-    document.getElementById('ownerSignatureInput').value = ownerPad.toDataURL();
+        // Also set address from reverse geocode if still empty
+        var addrField = document.getElementById('addressInput');
+        if (addrField && !addrField.value) {
+            var locText = document.getElementById('selectedPropertyLocation').textContent;
+            if (locText) addrField.value = locText.replace('📍 ', '');
+        }
 
-    // Disable button to prevent double-submit
-    const btn = document.getElementById('createListingBtn');
-    btn.disabled = true;
-    btn.textContent = 'Publishing…';
-});
+        var btn = document.getElementById('createListingBtn');
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+    });
 </script>
 {% endblock %}

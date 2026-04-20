@@ -37,7 +37,14 @@ class RoommateMatchingService
     {
         $score = 0;
 
-        // Budget overlap +25
+        // Helper: compatible when either side has no preference (null or "no_preference"),
+        // or both sides picked the same value.
+        $compatible = static function (?string $x, ?string $y): bool {
+            $isWildcard = static fn(?string $v): bool => $v === null || $v === 'no_preference' || $v === 'any';
+            return $isWildcard($x) || $isWildcard($y) || $x === $y;
+        };
+
+        // Budget overlap +25 (wildcard if either side left it blank)
         if ($a->getBudgetMin() !== null && $a->getBudgetMax() !== null
             && $b->getBudgetMin() !== null && $b->getBudgetMax() !== null) {
             $overlapMin = max((float)$a->getBudgetMin(), (float)$b->getBudgetMin());
@@ -45,43 +52,41 @@ class RoommateMatchingService
             if ($overlapMax >= $overlapMin) {
                 $score += 25;
             }
-        } elseif ($a->getBudgetMin() === null && $b->getBudgetMin() === null) {
-            $score += 25;
+        } else {
+            $score += 25; // no budget set on one side → treat as compatible
         }
 
-        // Cleanliness match +15 (within 1 level)
+        // Cleanliness match +15 (within 1 level; wildcard if either side null)
         if ($a->getCleanlinessLevel() !== null && $b->getCleanlinessLevel() !== null) {
             if (abs($a->getCleanlinessLevel() - $b->getCleanlinessLevel()) <= 1) {
                 $score += 15;
             }
-        } elseif ($a->getCleanlinessLevel() === null && $b->getCleanlinessLevel() === null) {
+        } else {
             $score += 15;
         }
 
-        // Smoking match +15
-        if ($a->getSmokingPreference() === $b->getSmokingPreference()) {
+        // Smoking +15
+        if ($compatible($a->getSmokingPreference(), $b->getSmokingPreference())) {
             $score += 15;
         }
 
         // Noise tolerance +10
-        if ($a->getNoiseTolerance() === $b->getNoiseTolerance()) {
+        if ($compatible($a->getNoiseTolerance(), $b->getNoiseTolerance())) {
             $score += 10;
         }
 
         // Sleep schedule +15
-        if ($a->getSleepSchedule() === $b->getSleepSchedule()) {
+        if ($compatible($a->getSleepSchedule(), $b->getSleepSchedule())) {
             $score += 15;
         }
 
         // Gender preference +10
-        $genderA = $a->getGenderPreference();
-        $genderB = $b->getGenderPreference();
-        if ($genderA === null || $genderA === 'any' || $genderB === null || $genderB === 'any' || $genderA === $genderB) {
+        if ($compatible($a->getGenderPreference(), $b->getGenderPreference())) {
             $score += 10;
         }
 
-        // Guest preference +10
-        if ($a->getGuests() === $b->getGuests()) {
+        // Guest policy +10
+        if ($compatible($a->getGuests(), $b->getGuests())) {
             $score += 10;
         }
 

@@ -224,40 +224,83 @@
 
 {% block javascripts %}
 <script src="/js/signature-pad.js"></script>
+
+{# ── Signature Pad (isolated so map/image errors cannot block it) ── #}
+<script>
+(function() {
+    var hasSignature = {{ listing.ownerSignaturePath ? 'true' : 'false' }};
+    var ownerPad = null;
+
+    function initPad() {
+        if (ownerPad) return;
+        try {
+            ownerPad = new UnidarSignaturePad('signature-pad-container', {
+                width: 620, height: 160, backgroundColor: '#f8fafc'
+            });
+        } catch(err) {
+            console.error('Signature pad init failed:', err);
+        }
+        window.__ownerPad = ownerPad;
+    }
+
+    if (!hasSignature) initPad();
+
+    var resignBtn = document.getElementById('resignBtn');
+    if (resignBtn) {
+        resignBtn.addEventListener('click', function() {
+            document.getElementById('currentSignatureBox').style.display = 'none';
+            var padContainer = document.getElementById('signature-pad-container');
+            padContainer.style.display = 'block';
+            initPad();
+        });
+    }
+
+    window.__initOwnerPad = initPad;
+    window.__ownerPad = ownerPad;
+})();
+</script>
+
+{# ── Map + Image previews + Form validation ── #}
 <script>
 // ── Map (pre-fill existing lat/lng) ──────────────────────────────────────────
-const existingLat = parseFloat('{{ listing.latitude ?? 36.8 }}');
-const existingLng = parseFloat('{{ listing.longitude ?? 10.1 }}');
-const map = L.map('propertyMap').setView([existingLat, existingLng], 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-}).addTo(map);
-let marker = L.marker([existingLat, existingLng]).addTo(map);
+try {
+    var existingLat = parseFloat('{{ listing.latitude ?? 36.8 }}');
+    var existingLng = parseFloat('{{ listing.longitude ?? 10.1 }}');
+    var map = L.map('propertyMap').setView([existingLat, existingLng], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    var marker = L.marker([existingLat, existingLng]).addTo(map);
 
-map.on('click', function(e) {
-    const { lat, lng } = e.latlng;
-    document.getElementById('latInput').value = lat.toFixed(6);
-    document.getElementById('lngInput').value = lng.toFixed(6);
-    document.getElementById('mapCoordHint').textContent = '📍 Updated: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
-    marker.setLatLng(e.latlng);
-});
+    map.on('click', function(e) {
+        var lat = e.latlng.lat, lng = e.latlng.lng;
+        document.getElementById('latInput').value = lat.toFixed(6);
+        document.getElementById('lngInput').value = lng.toFixed(6);
+        document.getElementById('mapCoordHint').textContent = '📍 Updated: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
+        marker.setLatLng(e.latlng);
+    });
+} catch(err) {
+    console.error('Map init failed:', err);
+}
 
 // ── Image previews ────────────────────────────────────────────────────────────
-const imagesInput = document.getElementById('propertyImagesInput');
-const previewsContainer = document.getElementById('imagePreviews');
-let selectedFiles = [];
+var imagesInput = document.getElementById('propertyImagesInput');
+var previewsContainer = document.getElementById('imagePreviews');
+var selectedFiles = [];
 
-imagesInput.addEventListener('change', function() {
-    selectedFiles = Array.from(this.files);
-    renderPreviews();
-});
+if (imagesInput) {
+    imagesInput.addEventListener('change', function() {
+        selectedFiles = Array.from(this.files);
+        renderPreviews();
+    });
+}
 
 function renderPreviews() {
     previewsContainer.innerHTML = '';
     selectedFiles.forEach(function(file, idx) {
-        const reader = new FileReader();
+        var reader = new FileReader();
         reader.onload = function(e) {
-            const item = document.createElement('div');
+            var item = document.createElement('div');
             item.className = 'preview-item';
             item.innerHTML =
                 '<img src="' + e.target.result + '" alt="preview">' +
@@ -268,41 +311,22 @@ function renderPreviews() {
     });
 }
 
-previewsContainer.addEventListener('click', function(e) {
-    if (e.target.classList.contains('preview-remove')) {
-        const idx = parseInt(e.target.dataset.idx, 10);
-        selectedFiles.splice(idx, 1);
-        const dt = new DataTransfer();
-        selectedFiles.forEach(function(f) { dt.items.add(f); });
-        imagesInput.files = dt.files;
-        renderPreviews();
-    }
-});
-
-// ── Signature pad ─────────────────────────────────────────────────────────────
-const hasSignature = {{ listing.ownerSignaturePath ? 'true' : 'false' }};
-let ownerPad = null;
-
-function initPad() {
-    if (ownerPad) return;
-    ownerPad = new UnidarSignaturePad('signature-pad-container', {
-        width: 620, height: 160, backgroundColor: '#f8fafc'
+if (previewsContainer) {
+    previewsContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('preview-remove')) {
+            var idx = parseInt(e.target.dataset.idx, 10);
+            selectedFiles.splice(idx, 1);
+            var dt = new DataTransfer();
+            selectedFiles.forEach(function(f) { dt.items.add(f); });
+            imagesInput.files = dt.files;
+            renderPreviews();
+        }
     });
 }
 
-if (!hasSignature) initPad();
-
-const resignBtn = document.getElementById('resignBtn');
-if (resignBtn) {
-    resignBtn.addEventListener('click', function() {
-        document.getElementById('currentSignatureBox').style.display = 'none';
-        const padContainer = document.getElementById('signature-pad-container');
-        padContainer.style.display = 'block';
-        initPad();
-    });
-}
-
+// ── Form submit ──────────────────────────────────────────────────────────────
 document.getElementById('editListingForm').addEventListener('submit', function() {
+    var ownerPad = window.__ownerPad;
     if (ownerPad && !ownerPad.isEmpty()) {
         document.getElementById('ownerSignatureInput').value = ownerPad.toDataURL();
     }

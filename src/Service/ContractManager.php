@@ -267,7 +267,10 @@ HTML;
     public function approveTermination(ContractTerminationRequest $request): void
     {
         $request->setStatus('approved');
-        $request->getContract()->setStatus(ContractStatus::Cancelled);
+        $contract = $request->getContract();
+        $contract->setStatus(ContractStatus::Cancelled);
+
+        $this->cleanupAfterCancellation($contract);
 
         $this->entityManager->flush();
     }
@@ -289,7 +292,69 @@ HTML;
     {
         $contract->setStatus(ContractStatus::Cancelled);
 
+        $this->cleanupAfterCancellation($contract);
+
         $this->entityManager->flush();
+    }
+
+    /**
+     * Post-cancellation cleanup:
+     *  - wipe the generated HTML contract and the student's signature (file + DB path)
+     *  - free up the listing if its current active-contract count falls below its capacity
+     *    (so it reappears on the listings page).
+     *
+     * The owner signature at the listing level is preserved — it belongs to the listing, not the contract.
+     */
+    private function cleanupAfterCancellation(Contract $contract): void
+    {
+        // --- 1. Delete student signature file ---
+        $studentSigPath = $contract->getStudentSignaturePath();
+        if ($studentSigPath) {
+            $absolute = $this->projectDir . '/public/' . ltrim($studentSigPath, '/');
+            if (is_file($absolute)) {
+                @unlink($absolute);
+            }
+            $contract->setStudentSignaturePath(null);
+        }
+
+        // --- 2. Wipe the generated contract HTML and any stored file ---
+        $contract->setContractContent(null);
+        if (method_exists($contract, 'setContractFilePath')) {
+            $filePath = method_exists($contract, 'getContractFilePath') ? $contract->getContractFilePath() : null;
+            if ($filePath) {
+                $absolute = $this->projectDir . '/public/' . ltrim($filePath, '/');
+                if (is_file($absolute)) {
+                    @unlink($absolute);
+                }
+            }
+            $contract->setContractFilePath(null);
+        }
+
+        // --- 3. Re-open the listing if occupancy permits ---
+        $listing = $contract->getListing();
+        if ($listing) {
+            $activeStatuses = [
+                ContractStatus::Active,
+                ContractStatus::Paid,
+                ContractStatus::SignedByBoth,
+                ContractStatus::SignedByStudent,
+                ContractStatus::PendingSignature,
+            ];
+            $occupied = 0;
+            foreach ($listing->getContracts() as $c) {
+                if ($c->getId() === $contract->getId()) {
+                    continue; // skip the one we just cancelled
+                }
+                if (in_array($c->getStatus(), $activeStatuses, true)) {
+                    $occupied++;
+                }
+            }
+            $capacity = $listing->getCapacity() ?? 1;
+            // Only un-remove listings that were auto-closed; never revive a manually removed listing.
+            if ($occupied < $capacity && $listing->getStatus() !== 'removed' && $listing->getStatus() !== 'active') {
+                $listing->setStatus('active');
+            }
+        }
     }
 
     /**

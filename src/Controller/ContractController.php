@@ -9,6 +9,7 @@ use App\Form\PaymentType;
 use App\Form\SignatureType;
 use App\Repository\ContractRepository;
 use App\Repository\ListingRepository;
+use App\Repository\SubscriptionRepository;
 use App\Service\ContractManager;
 use App\Service\PaymentProcessor;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -32,6 +33,18 @@ class ContractController extends AbstractController
     public function show(Contract $contract): Response
     {
         $this->denyAccessUnlessGranted('CONTRACT_VIEW', $contract);
+
+        // Students cannot access a cancelled contract — bounce them back to the dashboard.
+        // Owners and admins may still inspect it for records.
+        if ($contract->getStatus() === \App\Enum\ContractStatus::Cancelled
+            && $this->isGranted('ROLE_STUDENT')
+            && !$this->isGranted('ROLE_ADMIN')
+            && $contract->getStudent() === $this->getUser()
+        ) {
+            $this->addFlash('error', 'This contract has been cancelled and is no longer available.');
+            return $this->redirectToRoute('dashboard_student');
+        }
+
         return $this->render('contract/show.html.twig', ['contract' => $contract]);
     }
 
@@ -67,14 +80,30 @@ class ContractController extends AbstractController
     public function generateFromListing(
         Request $request,
         \App\Entity\Listing $listing,
-        ContractManager $contractManager
+        ContractManager $contractManager,
+        SubscriptionRepository $subscriptionRepo
     ): Response {
+        // Subscription gate — students must hold an active plan before generating a contract.
+        if (!$subscriptionRepo->findActiveByUser($this->getUser())) {
+            $this->addFlash('error', 'You need an active subscription to generate a contract. Please subscribe first.');
+            return $this->redirectToRoute('subscription_index');
+        }
+
         $startMonth = $request->request->get('startMonth');
         $duration = (int) $request->request->get('duration', 9);
 
         if (!$startMonth) {
             $this->addFlash('error', 'Please select a move-in month.');
             return $this->redirectToRoute('listing_show', ['id' => $listing->getId()]);
+        }
+
+        // Guard: once any student has an active/paid contract on this listing, further
+        // students cannot open a new contract directly — they must contact the current tenant.
+        foreach ($listing->getContracts() as $existing) {
+            if (in_array($existing->getStatus(), [\App\Enum\ContractStatus::Active, \App\Enum\ContractStatus::Paid], true)) {
+                $this->addFlash('error', 'This listing already has an active tenant. Please contact them directly about availability.');
+                return $this->redirectToRoute('listing_show', ['id' => $listing->getId()]);
+            }
         }
 
         $startDate = new \DateTimeImmutable($startMonth . '-01');

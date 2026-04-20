@@ -9,6 +9,7 @@ use App\Entity\Report;
 use App\Repository\ConversationRepository;
 use App\Repository\ListingRepository;
 use App\Repository\MessageRepository;
+use App\Repository\SubscriptionRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,6 +22,31 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_USER')]
 class MessageApiController extends AbstractController
 {
+    /**
+     * Students need an active subscription to message anyone.
+     * Owners and admins are exempt. Returns a 402 JSON payload if blocked, null otherwise.
+     */
+    private function subscriptionGate(SubscriptionRepository $subscriptionRepo): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if ($user === null) {
+            return null;
+        }
+        // Only student-role accounts are gated. Owners still need to reply to students.
+        if (!$this->isGranted('ROLE_STUDENT') || $this->isGranted('ROLE_OWNER') || $this->isGranted('ROLE_ADMIN')) {
+            return null;
+        }
+        if ($subscriptionRepo->findActiveByUser($user)) {
+            return null;
+        }
+        return $this->json([
+            'success'              => false,
+            'error'                => 'subscription_required',
+            'message'              => 'A subscription is required to send messages on UNIDAR. Please subscribe to contact owners or roommates.',
+            'subscription_url'     => $this->generateUrl('subscription_index'),
+        ], 402);
+    }
+
     /**
      * GET /api/conversations — list all conversations for the current user
      * Returns format expected by the ChatWidget JS.
@@ -74,8 +100,10 @@ class MessageApiController extends AbstractController
         EntityManagerInterface $em,
         UserRepository $userRepo,
         ListingRepository $listingRepo,
-        ConversationRepository $convRepo
+        ConversationRepository $convRepo,
+        SubscriptionRepository $subscriptionRepo
     ): JsonResponse {
+        if ($gate = $this->subscriptionGate($subscriptionRepo)) { return $gate; }
         $body = json_decode($request->getContent(), true);
         $recipientId = (int) ($body['recipient_id'] ?? 0);
         $listingId   = (int) ($body['listing_id'] ?? 0);
@@ -144,9 +172,10 @@ class MessageApiController extends AbstractController
      * POST /api/messages/{id} — send a message in a conversation
      */
     #[Route('/messages/{id}', name: 'api_message_send', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function send(Request $request, Conversation $conversation, EntityManagerInterface $em): JsonResponse
+    public function send(Request $request, Conversation $conversation, EntityManagerInterface $em, SubscriptionRepository $subscriptionRepo): JsonResponse
     {
         $this->denyAccessUnlessGranted('CONVERSATION_VIEW', $conversation);
+        if ($gate = $this->subscriptionGate($subscriptionRepo)) { return $gate; }
         $me = $this->getUser();
         $body = json_decode($request->getContent(), true);
         $text = trim($body['message'] ?? '');
