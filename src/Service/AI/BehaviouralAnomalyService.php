@@ -75,7 +75,7 @@ class BehaviouralAnomalyService
             'scraper_pattern'      => (float) ($viewsPerSess > 80),
             'unique_ip_count'      => $loginLocations,
             'ip_anomaly'           => (float) ($loginLocations > 5),
-            'no_profile_photo'     => (float) empty($user->getProfilePhoto()),
+            'no_profile_photo'     => (float) (method_exists($user, 'getProfilePhoto') ? empty($user->getProfilePhoto()) : 0.0),
             'no_phone'             => (float) empty($user->getPhone()),
             'bulk_contact'         => (float) (($log['unique_contacts'] ?? 0) > 30),
             'failed_logins'        => (float) (($log['failed_logins'] ?? 0) > 10),
@@ -130,10 +130,14 @@ class BehaviouralAnomalyService
     private function profileCompleteness(User $user): float
     {
         $fields = [
-            $user->getFirstName(), $user->getLastName(), $user->getEmail(),
-            $user->getPhone(), $user->getProfilePhoto(), $user->getFieldOfStudy(),
+            $user->getFullName(),
+            $user->getEmail(),
+            $user->getPhone(),
+            $user->getUniversity(),
+            $user->getGender(),
+            method_exists($user, 'getProfilePhoto') ? $user->getProfilePhoto() : null,
         ];
-        $filled = count(array_filter($fields));
+        $filled = count(array_filter($fields, fn($v) => $v !== null && $v !== ''));
         return $filled / count($fields);
     }
 }
