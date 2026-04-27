@@ -1,0 +1,211 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Sentiment Overview — AI Admin{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<style>
+.sent-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #0a1f1a 50%, #0f172a 100%);
+    padding: 2rem 2rem 1.5rem;
+    border-bottom: 1px solid #134e4a;
+    position: relative; overflow: hidden;
+}
+.sent-hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(20,184,166,.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none;
+}
+.sent-hero-title { font-size: 1.7rem; font-weight: 800; color: #f1f5f9; position: relative; }
+.sent-hero-sub   { color: #94a3b8; margin-top: .3rem; position: relative; }
+.sent-back-btn {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .5rem 1rem; border-radius: 8px;
+    background: rgba(255,255,255,.06); border: 1px solid #334155;
+    color: #cbd5e1; font-size: .85rem; text-decoration: none; transition: background .2s;
+}
+.sent-back-btn:hover { background: rgba(255,255,255,.1); color: #f1f5f9; }
+
+.sent-body { padding: 1.5rem 2rem; background: #0f172a; min-height: 60vh; }
+
+.sent-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.sent-kpi {
+    background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+    padding: 1.2rem; text-align: center;
+}
+.sent-kpi-val  { font-size: 2rem; font-weight: 800; color: #f1f5f9; }
+.sent-kpi-lbl  { font-size: .78rem; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-top: .3rem; }
+
+.sent-label-pos { color: #4ade80; }
+.sent-label-neg { color: #f87171; }
+.sent-label-neu { color: #94a3b8; }
+.sent-label-mix { color: #fbbf24; }
+
+.sent-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 700px) { .sent-row { grid-template-columns: 1fr; } }
+
+.sent-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.2rem; }
+.sent-card-title { font-size: .85rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 1rem; }
+
+.sent-theme-row { display: flex; align-items: center; gap: .7rem; margin-bottom: .6rem; }
+.sent-theme-name { width: 110px; flex-shrink: 0; font-size: .82rem; color: #cbd5e1; }
+.sent-theme-bar-track { flex: 1; height: 6px; background: #334155; border-radius: 3px; }
+.sent-theme-bar-fill  { height: 100%; border-radius: 3px; transition: width 1s ease; }
+.sent-bar-pos { background: linear-gradient(90deg, #059669, #4ade80); }
+.sent-bar-neg { background: linear-gradient(90deg, #dc2626, #f87171); }
+.sent-bar-neu { background: linear-gradient(90deg, #475569, #94a3b8); }
+.sent-theme-label { width: 50px; text-align: right; font-size: .72rem; color: #64748b; }
+.sent-theme-mentions { font-size: .72rem; color: #475569; }
+
+.sent-insight-list { list-style: none; padding: 0; margin: 0; }
+.sent-insight-list li { font-size: .85rem; color: #94a3b8; padding: .4rem 0; border-bottom: 1px solid rgba(51,65,85,.4); }
+.sent-insight-list li:last-child { border-bottom: none; }
+.sent-insight-list li::before { content: '💡 '; }
+
+.sent-llm-box {
+    background: rgba(20,184,166,.06); border: 1px solid rgba(20,184,166,.2);
+    border-radius: 10px; padding: 1rem 1.2rem; margin-top: 1rem;
+    font-size: .88rem; color: #99f6e4; line-height: 1.6;
+}
+.sent-llm-label { font-size: .72rem; color: #14b8a6; text-transform: uppercase; letter-spacing: .06em; margin-bottom: .4rem; font-weight: 700; }
+
+.sent-empty { text-align: center; padding: 4rem 1rem; color: #64748b; }
+.sent-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+
+.sent-dist-row { display: flex; gap: .5rem; height: 8px; border-radius: 4px; overflow: hidden; margin: .6rem 0; }
+.sent-dist-seg { transition: width 1s ease; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="sent-hero">
+    <div style="position:relative; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+        <div>
+            <div class="sent-hero-title">💬 Review Sentiment Overview</div>
+            <div class="sent-hero-sub">AI analysis of platform reviews — tone, themes, and key insights</div>
+        </div>
+        <a href="{{ path('admin_ai_dashboard') }}" class="sent-back-btn">← AI Dashboard</a>
+    </div>
+</div>
+
+<div class="sent-body">
+    {% if analysis.total == 0 %}
+        <div class="sent-empty">
+            <div class="sent-empty-icon">💬</div>
+            <div style="color:#f1f5f9; font-size:1.1rem; font-weight:600; margin-bottom:.5rem;">No reviews yet</div>
+            <div>Sentiment analysis will appear here once reviews are submitted by users.</div>
+        </div>
+    {% else %}
+        {# KPI row #}
+        <div class="sent-kpi-grid">
+            <div class="sent-kpi">
+                <div class="sent-kpi-val">{{ analysis.total }}</div>
+                <div class="sent-kpi-lbl">Reviews Analysed</div>
+            </div>
+            <div class="sent-kpi">
+                {% set avg = analysis.avg_sentiment %}
+                {% if avg >= 0.3 %}
+                    <div class="sent-kpi-val sent-label-pos">{{ (avg * 100)|round }}%</div>
+                    <div class="sent-kpi-lbl">Avg Positive Score</div>
+                {% elseif avg <= -0.3 %}
+                    <div class="sent-kpi-val sent-label-neg">{{ (avg * 100)|round }}%</div>
+                    <div class="sent-kpi-lbl">Avg Negative Score</div>
+                {% else %}
+                    <div class="sent-kpi-val sent-label-neu">Neutral</div>
+                    <div class="sent-kpi-lbl">Overall Sentiment</div>
+                {% endif %}
+            </div>
+            <div class="sent-kpi">
+                <div class="sent-kpi-val">{{ analysis.top_themes|length }}</div>
+                <div class="sent-kpi-lbl">Top Themes</div>
+            </div>
+            <div class="sent-kpi">
+                <div class="sent-kpi-val">{{ analysis.insights|length }}</div>
+                <div class="sent-kpi-lbl">AI Insights</div>
+            </div>
+        </div>
+
+        {# Sentiment distribution bar #}
+        {% if analysis.sentiment_dist is defined %}
+        <div class="sent-card" style="margin-bottom:1rem;">
+            <div class="sent-card-title">Sentiment Distribution</div>
+            <div class="sent-dist-row" id="sentDistRow">
+                {% set dist = analysis.sentiment_dist %}
+                {% if dist.positive is defined and dist.positive > 0 %}
+                <div class="sent-dist-seg" style="background:#4ade80; width:0" data-w="{{ dist.positive }}%"></div>
+                {% endif %}
+                {% if dist.neutral is defined and dist.neutral > 0 %}
+                <div class="sent-dist-seg" style="background:#94a3b8; width:0" data-w="{{ dist.neutral }}%"></div>
+                {% endif %}
+                {% if dist.negative is defined and dist.negative > 0 %}
+                <div class="sent-dist-seg" style="background:#f87171; width:0" data-w="{{ dist.negative }}%"></div>
+                {% endif %}
+            </div>
+            <div style="display:flex; gap:1rem; margin-top:.5rem; font-size:.78rem; color:#64748b;">
+                {% if dist.positive is defined %}<span style="color:#4ade80;">■ Positive {{ dist.positive }}%</span>{% endif %}
+                {% if dist.neutral  is defined %}<span style="color:#94a3b8;">■ Neutral  {{ dist.neutral }}%</span>{% endif %}
+                {% if dist.negative is defined %}<span style="color:#f87171;">■ Negative {{ dist.negative }}%</span>{% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="sent-row">
+            {# Top Themes #}
+            <div class="sent-card">
+                <div class="sent-card-title">Top Themes</div>
+                {% for theme, data in analysis.top_themes %}
+                {% set barClass = data.avg_sentiment >= 0.2 ? 'sent-bar-pos' : (data.avg_sentiment <= -0.2 ? 'sent-bar-neg' : 'sent-bar-neu') %}
+                {% set barW = (data.avg_sentiment|abs * 100) > 100 ? 100 : (data.avg_sentiment|abs * 100) %}
+                <div class="sent-theme-row">
+                    <div class="sent-theme-name">{{ theme|replace({'_': ' '})|title }}</div>
+                    <div class="sent-theme-bar-track">
+                        <div class="sent-theme-bar-fill {{ barClass }}" style="width:0" data-w="{{ barW }}"></div>
+                    </div>
+                    <div class="sent-theme-label
+                        {% if data.avg_sentiment >= 0.2 %}sent-label-pos{% elseif data.avg_sentiment <= -0.2 %}sent-label-neg{% else %}sent-label-neu{% endif %}">
+                        {{ data.label ?? (data.avg_sentiment >= 0.2 ? 'pos' : (data.avg_sentiment <= -0.2 ? 'neg' : 'neu')) }}
+                    </div>
+                    <div class="sent-theme-mentions">×{{ data.mentions }}</div>
+                </div>
+                {% else %}
+                <div style="color:#475569; font-size:.85rem;">No themes detected yet.</div>
+                {% endfor %}
+            </div>
+
+            {# Insights #}
+            <div class="sent-card">
+                <div class="sent-card-title">AI Insights</div>
+                {% if analysis.insights is not empty %}
+                <ul class="sent-insight-list">
+                    {% for insight in analysis.insights %}
+                    <li>{{ insight }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div style="color:#475569; font-size:.85rem;">No insights available yet.</div>
+                {% endif %}
+
+                {% if analysis.llm_summary is defined and analysis.llm_summary %}
+                <div class="sent-llm-box">
+                    <div class="sent-llm-label">🤖 LLM Summary</div>
+                    {{ analysis.llm_summary }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-w]').forEach(function (el) {
+        setTimeout(function () {
+            var w = el.dataset.w;
+            el.style.width = (w.toString().includes('%') ? w : w + '%');
+        }, 120);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Fraud Queue — AI Admin{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<style>
+:root { --fraud-bg: #0f172a; --fraud-card: #1e293b; --fraud-border: #334155; }
+
+.fq-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1c0a0a 50%, #0f172a 100%);
+    padding: 2rem 2rem 1.5rem;
+    border-bottom: 1px solid #3f1515;
+    position: relative;
+    overflow: hidden;
+}
+.fq-hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(239,68,68,.08) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none;
+}
+.fq-hero-title { font-size: 1.7rem; font-weight: 800; color: #f1f5f9; position: relative; }
+.fq-hero-sub { color: #94a3b8; margin-top: .3rem; position: relative; }
+.fq-back-btn {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .5rem 1rem; border-radius: 8px;
+    background: rgba(255,255,255,.06); border: 1px solid #334155;
+    color: #cbd5e1; font-size: .85rem; text-decoration: none;
+    transition: background .2s;
+}
+.fq-back-btn:hover { background: rgba(255,255,255,.1); color: #f1f5f9; }
+
+.fq-body { padding: 1.5rem 2rem; background: var(--fraud-bg); min-height: 60vh; }
+
+.fq-empty {
+    text-align: center; padding: 4rem 1rem;
+    color: #64748b; font-size: 1rem;
+}
+.fq-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+
+.fq-table-wrap { background: var(--fraud-card); border: 1px solid var(--fraud-border); border-radius: 12px; overflow: hidden; }
+.fq-table { width: 100%; border-collapse: collapse; }
+.fq-table thead th {
+    background: rgba(239,68,68,.08);
+    padding: .9rem 1.1rem;
+    text-align: left; font-size: .75rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em; color: #94a3b8;
+    border-bottom: 1px solid var(--fraud-border);
+}
+.fq-table tbody tr { border-bottom: 1px solid rgba(51,65,85,.5); transition: background .15s; }
+.fq-table tbody tr:last-child { border-bottom: none; }
+.fq-table tbody tr:hover { background: rgba(255,255,255,.03); }
+.fq-table td { padding: .85rem 1.1rem; color: #cbd5e1; font-size: .88rem; vertical-align: middle; }
+
+.fq-score-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; border-radius: 50%;
+    font-weight: 800; font-size: .95rem;
+}
+.fq-score-high   { background: rgba(239,68,68,.15);  color: #f87171; border: 2px solid rgba(239,68,68,.3); }
+.fq-score-medium { background: rgba(245,158,11,.15); color: #fbbf24; border: 2px solid rgba(245,158,11,.3); }
+
+.fq-risk-pill {
+    display: inline-block; padding: .25rem .7rem; border-radius: 20px;
+    font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+}
+.fq-risk-high   { background: rgba(239,68,68,.15);  color: #f87171; }
+.fq-risk-medium { background: rgba(245,158,11,.15); color: #fbbf24; }
+
+.fq-signal-list { list-style: none; padding: 0; margin: 0; }
+.fq-signal-list li { font-size: .78rem; color: #94a3b8; padding: .1rem 0; }
+.fq-signal-list li::before { content: '⚠ '; }
+
+.fq-action-text { font-size: .8rem; color: #7dd3fc; }
+
+.fq-listing-title { color: #f1f5f9; font-weight: 600; }
+.fq-listing-meta  { font-size: .78rem; color: #64748b; margin-top: .15rem; }
+
+.fq-count-badge {
+    display: inline-block; background: rgba(239,68,68,.15); color: #f87171;
+    border: 1px solid rgba(239,68,68,.25); border-radius: 20px;
+    padding: .25rem .75rem; font-size: .85rem; font-weight: 700; margin-left: .5rem;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="fq-hero">
+    <div style="position:relative; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+        <div>
+            <div class="fq-hero-title">🚨 Fraud Review Queue</div>
+            <div class="fq-hero-sub">Listings flagged as medium or high risk by the AI fraud detector</div>
+        </div>
+        <a href="{{ path('admin_ai_dashboard') }}" class="fq-back-btn">← AI Dashboard</a>
+    </div>
+</div>
+
+<div class="fq-body">
+    {% if items is empty %}
+        <div class="fq-empty">
+            <div class="fq-empty-icon">✅</div>
+            <div style="color:#f1f5f9; font-size:1.1rem; font-weight:600; margin-bottom:.5rem;">Queue is clear</div>
+            <div>No listings are currently flagged as medium or high risk.</div>
+        </div>
+    {% else %}
+        <div style="margin-bottom:1rem; color:#94a3b8; font-size:.9rem;">
+            Flagged listings
+            <span class="fq-count-badge">{{ items|length }}</span>
+            — sorted by risk score descending
+        </div>
+
+        <div class="fq-table-wrap">
+            <table class="fq-table">
+                <thead>
+                    <tr>
+                        <th>Score</th>
+                        <th>Listing</th>
+                        <th>Risk</th>
+                        <th>Signals</th>
+                        <th>Recommended Action</th>
+                        <th>Owner</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>
+                            <div class="fq-score-badge fq-score-{{ item.fraud.risk }}">
+                                {{ item.fraud.score }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="fq-listing-title">{{ item.listing.title }}</div>
+                            <div class="fq-listing-meta">
+                                {{ item.listing.address ?? 'No address' }}
+                                · {{ item.listing.price ?? '—' }} TND
+                                · #{{ item.listing.id }}
+                            </div>
+                        </td>
+                        <td><span class="fq-risk-pill fq-risk-{{ item.fraud.risk }}">{{ item.fraud.risk }}</span></td>
+                        <td>
+                            {% if item.fraud.signals is not empty %}
+                            <ul class="fq-signal-list">
+                                {% for signal in item.fraud.signals %}
+                                <li>{{ signal }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <span style="color:#475569; font-size:.8rem;">No flags</span>
+                            {% endif %}
+                        </td>
+                        <td><div class="fq-action-text">{{ item.fraud.action }}</div></td>
+                        <td>
+                            <div style="color:#cbd5e1; font-size:.85rem;">{{ item.listing.owner.fullName ?? 'Unknown' }}</div>
+                            <div style="color:#475569; font-size:.75rem;">{{ item.listing.owner.email ?? '' }}</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

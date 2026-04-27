@@ -1,0 +1,162 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Churn Risk Report — AI Admin{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<style>
+.cr-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #0c1a0f 50%, #0f172a 100%);
+    padding: 2rem 2rem 1.5rem;
+    border-bottom: 1px solid #1a3a1f;
+    position: relative; overflow: hidden;
+}
+.cr-hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(245,158,11,.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none;
+}
+.cr-hero-title { font-size: 1.7rem; font-weight: 800; color: #f1f5f9; position: relative; }
+.cr-hero-sub   { color: #94a3b8; margin-top: .3rem; position: relative; }
+.cr-back-btn {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .5rem 1rem; border-radius: 8px;
+    background: rgba(255,255,255,.06); border: 1px solid #334155;
+    color: #cbd5e1; font-size: .85rem; text-decoration: none;
+    transition: background .2s;
+}
+.cr-back-btn:hover { background: rgba(255,255,255,.1); color: #f1f5f9; }
+
+.cr-body { padding: 1.5rem 2rem; background: #0f172a; min-height: 60vh; }
+
+.cr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
+
+.cr-card {
+    background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+    padding: 1.2rem; transition: transform .15s, box-shadow .15s;
+}
+.cr-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.cr-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: .9rem; }
+
+.cr-user-name   { font-weight: 700; color: #f1f5f9; font-size: .95rem; }
+.cr-user-email  { font-size: .78rem; color: #64748b; margin-top: .1rem; }
+.cr-user-univ   { font-size: .78rem; color: #7dd3fc; margin-top: .1rem; }
+
+.cr-pct-ring {
+    width: 54px; height: 54px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 1rem; flex-shrink: 0;
+}
+.cr-pct-high   { background: rgba(239,68,68,.12);  color: #f87171; border: 2px solid rgba(239,68,68,.3); }
+.cr-pct-medium { background: rgba(245,158,11,.12); color: #fbbf24; border: 2px solid rgba(245,158,11,.3); }
+
+.cr-risk-badge {
+    display: inline-block; padding: .2rem .6rem; border-radius: 20px;
+    font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    margin-bottom: .7rem;
+}
+.cr-risk-high   { background: rgba(239,68,68,.12);  color: #f87171; }
+.cr-risk-medium { background: rgba(245,158,11,.12); color: #fbbf24; }
+
+.cr-bar-track { height: 6px; background: #334155; border-radius: 3px; margin: .5rem 0 .8rem; }
+.cr-bar-fill  { height: 100%; border-radius: 3px; transition: width 1s ease; }
+.cr-bar-high  { background: linear-gradient(90deg, #ef4444, #f87171); }
+.cr-bar-medium{ background: linear-gradient(90deg, #d97706, #fbbf24); }
+
+.cr-reasons { margin-top: .6rem; }
+.cr-reason-item { font-size: .78rem; color: #94a3b8; padding: .15rem 0; }
+.cr-reason-item::before { content: '→ '; color: #475569; }
+
+.cr-actions { margin-top: .8rem; border-top: 1px solid #334155; padding-top: .8rem; }
+.cr-action-chip {
+    display: inline-block; font-size: .72rem; padding: .2rem .55rem; border-radius: 6px;
+    background: rgba(99,102,241,.1); color: #a5b4fc; border: 1px solid rgba(99,102,241,.2);
+    margin: .15rem .15rem 0 0;
+}
+
+.cr-empty { text-align: center; padding: 4rem 1rem; color: #64748b; }
+.cr-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="cr-hero">
+    <div style="position:relative; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+        <div>
+            <div class="cr-hero-title">📉 Churn Risk Report</div>
+            <div class="cr-hero-sub">Users identified as medium or high risk of leaving the platform</div>
+        </div>
+        <a href="{{ path('admin_ai_dashboard') }}" class="cr-back-btn">← AI Dashboard</a>
+    </div>
+</div>
+
+<div class="cr-body">
+    {% if users is empty %}
+        <div class="cr-empty">
+            <div class="cr-empty-icon">🎉</div>
+            <div style="color:#f1f5f9; font-size:1.1rem; font-weight:600; margin-bottom:.5rem;">All users look engaged</div>
+            <div>No users are currently flagged as medium or high churn risk.</div>
+        </div>
+    {% else %}
+        <div style="margin-bottom:1.2rem; color:#94a3b8; font-size:.9rem;">
+            At-risk users
+            <span style="display:inline-block; background:rgba(245,158,11,.12); color:#fbbf24; border:1px solid rgba(245,158,11,.2); border-radius:20px; padding:.2rem .7rem; font-weight:700; margin-left:.4rem;">{{ users|length }}</span>
+            — sorted by churn probability
+        </div>
+
+        <div class="cr-grid">
+            {% for item in users %}
+            {% set pred = item.prediction %}
+            {% set risk = pred.risk %}
+            <div class="cr-card">
+                <div class="cr-card-header">
+                    <div>
+                        <div class="cr-user-name">{{ item.user.fullName ?? 'User #' ~ item.user.id }}</div>
+                        <div class="cr-user-email">{{ item.user.email }}</div>
+                        {% if item.user.university %}
+                        <div class="cr-user-univ">🎓 {{ item.user.university }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="cr-pct-ring cr-pct-{{ risk }}">{{ pred.churn_percent }}%</div>
+                </div>
+
+                <span class="cr-risk-badge cr-risk-{{ risk }}">{{ risk }} risk</span>
+
+                <div class="cr-bar-track">
+                    <div class="cr-bar-fill cr-bar-{{ risk }}" style="width:0" data-w="{{ pred.churn_percent }}"></div>
+                </div>
+
+                <div style="font-size:.78rem; color:#64748b;">Inactive {{ pred.days_since_login }} days</div>
+
+                {% if pred.reasons is not empty %}
+                <div class="cr-reasons">
+                    {% for reason in pred.reasons %}
+                    <div class="cr-reason-item">{{ reason }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if pred.re_engagement is not empty %}
+                <div class="cr-actions">
+                    <div style="font-size:.72rem; color:#475569; margin-bottom:.3rem; text-transform:uppercase; letter-spacing:.05em;">Re-engagement</div>
+                    {% for action in pred.re_engagement %}
+                    <span class="cr-action-chip">{{ action.type }}: {{ action.template ?? action.message ?? '' }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.cr-bar-fill[data-w]').forEach(function (el) {
+        setTimeout(function () { el.style.width = el.dataset.w + '%'; }, 100);
+    });
+});
+</script>
+{% endblock %}

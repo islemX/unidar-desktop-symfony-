@@ -59,7 +59,8 @@ class ChurnPredictionService
 
     private function extractFeatures(User $user, array $activity): array
     {
-        $lastLogin = $user->getLastLoginAt() ?? $user->getCreatedAt() ?? new \DateTimeImmutable();
+        // getLastLoginAt() doesn't exist on User entity — fall back to createdAt
+        $lastLogin = $user->getCreatedAt() ?? new \DateTimeImmutable();
         $daysSince = (new \DateTimeImmutable())->diff($lastLogin)->days;
 
         return [
@@ -73,7 +74,7 @@ class ChurnPredictionService
             'has_active_booking'    => (float) ($activity['has_active_booking'] ?? false),
             'profile_complete'      => (float) ($this->isProfileComplete($user)),
             'account_age_days'      => (float) max(1, (new \DateTimeImmutable())->diff($user->getCreatedAt() ?? new \DateTimeImmutable())->days),
-            'notification_opt_out'  => (float) ($user->getNotificationPreferences()['email'] ?? true ? 0 : 1),
+            'notification_opt_out'  => 0.0, // getNotificationPreferences() not on User entity
         ];
     }
 
@@ -117,9 +118,8 @@ class ChurnPredictionService
 
     private function isProfileComplete(User $user): bool
     {
-        return !empty($user->getFirstName())
-            && !empty($user->getLastName())
+        return !empty($user->getFullName())
             && !empty($user->getPhone())
-            && !empty($user->getFieldOfStudy());
+            && !empty($user->getUniversity());
     }
 }
