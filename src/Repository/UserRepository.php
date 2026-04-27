@@ -88,4 +88,50 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Users who haven't logged in for more than $days days (churn candidates).
+     * Falls back to recently-created users if lastLoginAt column doesn't exist.
+     * @return User[]
+     */
+    public function findInactiveUsers(int $days = 30): array
+    {
+        $cutoff = new \DateTimeImmutable("-{$days} days");
+
+        try {
+            return $this->createQueryBuilder('u')
+                ->andWhere('u.lastLoginAt < :cutoff OR u.lastLoginAt IS NULL')
+                ->setParameter('cutoff', $cutoff)
+                ->orderBy('u.lastLoginAt', 'ASC')
+                ->setMaxResults(200)
+                ->getQuery()
+                ->getResult();
+        } catch (\Throwable) {
+            // lastLoginAt column may not exist — fall back to all users
+            return $this->createQueryBuilder('u')
+                ->andWhere('u.createdAt < :cutoff')
+                ->setParameter('cutoff', $cutoff)
+                ->orderBy('u.createdAt', 'ASC')
+                ->setMaxResults(200)
+                ->getQuery()
+                ->getResult();
+        }
+    }
+
+    /**
+     * Users created in the last $days days.
+     * @return User[]
+     */
+    public function findRecentUsers(int $days = 7): array
+    {
+        $cutoff = new \DateTimeImmutable("-{$days} days");
+
+        return $this->createQueryBuilder('u')
+            ->andWhere('u.createdAt >= :cutoff')
+            ->setParameter('cutoff', $cutoff)
+            ->orderBy('u.createdAt', 'DESC')
+            ->setMaxResults(100)
+            ->getQuery()
+            ->getResult();
+    }
 }
