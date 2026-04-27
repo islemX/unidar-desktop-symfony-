@@ -5,7 +5,43 @@
 {% block title %}{{ listing.title }} - UNIDAR{% endblock %}
 
 {% block stylesheets %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
 <style>
+    /* ── Route steps panel (rendered below the map) ── */
+    .route-steps-panel {
+        display: none;
+        margin-top: 0.75rem;
+        border: 1px solid var(--color-surface-100);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+    .route-steps-panel.active { display: block; }
+    .route-steps-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0.65rem 1rem;
+        background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(79,70,229,0.08));
+        border-bottom: 1px solid var(--color-surface-100);
+        font-size: 0.82rem; font-weight: 700; color: var(--color-brand);
+    }
+    .route-steps-header button {
+        background: none; border: none; cursor: pointer;
+        font-size: 0.78rem; color: var(--color-text-muted); font-weight: 600;
+    }
+    .route-steps-list {
+        max-height: 220px; overflow-y: auto;
+        padding: 0; margin: 0; list-style: none;
+    }
+    .route-steps-list li {
+        display: flex; justify-content: space-between; align-items: baseline;
+        padding: 0.5rem 1rem; font-size: 0.83rem; border-bottom: 1px solid #f1f5f9;
+        gap: 0.5rem;
+    }
+    .route-steps-list li:last-child { border-bottom: none; }
+    .route-steps-list .step-text { color: #374151; flex: 1; }
+    .route-steps-list .step-dist { color: var(--color-brand); font-weight: 700; white-space: nowrap; font-size: 0.78rem; }
+    /* Hide the default LRM map control — we render instructions ourselves */
+    .leaflet-routing-container { display: none !important; }
+
     .listing-layout { display: grid; grid-template-columns: 1fr 400px; gap: 2rem; align-items: start; }
     @media(max-width: 960px) { .listing-layout { grid-template-columns: 1fr; } }
 
@@ -54,6 +90,12 @@
     .route-info.active { display: flex; justify-content: space-around; gap: 1rem; flex-wrap: wrap; }
     .route-info b { color: var(--color-brand); font-size: 1.05rem; }
 
+    /* AI widgets */
+    .ai-score-ring { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; font-size: 1.2rem; font-weight: 800; color: white; flex-shrink: 0; }
+    .ai-issue { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.5rem 0; border-bottom: 1px solid var(--color-surface-50); font-size: 0.85rem; }
+    .ai-issue:last-child { border-bottom: none; }
+    .ai-suggestion { background: linear-gradient(100deg,#eef2ff,#f5f3ff); border: 1px solid #c7d2fe; border-radius: var(--radius-lg); padding: 0.65rem 0.9rem; font-size: 0.83rem; margin-top: 0.4rem; }
+
     /* Modal overlay */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(17,24,39,0.55); backdrop-filter: blur(6px); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 1rem; }
     .modal-overlay.active { display: flex; }
@@ -66,6 +108,76 @@
     @media(max-width: 600px) {
         .detail-stats { grid-template-columns: repeat(2, 1fr); }
     }
+
+    /* ── Voice Navigation ─────────────────────────────────────────────────── */
+    @keyframes vnavMicPulse {
+        0%, 100% { opacity: 1; } 50% { opacity: 0.55; }
+    }
+    .vnav-panel {
+        margin-top: 0.75rem;
+        border: 1.5px solid rgba(99,102,241,0.22);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 8px 28px -6px rgba(99,102,241,0.14);
+    }
+    .vnav-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0.7rem 1rem;
+        background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(79,70,229,0.05));
+        border-bottom: 1px solid rgba(99,102,241,0.1);
+    }
+    .vnav-title { font-size: 0.875rem; font-weight: 700; color: var(--color-brand); }
+    .vnav-langs { display: flex; gap: 4px; }
+    .vnav-lang {
+        border: 1px solid var(--color-border); background: white;
+        border-radius: 50px; padding: 3px 10px;
+        font-size: 0.73rem; font-weight: 600; cursor: pointer;
+        color: var(--color-text-muted); transition: all 0.2s;
+    }
+    .vnav-lang.active, .vnav-lang:hover {
+        background: var(--color-brand); color: white; border-color: var(--color-brand);
+    }
+    .vnav-bar  { height: 4px; background: #e0e7ff; }
+    .vnav-fill { height: 100%; background: linear-gradient(90deg,#6366f1,#4f46e5); width: 0%; transition: width 0.6s ease; }
+    .vnav-step { padding: 1rem 1.25rem 0.75rem; border-bottom: 1px solid var(--color-surface-100); }
+    .vnav-step-meta { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
+    .vnav-step-badge {
+        display: inline-block; background: rgba(99,102,241,0.1);
+        color: var(--color-brand); font-size: 0.72rem; font-weight: 700;
+        padding: 2px 9px; border-radius: 50px;
+    }
+    .vnav-step-dist { font-size: 0.78rem; color: var(--color-text-muted); font-weight: 600; }
+    .vnav-step-text { font-size: 1rem; font-weight: 600; color: #1e293b; line-height: 1.4; }
+    .vnav-info {
+        display: flex; gap: 1.25rem; align-items: center; padding: 0.6rem 1.25rem;
+        font-size: 0.82rem; color: var(--color-text-muted);
+        border-bottom: 1px solid var(--color-surface-100); flex-wrap: wrap;
+    }
+    .vnav-info b { color: var(--color-brand); }
+    .vnav-gps-tag { font-size: 0.75rem; }
+    .vnav-btns { display: flex; gap: 0.5rem; padding: 0.75rem 1rem; flex-wrap: wrap; }
+    .vnav-btn {
+        flex: 1; min-width: 68px; padding: 8px 12px;
+        border: none; border-radius: var(--radius-md);
+        font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .vnav-pri { background: var(--color-brand); color: white; }
+    .vnav-pri:hover { background: #4f46e5; }
+    .vnav-sec { background: var(--color-surface-50); color: #374151; border: 1px solid var(--color-border); }
+    .vnav-sec:hover { background: #e0e7ff; color: var(--color-brand); border-color: var(--color-brand); }
+    .vnav-dan { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .vnav-dan:hover { background: #dc2626; color: white; }
+    .vnav-mic {
+        margin: 0 1rem 0.75rem; padding: 7px 14px;
+        background: linear-gradient(90deg, #fef3c7, #fffbeb);
+        border: 1px solid #fde68a; border-radius: var(--radius-md);
+        font-size: 0.79rem; color: #92400e;
+        align-items: center; gap: 6px;
+        animation: vnavMicPulse 2s ease-in-out infinite;
+    }
+    /* Voice Nav launch button (in directions panel header) */
+    #startVoiceNavBtn:hover { opacity: 0.88; transform: translateY(-1px); transition: all 0.2s; }
 </style>
 {% endblock %}
 
@@ -143,6 +255,19 @@
                 </div>
                 {% endif %}
 
+                {% if is_granted('ROLE_OWNER') and app.user == listing.owner %}
+                <!-- AI Listing Quality Score -->
+                <div class="card" style="margin-top: 1rem;" id="aiQualitySection">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+                        <h3 style="margin:0;font-size:1.05rem;">🤖 AI Listing Score</h3>
+                        <button type="button" id="aiAnalyzeBtn" onclick="loadAiScore()" class="btn btn-secondary btn-sm">Analyze Listing</button>
+                    </div>
+                    <div id="aiQualityContent">
+                        <p style="font-size:0.85rem;color:var(--color-text-muted);">Get AI-powered recommendations to improve your listing and attract more students.</p>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Map & Trajectory -->
                 {% if listing.latitude and listing.longitude %}
                 <div class="card" style="margin-top: 1rem;" id="mapSection">
@@ -174,6 +299,20 @@
                     </div>
 
                     <div id="listingMap"></div>
+                    <div class="route-steps-panel" id="routeStepsPanel">
+                        <div class="route-steps-header">
+                            <span>🗺️ Turn-by-turn directions</span>
+                            <div style="display:flex;gap:0.5rem;align-items:center;">
+                                <button type="button" id="startVoiceNavBtn"
+                                    style="display:none;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;border-radius:50px;padding:5px 14px;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;"
+                                    onclick="if(window.VoiceNav){VoiceNav.start();}else{alert('Voice navigation is loading, please try again.');}">
+                                    🎙️ Voice Nav
+                                </button>
+                                <button type="button" onclick="document.getElementById('routeStepsPanel').classList.remove('active')">✕ Close</button>
+                            </div>
+                        </div>
+                        <ol class="route-steps-list" id="routeStepsList"></ol>
+                    </div>
                 </div>
                 {% endif %}
             </div>
@@ -243,7 +382,7 @@
                             ✅ You are currently renting this property.
                         </div>
                     {% else %}
-                        {% if needs_sub %}
+                        {% if not has_subscription %}
                             <a href="{{ path('subscription_index') }}" class="btn btn-primary" style="width: 100%; margin-bottom: 0.5rem;">
                                 💬 Contact Owner <span style="opacity:0.85;font-weight:500;margin-left:0.35rem;">(Subscribe first)</span>
                             </a>
@@ -280,6 +419,10 @@
                 {% endif %}
 
                 {% if is_granted('ROLE_OWNER') and app.user == listing.owner %}
+                    <div id="priceSuggestionWidget" style="margin-bottom:0.75rem;">
+                        <button type="button" onclick="loadPriceSuggestion()" id="priceBtn" class="btn btn-outline" style="width:100%;font-size:0.85rem;">💡 Get AI Price Suggestion</button>
+                        <div id="priceSuggestionContent"></div>
+                    </div>
                     <a href="{{ path('listing_edit', {id: listing.id}) }}" class="btn btn-primary" style="width: 100%; margin-bottom: 0.5rem;">✏️ Edit Listing</a>
                     <form method="post" action="{{ path('listing_delete', {id: listing.id}) }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('delete'~listing.id) }}">
@@ -366,6 +509,8 @@
 {% endblock %}
 
 {% block javascripts %}
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<script src="/js/voice-navigation.js"></script>
 <script>
 // Image gallery data
 var images = [
@@ -408,17 +553,18 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'ArrowRight') lightboxNav(1);
 });
 
-// Map + Trajectory
+// Map + Trajectory — powered by Leaflet Routing Machine
 {% if listing.latitude and listing.longitude %}
 var MapCtl = {
-    map: null,
-    listingLat: {{ listing.latitude }},
-    listingLng: {{ listing.longitude }},
-    listingMarker: null,
-    facultyMarker: null,
-    routeLayers: [],
-    faculties: [],
-    travelMode: 'driving',
+    map:            null,
+    listingLat:     {{ listing.latitude }},
+    listingLng:     {{ listing.longitude }},
+    listingMarker:  null,
+    facultyMarker:  null,
+    routingControl: null,   // LRM control instance
+    lastRoute:      null,   // stored for VoiceNav
+    faculties:      [],
+    travelMode:     'driving',
     selectedFaculty: null,
 
     init: function() {
@@ -429,7 +575,7 @@ var MapCtl = {
 
         var houseIcon = L.divIcon({
             className: 'custom-marker',
-            html: '<div style="background: #6366f1; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 3px solid white;">🏠</div>',
+            html: '<div style="background:#6366f1;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:20px;box-shadow:0 4px 10px rgba(0,0,0,0.3);border:3px solid white;">🏠</div>',
             iconSize: [42, 42], iconAnchor: [21, 21]
         });
         this.listingMarker = L.marker([this.listingLat, this.listingLng], { icon: houseIcon })
@@ -447,7 +593,6 @@ var MapCtl = {
             .then(function(data) {
                 MapCtl.faculties = Array.isArray(data) ? data : (data.faculties || []);
                 var sel = document.getElementById('facultySelector');
-                // Group by governorate
                 var byGov = {};
                 MapCtl.faculties.forEach(function(f) {
                     var g = f.governorate || 'Other';
@@ -478,9 +623,24 @@ var MapCtl = {
     },
 
     clearRoutes: function() {
-        this.routeLayers.forEach(function(l) { MapCtl.map.removeLayer(l); });
-        this.routeLayers = [];
-        if (this.facultyMarker) { this.map.removeLayer(this.facultyMarker); this.facultyMarker = null; }
+        // Remove existing LRM control (removes route lines + itinerary)
+        if (this.routingControl) {
+            this.map.removeControl(this.routingControl);
+            this.routingControl = null;
+        }
+        if (this.facultyMarker) {
+            this.map.removeLayer(this.facultyMarker);
+            this.facultyMarker = null;
+        }
+        document.getElementById('routeInfo').classList.remove('active');
+        document.getElementById('routeStepsPanel').classList.remove('active');
+        document.getElementById('routeStepsList').innerHTML = '';
+        this.lastRoute = null;
+
+        // Hide voice nav launch button and reset nav state
+        var voiceBtn = document.getElementById('startVoiceNavBtn');
+        if (voiceBtn) voiceBtn.style.display = 'none';
+        if (typeof VoiceNav !== 'undefined') VoiceNav.reset();
     },
 
     calculateRoute: function() {
@@ -489,55 +649,97 @@ var MapCtl = {
 
         this.clearRoutes();
 
+        // Faculty marker (green 🎓)
         var facultyIcon = L.divIcon({
             className: 'custom-marker',
-            html: '<div style="background: #10b981; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 3px solid white;">🎓</div>',
+            html: '<div style="background:#10b981;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:20px;box-shadow:0 4px 10px rgba(0,0,0,0.3);border:3px solid white;">🎓</div>',
             iconSize: [42, 42], iconAnchor: [21, 21]
         });
         this.facultyMarker = L.marker([f.latitude, f.longitude], { icon: facultyIcon })
-            .addTo(this.map).bindPopup('<strong>' + f.name + '</strong><br>Starting point');
-
-        var baseUrl = 'https://router.project-osrm.org';
-        var profile = 'driving';
-        if (this.travelMode === 'walking') { baseUrl = 'https://routing.openstreetmap.de/routed-foot'; profile = 'foot'; }
-
-        var url = baseUrl + '/route/v1/' + profile + '/' + f.longitude + ',' + f.latitude + ';' + this.listingLng + ',' + this.listingLat + '?overview=full&geometries=geojson&alternatives=3';
+            .addTo(this.map)
+            .bindPopup('<strong>' + f.name + '</strong>');
 
         var btn = document.getElementById('getDirectionsBtn');
-        btn.disabled = true; btn.innerHTML = '<span>⏳</span> Calculating...';
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span> Calculating...';
 
-        fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+        var isWalking  = this.travelMode === 'walking';
+        var serviceUrl = isWalking
+            ? 'https://routing.openstreetmap.de/routed-foot/route/v1'
+            : 'https://router.project-osrm.org/route/v1';
+        var profile    = isWalking ? 'foot' : 'driving';
+        var self       = this;
+
+        this.routingControl = L.Routing.control({
+            waypoints: [
+                L.latLng(f.latitude,       f.longitude),
+                L.latLng(this.listingLat,  this.listingLng)
+            ],
+            router: L.Routing.osrmv1({
+                serviceUrl: serviceUrl,
+                profile:    profile,
+                useHints:   false
+            }),
+            // We render instructions ourselves — hide the default LRM panel
+            show:            false,
+            addWaypoints:    false,
+            routeWhileDragging: false,
+            fitSelectedRoutes: true,
+            showAlternatives: true,
+            // Suppress LRM's own markers; we already have custom ones
+            createMarker: function() { return null; },
+            lineOptions: {
+                styles: [{ color: '#6366f1', weight: 7, opacity: 0.92 }],
+                extendToWaypoints: true,
+                missingRouteTolerance: 10
+            },
+            altLineOptions: {
+                styles: [{ color: '#94a3b8', weight: 4, opacity: 0.5, dashArray: '8 8' }],
+                extendToWaypoints: false,
+                missingRouteTolerance: 10
+            }
+        }).addTo(this.map);
+
+        // ── On route found: fill summary bar + step-by-step panel ──────
+        this.routingControl.on('routesfound', function(e) {
             btn.disabled = false;
-            btn.innerHTML = '<span id="transportEmoji">' + (MapCtl.travelMode === 'walking' ? '🚶' : '🚗') + '</span> Get route';
-            if (data.code !== 'Ok' || !data.routes || !data.routes.length) { alert('No route found.'); return; }
+            btn.innerHTML = '<span id="transportEmoji">' + (self.travelMode === 'walking' ? '🚶' : '🚗') + '</span> Get route';
 
-            data.routes.forEach(function(route, i) {
-                var isMain = i === 0;
-                var latLngs = route.geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
-                var line = L.polyline(latLngs, {
-                    color: isMain ? '#6366f1' : '#cbd5e1',
-                    weight: isMain ? 7 : 4,
-                    opacity: isMain ? 1 : 0.45,
-                    smoothFactor: 1.5,
-                    lineJoin: 'round',
-                    lineCap: 'round',
-                    dashArray: isMain ? null : '8, 8'
-                }).addTo(MapCtl.map);
-                MapCtl.routeLayers.push(line);
-                if (isMain) {
-                    MapCtl.map.fitBounds(line.getBounds(), { padding: [40, 40] });
-                    var km = (route.distance / 1000).toFixed(1) + ' km';
-                    var mins = Math.round(route.duration / 60);
-                    var dur = mins < 60 ? mins + ' min' : Math.floor(mins/60) + 'h ' + (mins%60) + 'min';
-                    document.getElementById('routeDistance').textContent = km;
-                    document.getElementById('routeDuration').textContent = dur;
-                    document.getElementById('routeInfo').classList.add('active');
-                }
+            var r    = e.routes[0];
+            var km   = (r.summary.totalDistance / 1000).toFixed(1) + ' km';
+            var mins = Math.round(r.summary.totalTime / 60);
+            var dur  = mins < 60 ? mins + ' min' : Math.floor(mins / 60) + 'h ' + (mins % 60) + 'min';
+
+            document.getElementById('routeDistance').textContent = km;
+            document.getElementById('routeDuration').textContent = dur;
+            document.getElementById('routeInfo').classList.add('active');
+
+            // Turn-by-turn steps
+            var list = document.getElementById('routeStepsList');
+            var html = '';
+            (r.instructions || []).forEach(function(step) {
+                if (!step.text) return;
+                var d = step.distance >= 1000
+                    ? (step.distance / 1000).toFixed(1) + ' km'
+                    : Math.round(step.distance) + ' m';
+                html += '<li><span class="step-text">' + step.text + '</span>'
+                      + '<span class="step-dist">' + d + '</span></li>';
             });
-        }).catch(function(err) {
+            list.innerHTML = html;
+            document.getElementById('routeStepsPanel').classList.add('active');
+
+            // ── Voice Navigation: store route + show launch button ───────
+            self.lastRoute = r;
+            var voiceBtn = document.getElementById('startVoiceNavBtn');
+            if (voiceBtn) voiceBtn.style.display = 'inline-block';
+            if (typeof VoiceNav !== 'undefined') {
+                VoiceNav.prepare(r);
+            }
+        });
+
+        this.routingControl.on('routingerror', function() {
             btn.disabled = false;
-            btn.innerHTML = '<span id="transportEmoji">' + (MapCtl.travelMode === 'walking' ? '🚶' : '🚗') + '</span> Get route';
-            console.error('Route calculation failed:', err);
+            btn.innerHTML = '<span id="transportEmoji">' + (self.travelMode === 'walking' ? '🚶' : '🚗') + '</span> Get route';
             alert('Could not calculate route. Please try again.');
         });
     }
@@ -547,7 +749,8 @@ function setTravelMode(mode) {
     MapCtl.travelMode = mode;
     document.getElementById('modeDriving').classList.toggle('active', mode === 'driving');
     document.getElementById('modeWalking').classList.toggle('active', mode === 'walking');
-    document.getElementById('transportEmoji').textContent = mode === 'walking' ? '🚶' : '🚗';
+    var emoji = document.getElementById('transportEmoji');
+    if (emoji) emoji.textContent = mode === 'walking' ? '🚶' : '🚗';
     if (MapCtl.selectedFaculty) MapCtl.calculateRoute();
 }
 
@@ -595,5 +798,68 @@ function shareListing() {
         }).catch(function() { alert('Failed to submit report.'); });
     };
 })();
+
+// ── AI: Listing Quality Score ──
+function loadAiScore() {
+    var btn = document.getElementById('aiAnalyzeBtn');
+    var box = document.getElementById('aiQualityContent');
+    btn.disabled = true;
+    btn.textContent = 'Analyzing…';
+    fetch('/api/listings/{{ listing.id }}/optimization-score', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            btn.textContent = 'Re-analyze';
+            btn.disabled = false;
+            var score = d.quality_score || d.score || 0;
+            var tier  = score >= 80 ? '#10b981' : score >= 55 ? '#f59e0b' : '#ef4444';
+            var tier_label = score >= 80 ? 'Excellent' : (score >= 55 ? 'Good' : 'Needs improvement');
+            var html  = '<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">';
+            html += '<div class="ai-score-ring" style="background:' + tier + ';">' + score + '</div>';
+            html += '<div><div style="font-weight:700;font-size:1rem;">Quality Score: ' + score + '/100</div>';
+            html += '<div style="font-size:0.82rem;color:var(--color-text-muted);">' + tier_label + '</div></div></div>';
+            if (d.issues && d.issues.length) {
+                html += '<div style="margin-bottom:0.75rem;"><strong style="font-size:0.85rem;">Issues to fix:</strong>';
+                d.issues.forEach(function(i) { html += '<div class="ai-issue"><span>⚠️</span><span>' + i + '</span></div>'; });
+                html += '</div>';
+            }
+            if (d.suggestions && d.suggestions.length) {
+                html += '<div><strong style="font-size:0.85rem;">Suggestions:</strong>';
+                d.suggestions.forEach(function(s) { html += '<div class="ai-suggestion">💡 ' + s + '</div>'; });
+                html += '</div>';
+            }
+            box.innerHTML = html;
+        })
+        .catch(function() {
+            btn.disabled = false;
+            btn.textContent = 'Retry';
+            box.innerHTML = '<p style="color:#ef4444;font-size:0.85rem;">Could not load AI score. Please try again.</p>';
+        });
+}
+
+// ── AI: Price Suggestion ──
+function loadPriceSuggestion() {
+    var btn = document.getElementById('priceBtn');
+    var box = document.getElementById('priceSuggestionContent');
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+    fetch('/api/listings/{{ listing.id }}/price-suggestion', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            btn.style.display = 'none';
+            var price = d.recommended_price || d.suggested_price || 0;
+            var min   = d.min || d.price_min || 0;
+            var max   = d.max || d.price_max || 0;
+            var html  = '<div style="background:linear-gradient(100deg,#eef2ff,#f5f3ff);border:1px solid #c7d2fe;border-radius:var(--radius-lg);padding:0.85rem;font-size:0.85rem;margin-top:0.5rem;">';
+            html += '<div style="font-weight:700;color:var(--color-brand);font-size:1rem;">💡 Suggested: ' + price + ' TND/mo</div>';
+            if (min && max) { html += '<div style="color:#4b5563;margin-top:2px;">Market range: ' + min + ' – ' + max + ' TND</div>'; }
+            if (d.rationale || d.reasoning) { html += '<div style="margin-top:0.35rem;color:#374151;">' + (d.rationale || d.reasoning) + '</div>'; }
+            html += '</div>';
+            box.innerHTML = html;
+        })
+        .catch(function() {
+            btn.disabled = false;
+            btn.textContent = '💡 Get AI Price Suggestion';
+        });
+}
 </script>
 {% endblock %}
