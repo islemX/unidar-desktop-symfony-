@@ -48,6 +48,14 @@
                 Available {{ listing.availableFrom|date('d M Y') }}
             </div>
         {% endif %}
+
+        {# AI Quick Badges — lazy loaded via JS #}
+        <div class="plc-ai-badges" id="plc-ai-{{ listing.id }}"
+             data-id="{{ listing.id }}"
+             data-lat="{{ listing.latitude }}"
+             data-lng="{{ listing.longitude }}"
+             style="display:flex;flex-wrap:wrap;gap:4px;margin-top:0.4rem;">
+        </div>
     </div>
 </a>
 
@@ -323,5 +331,45 @@
     .pro-listing-card:hover .plc-img { transform: scale(1); }
     .pro-listing-card:hover .plc-media::after { animation: none; }
 }
+
+/* AI badge chips on card */
+.plc-ai-chip {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 3px 8px; border-radius: 50px;
+    font-size: 0.68rem; font-weight: 700;
+    background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+    border: 1px solid #c7d2fe; color: #4338ca;
+    animation: plcChipIn 0.3s ease both;
+}
+@keyframes plcChipIn {
+    from { opacity:0; transform: scale(0.8); }
+    to   { opacity:1; transform: scale(1); }
+}
 </style>
 {% endif %}
+
+{# Lazy-load top vibe tags for this card via IntersectionObserver #}
+<script>
+(function() {
+    var el = document.getElementById('plc-ai-{{ listing.id }}');
+    if (!el || !el.dataset.lat || !window.IntersectionObserver) return;
+    var loaded = false;
+    var obs = new IntersectionObserver(function(entries) {
+        if (loaded || !entries[0].isIntersecting) return;
+        loaded = true; obs.disconnect();
+        fetch('/api/ai/listing/{{ listing.id }}/neighbourhood', { credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                var tags = (d.top_vibes || d.tags || []).slice(0, 3);
+                tags.forEach(function(t) {
+                    var span = document.createElement('span');
+                    span.className = 'plc-ai-chip';
+                    span.textContent = (t.icon || '') + ' ' + (t.label || t.key || t);
+                    el.appendChild(span);
+                });
+            })
+            .catch(function(){});
+    }, { rootMargin: '100px' });
+    obs.observe(el);
+})();
+</script>

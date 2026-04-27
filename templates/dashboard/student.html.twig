@@ -240,12 +240,101 @@
                 </div>
             </div>
         </div>
+
+        <!-- AI Cost of Living Intelligence -->
+        <div class="fade-in-up" style="margin-top:2rem;">
+            <div style="background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:var(--radius-2xl);padding:1.75rem 2rem;position:relative;overflow:hidden;color:white;">
+                <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(99,102,241,0.2);pointer-events:none;"></div>
+                <div style="position:absolute;bottom:-30px;left:60%;width:120px;height:120px;border-radius:50%;background:rgba(168,85,247,0.15);pointer-events:none;"></div>
+                <div style="position:relative;z-index:1;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
+                        <div>
+                            <div style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;margin-bottom:0.25rem;">AI Finance Intelligence</div>
+                            <h3 style="margin:0;font-size:1.2rem;color:white;">🏦 Monthly Cost of Living</h3>
+                        </div>
+                        <div id="colTotalBadge" style="background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);padding:8px 18px;border-radius:50px;font-weight:800;font-size:1.1rem;border:1px solid rgba(255,255,255,0.2);">
+                            Loading…
+                        </div>
+                    </div>
+                    <div id="colDashGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.6rem;">
+                        <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;font-size:0.8rem;opacity:0.6;">
+                            <div style="font-size:1.2rem;margin-bottom:4px;">⏳</div>
+                            Loading breakdown…
+                        </div>
+                    </div>
+                    <p style="font-size:0.76rem;opacity:0.6;margin:0.75rem 0 0;">Estimates based on your saved listings area. Actual costs may vary.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Re-engagement (Churn Prevention) -->
+        <div id="churnBanner" style="display:none;margin-top:1.25rem;">
+            <div style="background:linear-gradient(135deg,#fff7ed,#fffbeb);border:1px solid #fed7aa;border-radius:var(--radius-xl);padding:1.25rem 1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                <div style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">🎯</div>
+                <div style="flex:1;min-width:200px;">
+                    <div style="font-weight:700;font-size:0.95rem;color:#92400e;" id="churnTitle">We miss you!</div>
+                    <div style="font-size:0.83rem;color:#78350f;margin-top:2px;" id="churnMsg">Pick up where you left off — great listings are waiting.</div>
+                </div>
+                <a href="{{ path('listing_index') }}" class="btn btn-primary" style="background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;padding:10px 20px;font-size:0.85rem;white-space:nowrap;">Browse Now →</a>
+            </div>
+        </div>
     </div>
 </main>
 {% endblock %}
 
 {% block javascripts %}
 <script>
+// ── Cost of Living Dashboard Widget ─────────────────────────────────────────
+(function() {
+    // Use first saved listing for context, or city-based estimate
+    fetch('/api/ai/user/{{ app.user.id }}/cost-of-living', { credentials: 'same-origin' })
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(d) {
+            if (!d) return;
+            var total = d.total_monthly || 0;
+            var breakdown = d.breakdown || {};
+            var icons = { rent:'🏠', utilities:'⚡', internet:'📶', transport:'🚌', groceries:'🛒', extras:'🎯' };
+            document.getElementById('colTotalBadge').textContent = '~' + total + ' TND/mo';
+            var grid = document.getElementById('colDashGrid');
+            var html = '';
+            Object.entries(breakdown).forEach(function([k,v]) {
+                var icon = icons[k] || '📌';
+                html += '<div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:0.75rem;text-align:center;">';
+                html += '<div style="font-size:1.1rem;margin-bottom:4px;">' + icon + '</div>';
+                html += '<div style="font-size:0.7rem;opacity:0.75;text-transform:capitalize;">' + k + '</div>';
+                html += '<div style="font-weight:800;font-size:0.95rem;margin-top:2px;">' + v + ' TND</div>';
+                html += '</div>';
+            });
+            if (html) grid.innerHTML = html;
+        })
+        .catch(function(){});
+})();
+
+// ── Churn Re-engagement Banner ───────────────────────────────────────────────
+(function() {
+    fetch('/api/ai/user/{{ app.user.id }}/churn', { credentials: 'same-origin' })
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(d) {
+            if (!d || d.risk_score === undefined) return;
+            var score = d.risk_score || 0;
+            // Show banner only if churn risk is medium-high (>= 45)
+            if (score < 45) return;
+            var banner = document.getElementById('churnBanner');
+            var title  = document.getElementById('churnTitle');
+            var msg    = document.getElementById('churnMsg');
+            if (score >= 75) {
+                title.textContent = "🚨 We haven't seen you in a while!";
+                msg.textContent = d.message || "Your saved listings may no longer be available. Check now before they're gone.";
+            } else {
+                title.textContent = "👋 Ready to continue your search?";
+                msg.textContent = d.message || "You have unfinished business — great listings are waiting for you.";
+            }
+            banner.style.display = 'block';
+        })
+        .catch(function(){});
+})();
+
+// ── Roommate Suggestions ─────────────────────────────────────────────────────
 (function() {
     fetch('/api/roommate-matches?limit=3', { credentials: 'same-origin' })
         .then(function(r) { return r.ok ? r.json() : null; })
@@ -287,3 +376,4 @@
 })();
 </script>
 {% endblock %}
+

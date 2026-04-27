@@ -62,26 +62,37 @@ class AiController extends AbstractController
             return $this->json(['error' => 'Query parameter "q" is required'], 400);
         }
 
-        $result = $this->nlSearch->search($query, (int) $request->get('limit', 20));
+        $result  = $this->nlSearch->search($query, (int) $request->get('limit', 20));
+        $listings = $result['listings'] ?? [];
+        $scores   = $result['scores']   ?? [];
+
+        $serialized = array_map(function (Listing $l) use ($scores) {
+            $data = $this->serializeListingFull($l);
+            $data['score'] = isset($scores[$l->getId()])
+                ? round($scores[$l->getId()] / 100, 3)
+                : null;
+            return $data;
+        }, $listings);
 
         return $this->json([
-            'query'    => $query,
-            'parsed'   => $result['parsed'],
-            'count'    => count($result['listings']),
-            'listings' => array_map(fn($l) => $this->serializeListing($l), $result['listings']),
+            'query'   => $query,
+            'intent'  => $result['parsed'] ?? [],
+            'count'   => count($serialized),
+            'results' => $serialized,
         ]);
     }
 
     // ── 4. Listing Description Generator ──────────────────────────────────────
-    #[Route('/listing/{id}/description', name: 'description', methods: ['POST'])]
+    #[Route('/listing/{id}/description', name: 'description', methods: ['GET', 'POST'])]
     #[IsGranted('ROLE_USER')]
     public function generateDescription(int $id, Request $request): JsonResponse
     {
         $listing = $this->listingRepo->find($id);
         if (!$listing) return $this->json(['error' => 'Listing not found'], 404);
 
-        $lang   = $request->toArray()['lang'] ?? 'en';
-        $all    = $request->toArray()['all'] ?? false;
+        $body   = $request->getContent() ? ($request->toArray() ?: []) : [];
+        $lang   = $request->get('lang') ?? $body['lang'] ?? 'en';
+        $all    = $request->get('all')  ?? $body['all']  ?? false;
         $result = $all
             ? $this->descGen->generateAll($listing)
             : $this->descGen->generate($listing, $lang);
@@ -97,21 +108,30 @@ class AiController extends AbstractController
         $listing = $this->listingRepo->find($id);
         if (!$listing) return $this->json(['error' => 'Listing not found'], 404);
 
-        $paths  = array_map(
-            fn($p) => $this->getParameter('kernel.project_dir') . '/public/uploads/listings/' . $p,
-            $listing->getPhotos() ?? []
-        );
+        $paths = [];
+        foreach ($listing->getImages() as $img) {
+            $ip = $img->getImagePath();
+            if ($ip && !str_starts_with($ip, 'http')) {
+                $paths[] = $this->getParameter('kernel.project_dir') . '/public/uploads/listings/' . $ip;
+            }
+        }
 
         return $this->json($this->photoQuality->analyzeSet($paths));
     }
 
     // ── 6. Fraud Detection ─────────────────────────────────────────────────────
     #[Route('/listing/{id}/fraud-score', name: 'fraud_score', methods: ['GET'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('ROLE_USER')]
     public function fraudScore(int $id): JsonResponse
     {
         $listing = $this->listingRepo->find($id);
         if (!$listing) return $this->json(['error' => 'Listing not found'], 404);
+
+        // Allow admin, or the listing owner to see their own fraud report
+        $user = $this->getUser();
+        if (!$this->isGranted('ROLE_ADMIN') && $listing->getOwner() !== $user) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
 
         return $this->json($this->fraud->score($listing));
     }
@@ -234,13 +254,95 @@ class AiController extends AbstractController
 
     // ── 17. Churn Prediction ───────────────────────────────────────────────────
     #[Route('/user/{id}/churn', name: 'user_churn', methods: ['GET'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('ROLE_USER')]
     public function userChurn(int $id): JsonResponse
     {
         $user = $this->userRepo->find($id);
         if (!$user) return $this->json(['error' => 'User not found'], 404);
 
+        // Users can only see their own churn score unless admin
+        if (!$this->isGranted('ROLE_ADMIN') && $user !== $this->getUser()) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
+
         return $this->json($this->churn->predict($user));
+    }
+
+    // ── User Cost of Living (dashboard) ───────────────────────────────────────
+    #[Route('/user/{id}/cost-of-living', name: 'user_col', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function userCostOfLiving(int $id, Request $request): JsonResponse
+    {
+        $user = $this->userRepo->find($id);
+        if (!$user) return $this->json(['error' => 'User not found'], 404);
+
+        if (!$this->isGranted('ROLE_ADMIN') && $user !== $this->getUser()) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
+
+        // Use first saved listing city, or default to Tunis
+        $city = 'Tunis';
+        $savedListings = $user->getSavedListings();
+        if ($savedListings && count($savedListings) > 0) {
+            $firstListing = $savedListings->first();
+            if ($firstListing) {
+                return $this->json($this->costOfLiving->estimate($firstListing, []));
+            }
+        }
+
+        // Generic city estimate — create a dummy listing context
+        return $this->json([
+            'city'          => $city,
+            'total_monthly' => 950,
+            'breakdown'     => [
+                'rent'       => 600,
+                'utilities'  => 90,
+                'internet'   => 40,
+                'transport'  => 80,
+                'groceries'  => 100,
+                'extras'     => 40,
+            ],
+        ]);
+    }
+
+    // ── Admin: Fraud Queue Count ───────────────────────────────────────────────
+    #[Route('/admin/fraud-queue-count', name: 'admin_fraud_count', methods: ['GET'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function adminFraudQueueCount(): JsonResponse
+    {
+        $listings = $this->listingRepo->findAll();
+        $flagged  = 0;
+
+        foreach (array_slice($listings, 0, 50) as $listing) {
+            try {
+                $result = $this->fraud->score($listing);
+                if (($result['fraud_score'] ?? 0) >= 50) {
+                    $flagged++;
+                }
+            } catch (\Throwable) {}
+        }
+
+        return $this->json(['count' => $flagged]);
+    }
+
+    // ── Admin: Churn Risk Count ────────────────────────────────────────────────
+    #[Route('/admin/churn-risk-count', name: 'admin_churn_count', methods: ['GET'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function adminChurnRiskCount(): JsonResponse
+    {
+        $users   = $this->userRepo->findAll();
+        $atRisk  = 0;
+
+        foreach (array_slice($users, 0, 100) as $user) {
+            try {
+                $result = $this->churn->predict($user);
+                if (($result['risk_score'] ?? 0) >= 50) {
+                    $atRisk++;
+                }
+            } catch (\Throwable) {}
+        }
+
+        return $this->json(['count' => $atRisk]);
     }
 
     // ── 18. Review Sentiment ───────────────────────────────────────────────────
@@ -286,8 +388,42 @@ class AiController extends AbstractController
             'price'        => $l->getPrice(),
             'city'         => $l->getCity(),
             'bedrooms'     => $l->getBedrooms(),
-            'property_type'=> $l->getPropertyType(),
+            'property_type'=> $l->getPropertyType()?->value ?? '',
             'area'         => $l->getArea(),
         ];
+    }
+
+    private function serializeListingFull(mixed $l): array
+    {
+        // $l may be a Listing entity OR an array from NL search with score
+        $score  = null;
+        if (is_array($l)) {
+            $score   = $l['score'] ?? $l['similarity'] ?? null;
+            $listing = $l['listing'] ?? null;
+            if (!$listing instanceof Listing) {
+                return $l; // already serialized
+            }
+            $l = $listing;
+        }
+
+        $firstImg = null;
+        if ($l->getImages() && count($l->getImages()) > 0) {
+            $ip = $l->getImages()->first()->getImagePath();
+            $firstImg = str_starts_with($ip, 'http') ? $ip : '/uploads/listings/' . $ip;
+        }
+
+        return array_filter([
+            'id'            => $l->getId(),
+            'title'         => $l->getTitle(),
+            'price'         => $l->getPrice(),
+            'address'       => $l->getAddress(),
+            'city'          => $l->getCity(),
+            'bedrooms'      => $l->getBedrooms(),
+            'property_type' => $l->getPropertyType()?->value ?? '',
+            'area'          => $l->getArea(),
+            'image'         => $firstImg,
+            'score'         => $score,
+            'url'           => '/listing/' . $l->getId(),
+        ], fn($v) => $v !== null);
     }
 }

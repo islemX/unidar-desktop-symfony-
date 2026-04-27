@@ -109,6 +109,98 @@
         .detail-stats { grid-template-columns: repeat(2, 1fr); }
     }
 
+    /* ── AI Insights Panels ───────────────────────────────────────────────── */
+    .ai-panel {
+        background: white; border: 1px solid var(--color-border);
+        border-radius: var(--radius-xl); overflow: hidden;
+        box-shadow: 0 4px 16px -6px rgba(99,102,241,0.13);
+        margin-top: 1rem;
+    }
+    .ai-panel-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0.9rem 1.25rem;
+        background: linear-gradient(135deg, rgba(99,102,241,0.07), rgba(79,70,229,0.04));
+        border-bottom: 1px solid rgba(99,102,241,0.1);
+        cursor: pointer; user-select: none;
+    }
+    .ai-panel-title { font-size: 0.95rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 0.5rem; }
+    .ai-panel-toggle { font-size: 0.8rem; color: var(--color-brand); font-weight: 600; }
+    .ai-panel-body { padding: 1.2rem 1.25rem; }
+    .ai-panel-body.collapsed { display: none; }
+
+    /* Vibe tags */
+    .ai-vibe-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+    .ai-vibe-pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 6px 14px; border-radius: 50px;
+        font-size: 0.8rem; font-weight: 600;
+        background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+        border: 1px solid #c7d2fe; color: #4338ca;
+    }
+    .ai-vibe-bar-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.45rem; }
+    .ai-vibe-label-sm { font-size: 0.78rem; color: #64748b; min-width: 130px; }
+    .ai-vibe-bar-bg { flex: 1; height: 7px; background: #e0e7ff; border-radius: 50px; overflow: hidden; }
+    .ai-vibe-bar-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6); border-radius: 50px; transition: width 1s ease; width: 0%; }
+    .ai-vibe-score-sm { font-size: 0.75rem; font-weight: 700; color: var(--color-brand); min-width: 30px; text-align: right; }
+
+    /* Commute rows */
+    .ai-commute-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.55rem 0; border-bottom: 1px solid #f1f5f9; font-size: 0.83rem; gap: 0.5rem;
+    }
+    .ai-commute-row:last-child { border-bottom: none; }
+    .ai-commute-name { font-weight: 600; color: #1e293b; flex: 1; }
+    .ai-commute-dist { color: #64748b; font-size: 0.78rem; min-width: 60px; text-align: center; }
+    .ai-commute-badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 3px 10px; border-radius: 50px; font-size: 0.73rem; font-weight: 700; white-space: nowrap;
+    }
+
+    /* Energy */
+    .ai-energy-ring {
+        width: 68px; height: 68px; border-radius: 50%;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-size: 1.2rem; font-weight: 900; color: white; flex-shrink: 0;
+        box-shadow: 0 6px 18px -4px rgba(0,0,0,0.25);
+    }
+    .ai-energy-ring small { font-size: 0.6rem; font-weight: 600; opacity: 0.9; }
+    .ai-tip { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.45rem 0; font-size: 0.83rem; border-bottom: 1px solid #f1f5f9; }
+    .ai-tip:last-child { border-bottom: none; }
+
+    /* Lease Analyzer */
+    .lease-drop-zone {
+        border: 2px dashed #c7d2fe; border-radius: var(--radius-lg);
+        padding: 1.75rem 1.25rem; text-align: center;
+        background: linear-gradient(135deg, #f8faff, #f5f3ff); cursor: pointer;
+        transition: all 0.2s;
+    }
+    .lease-drop-zone:hover, .lease-drop-zone.drag-over { border-color: var(--color-brand); background: #eef2ff; }
+
+    /* Photo quality badge */
+    .photo-quality-badge {
+        position: absolute; top: 12px; right: 12px; z-index: 10;
+        width: 44px; height: 44px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem; font-weight: 900; color: white;
+        border: 2.5px solid rgba(255,255,255,0.85);
+        box-shadow: 0 4px 14px rgba(0,0,0,0.28);
+        backdrop-filter: blur(6px);
+    }
+
+    /* Fraud meter */
+    .fraud-meter-track { height: 8px; border-radius: 50px; background: #e0e7ff; overflow: hidden; }
+    .fraud-meter-fill { height: 100%; border-radius: 50px; transition: width 0.8s ease; }
+
+    /* AI description chips */
+    .ai-desc-lang-btn {
+        padding: 7px 18px; border-radius: 50px; border: 1.5px solid var(--color-border);
+        background: white; font-weight: 700; font-size: 0.83rem; cursor: pointer;
+        transition: all 0.2s; color: var(--color-text-muted);
+    }
+    .ai-desc-lang-btn.active, .ai-desc-lang-btn:hover {
+        background: var(--color-brand); color: white; border-color: var(--color-brand);
+    }
+
     /* ── Voice Navigation ─────────────────────────────────────────────────── */
     @keyframes vnavMicPulse {
         0%, 100% { opacity: 1; } 50% { opacity: 0.55; }
@@ -199,6 +291,7 @@
                         {% set firstImg = listing.images.first.imagePath %}
                         <img id="mainImage" class="main-image" src="{{ firstImg starts with 'http' ? firstImg : '/uploads/listings/' ~ firstImg }}" alt="{{ listing.title }}">
                         <div class="gallery-counter" id="galleryCounter">1 / {{ listing.images|length }} Photos</div>
+                        <div id="photoQualityBadge" class="photo-quality-badge" title="AI Photo Quality Score" style="display:none;"></div>
                     {% else %}
                         <div style="width: 100%; height: 100%; background: linear-gradient(135deg, var(--color-primary-600), #7c3aed); display: flex; align-items: center; justify-content: center; color: white; font-size: 5rem;">🏠</div>
                     {% endif %}
@@ -260,10 +353,37 @@
                 <div class="card" style="margin-top: 1rem;" id="aiQualitySection">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
                         <h3 style="margin:0;font-size:1.05rem;">🤖 AI Listing Score</h3>
-                        <button type="button" id="aiAnalyzeBtn" onclick="loadAiScore()" class="btn btn-secondary btn-sm">Analyze Listing</button>
+                        <button type="button" id="aiAnalyzeBtn" onclick="loadAiScore()" class="btn btn-secondary btn-sm">Analyze</button>
                     </div>
                     <div id="aiQualityContent">
                         <p style="font-size:0.85rem;color:var(--color-text-muted);">Get AI-powered recommendations to improve your listing and attract more students.</p>
+                    </div>
+                </div>
+
+                <!-- AI Description Generator -->
+                <div class="ai-panel" id="aiDescPanel">
+                    <div class="ai-panel-header" onclick="togglePanel('aiDescBody','aiDescToggle')">
+                        <span class="ai-panel-title">✍️ AI Description Generator</span>
+                        <span class="ai-panel-toggle" id="aiDescToggle">Generate ↓</span>
+                    </div>
+                    <div class="ai-panel-body collapsed" id="aiDescBody">
+                        <p style="font-size:0.84rem;color:var(--color-text-muted);margin-bottom:1rem;">Generate a premium listing description in 3 languages, optimised for student appeal.</p>
+                        <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+                            <button class="ai-desc-lang-btn active" id="descLangEn" onclick="setDescLang('en')">🇬🇧 EN</button>
+                            <button class="ai-desc-lang-btn" id="descLangFr" onclick="setDescLang('fr')">🇫🇷 FR</button>
+                            <button class="ai-desc-lang-btn" id="descLangAr" onclick="setDescLang('ar')">🇹🇳 AR</button>
+                            <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="generateDescription()">✨ Generate</button>
+                        </div>
+                        <div id="aiDescContent" style="display:none;">
+                            <div style="background:linear-gradient(135deg,#f8faff,#f5f3ff);border:1px solid #c7d2fe;border-radius:var(--radius-lg);padding:1rem;position:relative;">
+                                <p id="aiDescText" style="font-size:0.88rem;line-height:1.7;color:#374151;margin:0;"></p>
+                                <button onclick="copyDescription()" style="position:absolute;top:8px;right:8px;background:white;border:1px solid var(--color-border);border-radius:var(--radius-md);padding:4px 10px;font-size:0.75rem;cursor:pointer;font-weight:600;">📋 Copy</button>
+                            </div>
+                        </div>
+                        <div id="aiDescLoading" style="display:none;text-align:center;padding:1.5rem;color:var(--color-text-muted);font-size:0.85rem;">
+                            <div style="font-size:1.5rem;margin-bottom:0.5rem;">✨</div>
+                            Generating with AI…
+                        </div>
                     </div>
                 </div>
                 {% endif %}
@@ -315,6 +435,81 @@
                     </div>
                 </div>
                 {% endif %}
+
+                <!-- ── AI Neighbourhood Vibe ─────────────────────────────── -->
+                <div class="ai-panel" id="vibePanel">
+                    <div class="ai-panel-header" onclick="togglePanel('vibeBody','vibeToggle')">
+                        <span class="ai-panel-title">🏘️ Neighbourhood Vibe</span>
+                        <span class="ai-panel-toggle" id="vibeToggle">Load ↓</span>
+                    </div>
+                    <div class="ai-panel-body collapsed" id="vibeBody">
+                        <div id="vibeContent">
+                            <p style="font-size:0.84rem;color:var(--color-text-muted);">Analysing what's around this property…</p>
+                            <button onclick="loadVibeData()" class="btn btn-primary btn-sm" style="margin-top:0.5rem;">Analyse Neighbourhood</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── AI Commute Score ───────────────────────────────────── -->
+                <div class="ai-panel" id="commutePanel">
+                    <div class="ai-panel-header" onclick="togglePanel('commuteBody','commuteToggle')">
+                        <span class="ai-panel-title">🎓 Campus Commute Times</span>
+                        <span class="ai-panel-toggle" id="commuteToggle">Load ↓</span>
+                    </div>
+                    <div class="ai-panel-body collapsed" id="commuteBody">
+                        <div id="commuteContent">
+                            <p style="font-size:0.84rem;color:var(--color-text-muted);">Calculates estimated travel times to all major Tunisian universities — no GPS required.</p>
+                            <button onclick="loadCommuteData()" class="btn btn-primary btn-sm" style="margin-top:0.5rem;">Calculate Commutes</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── AI Energy Cost Estimator ──────────────────────────── -->
+                <div class="ai-panel" id="energyPanel">
+                    <div class="ai-panel-header" onclick="togglePanel('energyBody','energyToggle')">
+                        <span class="ai-panel-title">⚡ Energy Cost Estimator</span>
+                        <span class="ai-panel-toggle" id="energyToggle">Load ↓</span>
+                    </div>
+                    <div class="ai-panel-body collapsed" id="energyBody">
+                        <div id="energyContent">
+                            <p style="font-size:0.84rem;color:var(--color-text-muted);">Estimates monthly electricity & utilities based on property size, floor, and equipment.</p>
+                            <button onclick="loadEnergyData()" class="btn btn-primary btn-sm" style="margin-top:0.5rem;">Estimate Costs</button>
+                        </div>
+                    </div>
+                </div>
+
+                {% if is_granted('ROLE_STUDENT') and app.user is not null and app.user != listing.owner %}
+                <!-- ── Lease Risk Analyzer ────────────────────────────────── -->
+                <div class="ai-panel" id="leasePanel">
+                    <div class="ai-panel-header" onclick="togglePanel('leaseBody','leaseToggle')">
+                        <span class="ai-panel-title">📋 Lease Risk Analyzer</span>
+                        <span class="ai-panel-toggle" id="leaseToggle">Analyze ↓</span>
+                    </div>
+                    <div class="ai-panel-body collapsed" id="leaseBody">
+                        <p style="font-size:0.84rem;color:var(--color-text-muted);margin-bottom:1rem;">Paste your lease text below — AI will flag risky clauses, hidden fees, and unfair terms before you sign.</p>
+                        <textarea id="leaseText" rows="6" placeholder="Paste your lease / contract text here…"
+                            style="width:100%;padding:10px 12px;border:1px solid var(--color-border);border-radius:var(--radius-md);font-size:0.85rem;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
+                        <button onclick="analyzeLease()" class="btn btn-primary" style="margin-top:0.75rem;width:100%;">🔍 Analyze Lease</button>
+                        <div id="leaseResult" style="display:none;margin-top:1rem;"></div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if is_granted('ROLE_ADMIN') or (is_granted('ROLE_OWNER') and app.user == listing.owner) %}
+                <!-- ── Fraud Score (Admin/Owner) ──────────────────────────── -->
+                <div class="ai-panel" id="fraudPanel">
+                    <div class="ai-panel-header" onclick="togglePanel('fraudBody','fraudToggle')">
+                        <span class="ai-panel-title">🛡️ Fraud Detection Score</span>
+                        <span class="ai-panel-toggle" id="fraudToggle">Check ↓</span>
+                    </div>
+                    <div class="ai-panel-body collapsed" id="fraudBody">
+                        <div id="fraudContent">
+                            <p style="font-size:0.84rem;color:var(--color-text-muted);">AI-powered fraud risk assessment for this listing based on 14 signals.</p>
+                            <button onclick="loadFraudScore()" class="btn btn-secondary btn-sm" style="margin-top:0.5rem;">Run Fraud Check</button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <!-- Right Column / Sidebar -->
@@ -334,6 +529,14 @@
                     <p style="color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
                         📅 Available from: <strong>{{ listing.availableFrom|date('d/m/Y') }}</strong>
                     </p>
+                {% endif %}
+
+                <!-- AI Cost of Living Breakdown (students) -->
+                {% if not (is_granted('ROLE_OWNER') and app.user == listing.owner) %}
+                <div id="colWidget" style="margin-bottom:1rem;">
+                    <button onclick="loadCostOfLiving()" id="colBtn" class="btn btn-outline" style="width:100%;font-size:0.84rem;background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border-color:#a7f3d0;color:#065f46;">🏦 Monthly Cost Breakdown</button>
+                    <div id="colContent" style="margin-top:0.5rem;"></div>
+                </div>
                 {% endif %}
 
                 <div style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--color-surface-50); border-radius: var(--radius-lg); margin-bottom: 1.25rem;">
@@ -420,7 +623,7 @@
 
                 {% if is_granted('ROLE_OWNER') and app.user == listing.owner %}
                     <div id="priceSuggestionWidget" style="margin-bottom:0.75rem;">
-                        <button type="button" onclick="loadPriceSuggestion()" id="priceBtn" class="btn btn-outline" style="width:100%;font-size:0.85rem;">💡 Get AI Price Suggestion</button>
+                        <button type="button" onclick="loadDynamicPricing()" id="priceBtn" class="btn btn-outline" style="width:100%;font-size:0.85rem;background:linear-gradient(135deg,#eef2ff,#f5f3ff);border-color:#c7d2fe;color:#4338ca;">💡 AI Dynamic Pricing</button>
                         <div id="priceSuggestionContent"></div>
                     </div>
                     <a href="{{ path('listing_edit', {id: listing.id}) }}" class="btn btn-primary" style="width: 100%; margin-bottom: 0.5rem;">✏️ Edit Listing</a>
@@ -836,30 +1039,287 @@ function loadAiScore() {
         });
 }
 
-// ── AI: Price Suggestion ──
-function loadPriceSuggestion() {
+// ── AI: Dynamic Pricing ──
+function loadDynamicPricing() {
     var btn = document.getElementById('priceBtn');
     var box = document.getElementById('priceSuggestionContent');
-    btn.disabled = true;
-    btn.textContent = 'Loading…';
-    fetch('/api/listings/{{ listing.id }}/price-suggestion', { credentials: 'same-origin' })
+    btn.disabled = true; btn.textContent = 'Calculating…';
+    fetch('/api/ai/listing/{{ listing.id }}/dynamic-pricing', { credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(d) {
             btn.style.display = 'none';
-            var price = d.recommended_price || d.suggested_price || 0;
-            var min   = d.min || d.price_min || 0;
-            var max   = d.max || d.price_max || 0;
-            var html  = '<div style="background:linear-gradient(100deg,#eef2ff,#f5f3ff);border:1px solid #c7d2fe;border-radius:var(--radius-lg);padding:0.85rem;font-size:0.85rem;margin-top:0.5rem;">';
-            html += '<div style="font-weight:700;color:var(--color-brand);font-size:1rem;">💡 Suggested: ' + price + ' TND/mo</div>';
-            if (min && max) { html += '<div style="color:#4b5563;margin-top:2px;">Market range: ' + min + ' – ' + max + ' TND</div>'; }
-            if (d.rationale || d.reasoning) { html += '<div style="margin-top:0.35rem;color:#374151;">' + (d.rationale || d.reasoning) + '</div>'; }
+            var rec = d.recommended_price || d.current_price || {{ listing.price }};
+            var diff = rec - {{ listing.price }};
+            var diffStr = diff > 0 ? ('+' + diff) : diff;
+            var diffColor = diff > 0 ? '#10b981' : (diff < 0 ? '#ef4444' : '#6366f1');
+            var season = d.season_label || '';
+            var demand = d.demand_label || '';
+            var html = '<div style="background:linear-gradient(135deg,#eef2ff,#f5f3ff);border:1px solid #c7d2fe;border-radius:var(--radius-lg);padding:1rem;font-size:0.84rem;margin-top:0.5rem;">';
+            html += '<div style="font-weight:800;color:var(--color-brand);font-size:1.1rem;margin-bottom:0.4rem;">💡 ' + rec + ' TND<span style="font-size:0.75rem;font-weight:500;">/mo</span></div>';
+            if (diff !== 0) { html += '<div style="color:' + diffColor + ';font-weight:700;font-size:0.82rem;">' + diffStr + ' TND vs current price</div>'; }
+            if (season) { html += '<div style="color:#64748b;margin-top:4px;">📅 ' + season + (demand ? ' · ' + demand : '') + '</div>'; }
+            if (d.rationale) { html += '<div style="margin-top:0.5rem;color:#374151;font-size:0.8rem;line-height:1.5;">' + d.rationale + '</div>'; }
             html += '</div>';
             box.innerHTML = html;
         })
-        .catch(function() {
-            btn.disabled = false;
-            btn.textContent = '💡 Get AI Price Suggestion';
-        });
+        .catch(function() { btn.disabled = false; btn.textContent = '💡 AI Dynamic Pricing'; });
+}
+
+// ── AI: Cost of Living ──
+function loadCostOfLiving() {
+    var btn = document.getElementById('colBtn');
+    var box = document.getElementById('colContent');
+    btn.disabled = true; btn.textContent = '⏳ Loading…';
+    fetch('/api/ai/listing/{{ listing.id }}/cost-of-living', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            btn.style.display = 'none';
+            var total = d.total_monthly || 0;
+            var items = d.breakdown || {};
+            var icons = { rent:'🏠', utilities:'⚡', internet:'📶', transport:'🚌', groceries:'🛒', extras:'🎯' };
+            var html = '<div style="background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border:1px solid #a7f3d0;border-radius:var(--radius-lg);padding:1rem;font-size:0.83rem;">';
+            html += '<div style="font-weight:800;color:#065f46;font-size:1.05rem;margin-bottom:0.6rem;">💰 ~' + total + ' TND/month total</div>';
+            Object.entries(items).forEach(function([k,v]) {
+                var icon = icons[k] || '📌';
+                html += '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #d1fae5;">';
+                html += '<span style="color:#374151;">' + icon + ' ' + k.charAt(0).toUpperCase()+k.slice(1) + '</span>';
+                html += '<span style="font-weight:700;color:#065f46;">' + v + ' TND</span></div>';
+            });
+            html += '</div>';
+            box.innerHTML = html;
+        })
+        .catch(function() { btn.disabled = false; btn.textContent = '🏦 Monthly Cost Breakdown'; });
+}
+
+// ── AI: Neighbourhood Vibe ──
+function loadVibeData() {
+    var box = document.getElementById('vibeContent');
+    box.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--color-text-muted);">🔍 Scanning neighbourhood…</div>';
+    fetch('/api/ai/listing/{{ listing.id }}/neighbourhood', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            var tags = d.tags || [];
+            var summary = d.summary || '';
+            var html = '';
+            if (summary) { html += '<p style="font-size:0.85rem;color:#374151;margin-bottom:1rem;line-height:1.5;">' + summary + '</p>'; }
+            if (tags.length) {
+                html += '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:1rem;">';
+                tags.slice(0,6).forEach(function(t) {
+                    html += '<span class="ai-vibe-pill">' + t.icon + ' ' + t.label + '</span>';
+                });
+                html += '</div>';
+                html += '<div>';
+                tags.forEach(function(t) {
+                    html += '<div class="ai-vibe-bar-row">';
+                    html += '<span class="ai-vibe-label-sm">' + t.icon + ' ' + t.label + '</span>';
+                    html += '<div class="ai-vibe-bar-bg"><div class="ai-vibe-bar-fill" data-w="' + t.score + '"></div></div>';
+                    html += '<span class="ai-vibe-score-sm">' + t.score + '</span>';
+                    html += '</div>';
+                });
+                html += '</div>';
+            }
+            box.innerHTML = html || '<p style="color:var(--color-text-muted);font-size:0.84rem;">No vibe data available for this location.</p>';
+            // Animate bars after render
+            setTimeout(function() {
+                box.querySelectorAll('.ai-vibe-bar-fill').forEach(function(el) {
+                    el.style.width = (el.getAttribute('data-w') || 0) + '%';
+                });
+            }, 50);
+        })
+        .catch(function() { box.innerHTML = '<p style="color:#ef4444;font-size:0.84rem;">Could not load neighbourhood data.</p>'; });
+}
+
+// ── AI: Commute Score ──
+function loadCommuteData() {
+    var box = document.getElementById('commuteContent');
+    box.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--color-text-muted);">🚌 Calculating commutes…</div>';
+    fetch('/api/ai/listing/{{ listing.id }}/commute', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            var routes = d.routes || {};
+            var nearest = d.nearest || '';
+            var score = d.score || 0;
+            var scoreColor = score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
+            var html = '<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;padding:0.75rem;background:linear-gradient(135deg,#eef2ff,#f5f3ff);border-radius:var(--radius-lg);border:1px solid #c7d2fe;">';
+            html += '<div style="width:54px;height:54px;border-radius:50%;background:' + scoreColor + ';display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:1.1rem;flex-shrink:0;">' + score + '</div>';
+            html += '<div><div style="font-weight:700;font-size:0.9rem;">Commute Score</div>';
+            if (nearest && routes[nearest]) { html += '<div style="font-size:0.78rem;color:#64748b;">Nearest: ' + routes[nearest].university + '</div>'; }
+            html += '</div></div>';
+            var shown = 0;
+            Object.entries(routes).forEach(function([k,r]) {
+                if (shown++ >= 6) return;
+                var modeIcon = r.recommended === 'walking' ? '🚶' : r.recommended === 'cycling' ? '🚲' : '🚌';
+                var bgCol = r.score >= 70 ? '#dcfce7' : r.score >= 40 ? '#fef9c3' : '#fee2e2';
+                var txCol = r.score >= 70 ? '#166534' : r.score >= 40 ? '#713f12' : '#991b1b';
+                html += '<div class="ai-commute-row">';
+                html += '<span class="ai-commute-name">' + r.university + '</span>';
+                html += '<span class="ai-commute-dist">' + r.distance_km + ' km</span>';
+                html += '<span class="ai-commute-badge" style="background:' + bgCol + ';color:' + txCol + ';">' + modeIcon + ' ' + r.best_min + ' min</span>';
+                html += '</div>';
+            });
+            box.innerHTML = html;
+        })
+        .catch(function() { box.innerHTML = '<p style="color:#ef4444;font-size:0.84rem;">Could not load commute data.</p>'; });
+}
+
+// ── AI: Energy Cost ──
+function loadEnergyData() {
+    var box = document.getElementById('energyContent');
+    box.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--color-text-muted);">⚡ Estimating energy costs…</div>';
+    fetch('/api/ai/listing/{{ listing.id }}/energy', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            var monthly = d.monthly_cost_tnd || 0;
+            var rating = d.efficiency_rating || 'C';
+            var grades = { A:'#10b981', B:'#84cc16', C:'#f59e0b', D:'#f97316', E:'#ef4444' };
+            var rColor = grades[rating] || '#6366f1';
+            var tips = d.saving_tips || [];
+            var html = '<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">';
+            html += '<div class="ai-energy-ring" style="background:' + rColor + ';">' + rating + '<small>Grade</small></div>';
+            html += '<div><div style="font-weight:800;font-size:1.15rem;color:#1e293b;">~' + monthly + ' TND</div>';
+            html += '<div style="font-size:0.78rem;color:#64748b;">estimated monthly utilities</div></div></div>';
+            if (d.breakdown) {
+                var bk = d.breakdown;
+                html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;margin-bottom:1rem;">';
+                [['⚡ Electricity', bk.electricity_tnd], ['💧 Water', bk.water_tnd], ['🔥 Gas', bk.gas_tnd], ['🌐 Internet', bk.internet_tnd]].forEach(function(item) {
+                    if (item[1]) { html += '<div style="padding:0.5rem;background:#f8fafc;border-radius:var(--radius-md);font-size:0.8rem;"><div style="color:#64748b;">' + item[0] + '</div><div style="font-weight:700;">' + item[1] + ' TND</div></div>'; }
+                });
+                html += '</div>';
+            }
+            if (tips.length) {
+                html += '<div style="font-size:0.82rem;font-weight:700;color:#374151;margin-bottom:0.4rem;">💡 Saving tips:</div>';
+                tips.slice(0,3).forEach(function(t) { html += '<div class="ai-tip"><span>•</span><span>' + t + '</span></div>'; });
+            }
+            box.innerHTML = html;
+        })
+        .catch(function() { box.innerHTML = '<p style="color:#ef4444;font-size:0.84rem;">Could not estimate energy costs.</p>'; });
+}
+
+// ── AI: Fraud Score ──
+function loadFraudScore() {
+    var box = document.getElementById('fraudContent');
+    box.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--color-text-muted);">🔍 Running fraud analysis…</div>';
+    fetch('/api/ai/listing/{{ listing.id }}/fraud-score', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            var score = d.fraud_score || 0;
+            var level = d.risk_level || 'low';
+            var colors = { low:'#10b981', medium:'#f59e0b', high:'#ef4444', critical:'#7f1d1d' };
+            var col = colors[level] || '#6366f1';
+            var flags = d.flags || [];
+            var html = '<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">';
+            html += '<div style="width:58px;height:58px;border-radius:50%;background:' + col + ';color:white;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;flex-shrink:0;">' + score + '<span style="font-size:0.55rem;font-weight:600;">RISK</span></div>';
+            html += '<div><div style="font-weight:700;font-size:0.95rem;color:' + col + ';">' + level.charAt(0).toUpperCase()+level.slice(1) + ' Risk</div>';
+            html += '<div class="fraud-meter-track" style="width:120px;margin-top:4px;"><div class="fraud-meter-fill" style="width:' + score + '%;background:' + col + ';"></div></div></div></div>';
+            if (flags.length) {
+                html += '<div style="font-size:0.82rem;font-weight:700;margin-bottom:0.4rem;">⚠️ Signals detected:</div>';
+                flags.forEach(function(f) { html += '<div style="display:flex;gap:0.5rem;padding:4px 0;font-size:0.82rem;border-bottom:1px solid #f1f5f9;"><span style="color:#ef4444;">•</span><span>' + f + '</span></div>'; });
+            } else {
+                html += '<div style="font-size:0.84rem;color:#10b981;">✅ No suspicious signals detected.</div>';
+            }
+            box.innerHTML = html;
+        })
+        .catch(function() { box.innerHTML = '<p style="color:#ef4444;font-size:0.84rem;">Fraud check unavailable.</p>'; });
+}
+
+// ── AI: Lease Analyzer ──
+function analyzeLease() {
+    var text = document.getElementById('leaseText').value.trim();
+    var box  = document.getElementById('leaseResult');
+    if (!text) { alert('Please paste your lease text first.'); return; }
+    box.style.display = 'block';
+    box.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--color-text-muted);">📋 Analyzing your lease…</div>';
+    fetch('/api/ai/lease/analyze', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text })
+    }).then(function(r) { return r.json(); })
+    .then(function(d) {
+        var score = d.risk_score || 0;
+        var level = score >= 70 ? 'High Risk' : score >= 40 ? 'Medium Risk' : 'Low Risk';
+        var col = score >= 70 ? '#ef4444' : score >= 40 ? '#f59e0b' : '#10b981';
+        var flags = d.flags || [];
+        var rec = d.recommendations || [];
+        var html = '<div style="background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:1rem;font-size:0.84rem;">';
+        html += '<div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">';
+        html += '<div style="width:50px;height:50px;border-radius:50%;background:' + col + ';color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;flex-shrink:0;">' + score + '</div>';
+        html += '<div><div style="font-weight:700;color:' + col + ';">' + level + '</div><div style="font-size:0.77rem;color:#64748b;">Lease risk score</div></div></div>';
+        if (flags.length) {
+            html += '<div style="font-weight:700;margin-bottom:0.35rem;">🚩 Risk flags:</div>';
+            flags.forEach(function(f) { html += '<div style="padding:4px 0;border-bottom:1px solid #f1f5f9;color:#374151;">⚠️ ' + (f.description||f) + '</div>'; });
+        }
+        if (rec.length) {
+            html += '<div style="font-weight:700;margin:0.6rem 0 0.35rem;">💡 Recommendations:</div>';
+            rec.forEach(function(r) { html += '<div style="padding:3px 0;color:#374151;">→ ' + r + '</div>'; });
+        }
+        html += '</div>';
+        box.innerHTML = html;
+    })
+    .catch(function() { box.innerHTML = '<p style="color:#ef4444;">Analysis failed. Please try again.</p>'; });
+}
+
+// ── AI: Description Generator ──
+var _descLang = 'en';
+var _descCache = {};
+function setDescLang(lang) {
+    _descLang = lang;
+    ['en','fr','ar'].forEach(function(l) {
+        var el = document.getElementById('descLang' + l.charAt(0).toUpperCase() + l.slice(1));
+        if (el) el.classList.toggle('active', l === lang);
+    });
+    if (_descCache[lang]) {
+        document.getElementById('aiDescText').textContent = _descCache[lang];
+        document.getElementById('aiDescContent').style.display = 'block';
+    }
+}
+function generateDescription() {
+    var loading = document.getElementById('aiDescLoading');
+    var content = document.getElementById('aiDescContent');
+    loading.style.display = 'block'; content.style.display = 'none';
+    fetch('/api/ai/listing/{{ listing.id }}/description?lang=' + _descLang, { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            loading.style.display = 'none';
+            var text = d.description || d.text || d[_descLang] || '';
+            if (!text && d.descriptions) text = d.descriptions[_descLang] || '';
+            _descCache[_descLang] = text;
+            document.getElementById('aiDescText').textContent = text;
+            content.style.display = text ? 'block' : 'none';
+        })
+        .catch(function() { loading.style.display = 'none'; alert('Could not generate description.'); });
+}
+function copyDescription() {
+    var text = document.getElementById('aiDescText').textContent;
+    if (text) navigator.clipboard.writeText(text).then(function() { alert('Copied to clipboard!'); });
+}
+
+// ── AI: Photo Quality (auto-load for owner) ──
+(function() {
+    {% if is_granted('ROLE_OWNER') and app.user == listing.owner %}
+    fetch('/api/ai/listing/{{ listing.id }}/photo-quality', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            var badge = document.getElementById('photoQualityBadge');
+            if (!badge) return;
+            var grade = d.overall_grade || d.grade || 'C';
+            var colors = { A:'#10b981', B:'#84cc16', C:'#f59e0b', D:'#f97316', F:'#ef4444' };
+            var col = colors[grade] || '#6366f1';
+            badge.style.background = col;
+            badge.textContent = grade;
+            badge.title = 'Photo quality: Grade ' + grade + ' (' + (d.overall_score || 0) + '/100)';
+            badge.style.display = 'flex';
+        })
+        .catch(function() {});
+    {% endif %}
+})();
+
+// ── Panel toggle helper ──
+function togglePanel(bodyId, toggleId) {
+    var body = document.getElementById(bodyId);
+    var tog  = document.getElementById(toggleId);
+    if (!body) return;
+    var collapsed = body.classList.toggle('collapsed');
+    if (tog) tog.textContent = collapsed ? 'Load ↓' : 'Hide ↑';
 }
 </script>
 {% endblock %}
