@@ -145,6 +145,21 @@ class Listing
         return $this;
     }
 
+    /**
+     * Derives city from address (last comma-separated segment) or returns full address.
+     * Added for AI services compatibility — no DB column needed.
+     */
+    public function getCity(): ?string
+    {
+        if (!$this->address) return null;
+        $parts = array_map('trim', explode(',', $this->address));
+        // Return last non-empty part (usually "City" or "City, Country")
+        foreach (array_reverse($parts) as $part) {
+            if ($part !== '') return $part;
+        }
+        return $this->address;
+    }
+
     public function getLatitude(): ?float
     {
         return $this->latitude;

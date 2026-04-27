@@ -68,11 +68,15 @@ class DynamicPricingService
 
     public function getMarketContext(Listing $listing): array
     {
-        $similar = $this->listingRepository->findBy([
-            'propertyType' => $listing->getPropertyType(),
-            'city'         => $listing->getCity(),
-            'status'       => 'active',
-        ], null, 50);
+        // city is derived from address — filter by status + type only
+        try {
+            $similar = $this->listingRepository->findBy([
+                'propertyType' => $listing->getPropertyType(),
+                'status'       => 'active',
+            ], null, 50);
+        } catch (\Throwable) {
+            $similar = $this->listingRepository->findBy(['status' => 'active'], null, 50);
+        }
 
         $prices = array_map(fn($l) => (float) $l->getPrice(), $similar);
         sort($prices);

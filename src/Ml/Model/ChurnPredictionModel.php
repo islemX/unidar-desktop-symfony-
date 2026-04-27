@@ -3,7 +3,7 @@
 namespace App\Ml\Model;
 
 use App\Ml\Storage\ModelRepository;
-use Rubix\ML\Classifiers\GradientBoost;
+use Rubix\ML\Classifiers\RandomForest;
 use Rubix\ML\Classifiers\ClassificationTree;
 use Rubix\ML\Datasets\Labeled;
 use Rubix\ML\Datasets\Unlabeled;
@@ -21,7 +21,7 @@ class ChurnPredictionModel
         $dataset   = new Labeled($samples, $labels); // labels: 'churned'|'retained'
         $estimator = new Pipeline(
             [new ZScaleStandardizer()],
-            new GradientBoost(new ClassificationTree(5), 150, 0.08)
+            new RandomForest(new ClassificationTree(5), 150, 0.3)
         );
         $estimator->train($dataset);
         $this->modelRepository->save($estimator, self::MODEL_NAME);
