@@ -57,6 +57,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(enumType: UserStatus::class)]
     private UserStatus $status = UserStatus::Active;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $isEmailVerified = false;
+
+    #[ORM\Column(length: 100, nullable: true, unique: true)]
+    private ?string $emailVerificationToken = null;
+
+    /** 6-digit OTP shown in the verification email */
+    #[ORM\Column(length: 6, nullable: true)]
+    private ?string $emailVerificationCode = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $emailVerificationCodeExpiresAt = null;
+
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -243,6 +256,57 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->status = $status;
         return $this;
+    }
+
+    public function isEmailVerified(): bool
+    {
+        return $this->isEmailVerified;
+    }
+
+    public function setIsEmailVerified(bool $isEmailVerified): static
+    {
+        $this->isEmailVerified = $isEmailVerified;
+        return $this;
+    }
+
+    public function getEmailVerificationToken(): ?string
+    {
+        return $this->emailVerificationToken;
+    }
+
+    public function setEmailVerificationToken(?string $token): static
+    {
+        $this->emailVerificationToken = $token;
+        return $this;
+    }
+
+    public function getEmailVerificationCode(): ?string
+    {
+        return $this->emailVerificationCode;
+    }
+
+    public function setEmailVerificationCode(?string $code): static
+    {
+        $this->emailVerificationCode = $code;
+        return $this;
+    }
+
+    public function getEmailVerificationCodeExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->emailVerificationCodeExpiresAt;
+    }
+
+    public function setEmailVerificationCodeExpiresAt(?\DateTimeImmutable $at): static
+    {
+        $this->emailVerificationCodeExpiresAt = $at;
+        return $this;
+    }
+
+    public function isVerificationCodeValid(string $code): bool
+    {
+        return $this->emailVerificationCode === $code
+            && $this->emailVerificationCodeExpiresAt !== null
+            && $this->emailVerificationCodeExpiresAt > new \DateTimeImmutable();
     }
 
     public function getCreatedAt(): ?\DateTimeImmutable

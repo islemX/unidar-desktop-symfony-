@@ -1,0 +1,49 @@
+{% extends 'emails/_layout.html.twig' %}
+{% set recipient_email = user.email %}
+
+{% block body %}
+  {% if status == 'banned' %}
+    <div style="text-align:center; margin-bottom:24px;">
+      <div style="font-size:48px; line-height:1; margin-bottom:12px;">🚫</div>
+      <h1 style="margin:0 0 8px; font-size:22px; font-weight:800; color:#e53e3e; font-family:-apple-system,Arial,sans-serif;">Your account has been permanently suspended</h1>
+      <span style="display:inline-block; background:#fed7d7; color:#9b2c2c; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; padding:4px 12px; border-radius:20px; font-family:-apple-system,Arial,sans-serif;">Permanent Ban</span>
+    </div>
+
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Hi <strong style="color:#1a1d2e;">{{ user.fullName }}</strong>,</p>
+
+    <p style="margin:0 0 18px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">After careful review, your UNIDAR account has been <strong>permanently suspended</strong> for the following reason:</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:22px;">
+      <tr><td style="background:#fff5f5; border-radius:12px; border-left:4px solid #e53e3e; padding:18px 22px;">
+        <p style="margin:0; font-size:14px; color:#742a2a; line-height:1.65; font-family:-apple-system,Arial,sans-serif;">{{ cause }}</p>
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 20px; font-size:14px; line-height:1.7; color:#718096; font-family:-apple-system,Arial,sans-serif;">Any active listings or bookings have been cancelled. To appeal, contact our support team directly at <strong>support@unidar.app</strong>.</p>
+
+  {% elseif status == 'suspended' %}
+    <div style="text-align:center; margin-bottom:24px;">
+      <div style="font-size:48px; line-height:1; margin-bottom:12px;">⏸️</div>
+      <h1 style="margin:0 0 8px; font-size:22px; font-weight:800; color:#d69e2e; font-family:-apple-system,Arial,sans-serif;">Your account has been temporarily suspended</h1>
+      <span style="display:inline-block; background:#fefcbf; color:#7b6c0b; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; padding:4px 12px; border-radius:20px; font-family:-apple-system,Arial,sans-serif;">Temporary Suspension</span>
+    </div>
+
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Hi <strong style="color:#1a1d2e;">{{ user.fullName }}</strong>,</p>
+
+    <p style="margin:0 0 18px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Your UNIDAR account has been <strong>temporarily suspended</strong> due to:</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:22px;">
+      <tr><td style="background:#fffbeb; border-radius:12px; border-left:4px solid #d69e2e; padding:18px 22px;">
+        <p style="margin:0; font-size:14px; color:#744210; line-height:1.65; font-family:-apple-system,Arial,sans-serif;">{{ cause }}</p>
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 20px; font-size:14px; line-height:1.7; color:#718096; font-family:-apple-system,Arial,sans-serif;">You will not be able to sign in during this suspension. If you believe this is an error, contact our support team at <strong>support@unidar.app</strong>.</p>
+  {% endif %}
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr><td style="background:#f7f8fc; border-radius:12px; border:1px solid #eaecf2; padding:16px 20px; text-align:center;">
+      <p style="margin:0; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif;">UNIDAR Trust &amp; Safety Team · support@unidar.app</p>
+    </td></tr>
+  </table>
+{% endblock %}

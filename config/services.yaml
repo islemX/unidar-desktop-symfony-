@@ -9,6 +9,9 @@
 parameters:
     commission_rate: '%env(float:COMMISSION_RATE)%'
     app.voice_service_url: '%env(string:default::VOICE_SERVICE_URL)%'
+    app.mailer_from_email: '%env(MAILER_FROM_EMAIL)%'
+    app.mailer_from_name: '%env(MAILER_FROM_NAME)%'
+    app.name: 'UNIDAR'
 
 services:
     # default configuration for services in *this* file
@@ -37,3 +40,18 @@ services:
     App\Service\ContractManager:
         arguments:
             $projectDir: '%kernel.project_dir%'
+
+    App\Ml\Storage\ModelRepository:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Service\MailerService:
+        arguments:
+            $fromEmail: '%app.mailer_from_email%'
+            $fromName: '%app.mailer_from_name%'
+            $appName: '%app.name%'
+
+    App\Service\CaptchaService:
+        arguments:
+            $secretKey: '%env(RECAPTCHA_SECRET_KEY)%'
+            $siteKey: '%env(RECAPTCHA_SITE_KEY)%'

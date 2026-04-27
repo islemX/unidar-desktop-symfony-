@@ -50,7 +50,8 @@ class ChatWidget {
     async apiFetch(url, options = {}) {
         const defaults = {
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            credentials: 'same-origin'
+            credentials: 'same-origin',
+            redirect: 'error'
         };
         const resp = await fetch(url, { ...defaults, ...options });
         if (resp.status === 402) {

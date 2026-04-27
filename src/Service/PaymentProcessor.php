@@ -9,7 +9,10 @@ use App\Entity\PlatformCommission;
 use App\Enum\ContractStatus;
 use App\Enum\PaymentStatus;
 use App\Enum\PaymentType;
+use App\Message\AI\SendRoommateMatchNotificationMessage;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 class PaymentProcessor
 {
@@ -17,6 +20,9 @@ class PaymentProcessor
         private EntityManagerInterface $entityManager,
         private CommissionCalculator $commissionCalculator,
         private FakePaymentGateway $gateway,
+        private InAppNotificationService $notifier,
+        private MessageBusInterface $bus,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -71,7 +77,38 @@ class PaymentProcessor
         $this->entityManager->persist($commission);
         $this->entityManager->flush();
 
+        $this->notifyPaymentResult($contract, $payment, $gatewayResponse['success']);
+
+        // Async: once student has an active contract, trigger roommate match suggestions
+        if ($gatewayResponse['success'] && $contract->getStudent()) {
+            try {
+                $this->bus->dispatch(new SendRoommateMatchNotificationMessage(
+                    $contract->getStudent()->getId(),
+                    5
+                ));
+            } catch (\Throwable $e) {
+                $this->logger->warning('Could not dispatch roommate notification job: ' . $e->getMessage());
+            }
+        }
+
         return $payment;
+    }
+
+    private function notifyPaymentResult(Contract $contract, Payment $payment, bool $success): void
+    {
+        $student = $contract->getStudent();
+        if (!$student) {
+            return;
+        }
+
+        $num    = $contract->getContractNumber();
+        $amount = $payment->getAmount();
+
+        $text = $success
+            ? "Bonjour {$student->getFullName()},\n\nVotre paiement de {$amount} TND pour le contrat n° {$num} a été accepté. Votre location est maintenant active.\n\n— L'équipe UNIDAR"
+            : "Bonjour {$student->getFullName()},\n\nVotre paiement de {$amount} TND pour le contrat n° {$num} a échoué. Veuillez réessayer ou contacter le support.\n\n— L'équipe UNIDAR";
+
+        $this->notifier->notify($student, $text);
     }
 
     /**

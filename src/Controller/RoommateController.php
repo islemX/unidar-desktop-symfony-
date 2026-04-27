@@ -5,7 +5,8 @@ namespace App\Controller;
 use App\Entity\RoommatePreference;
 use App\Repository\RoommatePreferenceRepository;
 use App\Repository\SubscriptionRepository;
-use App\Service\RoommateMatchingService;
+use App\Service\AI\RoommateAiMatchingService;
+use App\Service\InAppNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,12 +24,22 @@ class RoommateController extends AbstractController
 
     #[Route('', name: 'roommate_index')]
     public function index(
-        RoommateMatchingService      $matchingService,
+        RoommateAiMatchingService    $aiService,
         RoommatePreferenceRepository $prefRepo,
         SubscriptionRepository       $subscriptionRepo
     ): Response {
-        $pref = $prefRepo->findOneBy(['user' => $this->getUser()]);
-        $matches = $pref ? $matchingService->findMatches($this->getUser(), $pref) : [];
+        $pref    = $prefRepo->findOneBy(['user' => $this->getUser()]);
+        $rawMatches = $pref ? $aiService->findBestMatches($this->getUser(), 20) : [];
+
+        // Normalize AI result to match the template's expected structure:
+        // {score, user, preference}
+        $matches = array_map(function (array $m) use ($prefRepo): array {
+            return [
+                'score'      => $m['compatibility_score'],
+                'user'       => $m['user'],
+                'preference' => $prefRepo->findOneBy(['user' => $m['user']]),
+            ];
+        }, $rawMatches);
 
         return $this->render('roommate/index.html.twig', [
             'matches'          => $matches,
@@ -42,7 +53,9 @@ class RoommateController extends AbstractController
     public function savePreferences(
         Request                      $request,
         EntityManagerInterface       $em,
-        RoommatePreferenceRepository $prefRepo
+        RoommatePreferenceRepository $prefRepo,
+        RoommateAiMatchingService    $aiService,
+        InAppNotificationService     $notifier
     ): Response {
         $pref = $prefRepo->findOneBy(['user' => $this->getUser()]);
         if (!$pref) {
@@ -73,6 +86,17 @@ class RoommateController extends AbstractController
 
         $em->persist($pref);
         $em->flush();
+
+        // Notify user if strong matches exist (score >= 70)
+        $topMatches = $aiService->findBestMatches($this->getUser(), 20);
+        $strongCount = count(array_filter($topMatches, fn($m) => $m['compatibility_score'] >= 70));
+        if ($strongCount > 0) {
+            $notifier->notify($this->getUser(), sprintf(
+                "Bonjour %s,\n\n🎉 Bonne nouvelle ! Nous avons trouvé %d colocataire(s) très compatible(s) avec vous (score ≥ 70%%). Connectez-vous à la section Colocataires pour les découvrir.\n\n— L'équipe UNIDAR",
+                $this->getUser()->getFullName(),
+                $strongCount
+            ));
+        }
 
         $this->addFlash('success', 'Preferences saved!');
         return $this->redirectToRoute('roommate_index');

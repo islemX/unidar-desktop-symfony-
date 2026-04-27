@@ -73,7 +73,13 @@
             <div class="card">
                 <div class="card-header">Actions</div>
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <a href="{{ path('contract_download', {id: contract.id}) }}" class="btn btn-outline" target="_blank">📥 Download Contract</a>
+                    <a href="{{ path('contract_download', {id: contract.id}) }}" class="btn btn-outline" target="_blank">📥 Download PDF</a>
+
+                    <form method="post" action="{{ path('contract_email_pdf', {id: contract.id}) }}" style="margin:0;">
+                        <button type="submit" class="btn btn-outline" style="width:100%; color:#6366f1; border-color:#6366f1;">
+                            📧 Send PDF to my email
+                        </button>
+                    </form>
 
                     {% if contract.status.value in ['draft', 'pending_signature', 'signed_by_student'] %}
                         {% if is_granted('ROLE_STUDENT') and app.user == contract.student and not contract.studentSignaturePath %}
@@ -94,14 +100,22 @@
                         </div>
                     {% endif %}
 
-                    {% if is_granted('ROLE_OWNER') and app.user == contract.owner and contract.status.value == 'active' %}
+                    {% if is_granted('ROLE_OWNER') and app.user == contract.owner and contract.status.value in ['active', 'paid', 'signed_by_both'] %}
                         <form method="post" action="{{ path('contract_terminate', {id: contract.id}) }}">
                             <button type="submit" class="btn btn-danger" style="width: 100%;" onclick="return confirm('Terminate this contract? This cannot be undone.')">🚫 Terminate Contract</button>
                         </form>
                     {% endif %}
 
-                    {% if is_granted('ROLE_STUDENT') and app.user == contract.student and contract.status.value == 'active' %}
-                        <button class="btn btn-outline" style="color: #dc3545; border-color: #dc3545;" onclick="document.getElementById('terminationModal').classList.add('active')">Request Termination</button>
+                    {% if is_granted('ROLE_STUDENT') and app.user == contract.student
+                        and contract.status.value not in ['cancelled', 'completed'] %}
+                        <button class="btn btn-outline" style="color: #dc3545; border-color: #dc3545; width:100%;"
+                                onclick="document.getElementById('terminationModal').classList.add('active')">
+                            {% if contract.status.value in ['active', 'paid'] %}
+                                ❌ Request Termination
+                            {% else %}
+                                ❌ Cancel Contract
+                            {% endif %}
+                        </button>
                     {% endif %}
                 </div>
             </div>
@@ -130,10 +144,30 @@
         <!-- Contract Content -->
         {% if contract.contractContent %}
         <div class="card" style="margin-top: 1.5rem;">
-            <div class="card-header">Contract Content</div>
-            <div style="max-height: 500px; overflow-y: auto; padding: 1.5rem; background: var(--lighter-gray); border-radius: var(--radius-lg); font-size: 0.9rem; line-height: 1.7;">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>📄 Contract Document</span>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <a href="{{ path('contract_download', {id: contract.id}) }}" class="btn btn-outline btn-sm" target="_blank" style="font-size:0.8rem;">⬇ Download PDF</a>
+                    {% if is_granted('ROLE_ADMIN') or (is_granted('ROLE_OWNER') and app.user == contract.owner) %}
+                    <form method="post" action="{{ path('contract_regenerate', {id: contract.id}) }}" style="margin:0;">
+                        <button type="submit" class="btn btn-outline btn-sm" style="font-size:0.8rem; color:var(--color-brand);" title="Re-generate the HTML document from current contract data">🔄 Regenerate</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            <div style="padding: 2rem 2.5rem; background: #fff; border-radius: 0 0 var(--radius-lg) var(--radius-lg); font-size: 0.925rem; line-height: 1.8; border: 1px solid var(--color-border);">
                 {{ contract.contractContent|raw }}
             </div>
+        </div>
+        {% else %}
+        <div class="card" style="margin-top: 1.5rem; text-align:center; padding:2rem; color:var(--color-text-muted);">
+            <p style="font-size:2rem; margin:0;">📄</p>
+            <p style="margin:.5rem 0 1rem;">Contract document not yet generated.</p>
+            {% if is_granted('ROLE_ADMIN') or (is_granted('ROLE_OWNER') and app.user == contract.owner) %}
+            <form method="post" action="{{ path('contract_regenerate', {id: contract.id}) }}">
+                <button type="submit" class="btn btn-primary btn-sm">Generate Document</button>
+            </form>
+            {% endif %}
         </div>
         {% endif %}
     </div>
@@ -157,21 +191,44 @@
     </div>
 </div>
 
-{# Termination Modal #}
+{# Termination / Cancellation Modal #}
 <div class="modal-overlay" id="terminationModal">
     <div class="modal">
         <button class="modal-close" onclick="document.getElementById('terminationModal').classList.remove('active')">&times;</button>
-        <h3 style="margin-bottom: 1rem;">Request Termination</h3>
-        <form method="post" action="{{ path('contract_request_termination', {id: contract.id}) }}">
-            <div class="form-group">
-                <label class="form-label">Reason for termination</label>
-                <textarea name="reason" class="form-control" rows="4" required placeholder="Please explain why you want to terminate this contract..."></textarea>
-            </div>
-            <div style="display: flex; gap: 0.5rem;">
-                <button type="submit" class="btn btn-danger">Submit Request</button>
-                <button type="button" class="btn btn-outline" onclick="document.getElementById('terminationModal').classList.remove('active')">Cancel</button>
-            </div>
-        </form>
+
+        {% set isPreActive = contract.status.value not in ['active', 'paid'] %}
+
+        {% if isPreActive %}
+            {# Pre-active: instant cancel, no reason needed #}
+            <h3 style="margin-bottom: 0.5rem;">❌ Cancel Contract</h3>
+            <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1.5rem;">
+                This contract has not yet been activated. Cancelling it will release the listing immediately.
+                <strong>This action cannot be undone.</strong>
+            </p>
+            <form method="post" action="{{ path('contract_request_termination', {id: contract.id}) }}">
+                <input type="hidden" name="reason" value="Student cancelled before contract activation.">
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Cancel this contract? This cannot be undone.')">Confirm Cancellation</button>
+                    <button type="button" class="btn btn-outline" onclick="document.getElementById('terminationModal').classList.remove('active')">Go Back</button>
+                </div>
+            </form>
+        {% else %}
+            {# Active / paid: request requires owner approval #}
+            <h3 style="margin-bottom: 0.5rem;">🔔 Request Termination</h3>
+            <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1rem;">
+                Your request will be sent to the owner for approval. The contract remains active until they accept.
+            </p>
+            <form method="post" action="{{ path('contract_request_termination', {id: contract.id}) }}">
+                <div class="form-group">
+                    <label class="form-label">Reason for termination</label>
+                    <textarea name="reason" class="form-control" rows="4" required placeholder="Please explain why you want to terminate this contract..."></textarea>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" class="btn btn-danger">Submit Request</button>
+                    <button type="button" class="btn btn-outline" onclick="document.getElementById('terminationModal').classList.remove('active')">Cancel</button>
+                </div>
+            </form>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

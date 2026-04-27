@@ -7,6 +7,8 @@ use App\Entity\Verification;
 use App\Enum\AdminActionType;
 use App\Enum\VerificationStatus;
 use App\Repository\VerificationRepository;
+use App\Service\InAppNotificationService;
+use App\Service\MailerService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,18 +30,35 @@ class VerificationAdminController extends AbstractController
     }
 
     #[Route('/{id}', name: 'admin_verification_review', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function review(Request $request, Verification $verification, EntityManagerInterface $em): Response
-    {
+    public function review(
+        Request $request,
+        Verification $verification,
+        EntityManagerInterface $em,
+        InAppNotificationService $notifier,
+        MailerService $mailer,
+    ): Response {
         $action = $request->request->getString('action'); // 'approve' or 'reject'
         $reason = $request->request->getString('rejectionReason');
+        $user   = $verification->getUser();
 
         if ($action === 'approve') {
             $verification->setStatus(VerificationStatus::Approved);
             $actionType = AdminActionType::VerifyUser;
+            $notifier->notify($user, sprintf(
+                "Bonjour %s,\n\nVotre vérification d'identité a été approuvée ✅ Vous avez désormais un accès complet à UNIDAR.\n\n— L'équipe UNIDAR",
+                $user->getFullName()
+            ));
+            $mailer->sendVerificationApproved($user);
         } else {
             $verification->setStatus(VerificationStatus::Rejected);
             $verification->setRejectionReason($reason);
             $actionType = AdminActionType::RejectVerification;
+            $notifier->notify($user, sprintf(
+                "Bonjour %s,\n\nVotre vérification a été refusée ❌\nMotif : %s\n\nVeuillez soumettre à nouveau des documents plus lisibles via votre tableau de bord.\n\n— L'équipe UNIDAR",
+                $user->getFullName(),
+                $reason ?: 'Documents non conformes'
+            ));
+            $mailer->sendVerificationRejected($user, $reason);
         }
 
         $verification->setReviewedAt(new \DateTimeImmutable());
@@ -47,7 +66,7 @@ class VerificationAdminController extends AbstractController
 
         $adminAction = new AdminAction();
         $adminAction->setAdmin($this->getUser());
-        $adminAction->setTargetUser($verification->getUser());
+        $adminAction->setTargetUser($user);
         $adminAction->setActionType($actionType);
         $em->persist($adminAction);
         $em->flush();

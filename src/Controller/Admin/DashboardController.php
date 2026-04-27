@@ -3,6 +3,7 @@
 namespace App\Controller\Admin;
 
 use App\Entity\ContractTerminationRequest;
+use App\Enum\ContractStatus;
 use App\Repository\ContractRepository;
 use App\Repository\ListingRepository;
 use App\Repository\PaymentRepository;
@@ -55,6 +56,13 @@ class DashboardController extends AbstractController
 
         $contracts = $contractRepo->findBy([], ['createdAt' => 'DESC']);
 
+        // Only non-terminal contracts count toward the KPI stat card
+        $terminalStatuses = [ContractStatus::Cancelled, ContractStatus::Completed];
+        $activeContractCount = count(array_filter(
+            $contracts,
+            fn($c) => !in_array($c->getStatus(), $terminalStatuses, true)
+        ));
+
         // Pending termination requests (status = 'pending')
         $terminationRequests = $em->getRepository(ContractTerminationRequest::class)
             ->findBy(['status' => 'pending'], ['createdAt' => 'DESC']);
@@ -65,7 +73,7 @@ class DashboardController extends AbstractController
             'pending_verifications' => count($verificationRepo->findPending()),
             'open_reports'          => $reportRepo->countOpen(),
             'active_subscriptions'  => $subscriptionRepo->countActive(),
-            'total_contracts'       => count($contracts),
+            'total_contracts'       => $activeContractCount,
             'total_payments'        => $totalPayments,
             'total_revenue'         => $totalRevenue,
             'total_commission'      => $totalCommission,

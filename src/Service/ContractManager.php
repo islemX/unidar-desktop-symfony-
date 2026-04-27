@@ -8,8 +8,17 @@ use App\Entity\ContractTerminationRequest;
 use App\Entity\Listing;
 use App\Entity\User;
 use App\Enum\ContractStatus;
+use App\Message\AI\BulkScoreListingsMessage;
 use App\Repository\ContractTemplateRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Dompdf\Dompdf;
+use Dompdf\Options;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\Writer\SvgWriter;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Uid\Uuid;
 
 class ContractManager
@@ -18,6 +27,9 @@ class ContractManager
         private EntityManagerInterface $entityManager,
         private ContractTemplateRepository $contractTemplateRepository,
         private string $projectDir,
+        private InAppNotificationService $notifier,
+        private MessageBusInterface $bus,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -74,6 +86,15 @@ class ContractManager
 
         $this->entityManager->persist($contract);
         $this->entityManager->flush();
+
+        $this->notifyContractGenerated($contract);
+
+        // Async: re-score listing quality now that it has a new contract
+        try {
+            $this->bus->dispatch(new BulkScoreListingsMessage([$listing->getId()]));
+        } catch (\Throwable $e) {
+            $this->logger->warning('Could not dispatch listing score job: ' . $e->getMessage());
+        }
 
         return $contract;
     }
@@ -233,14 +254,300 @@ HTML;
         }
 
         $this->entityManager->flush();
+
+        $this->notifyContractSigned($contract, $user, $isStudent);
     }
 
     /**
-     * Return the contract content HTML string for rendering/download.
+     * Regenerate and persist the full HTML contract body for an existing contract.
+     * Use this to fix contracts stored with stub/plain-text content.
      */
-    public function downloadContract(Contract $contract): string
+    public function regenerateContractContent(Contract $contract): void
     {
-        return $contract->getContractContent() ?? '';
+        $listing = $contract->getListing();
+        $owner   = $contract->getOwner();
+        $student = $contract->getStudent();
+        $start   = $contract->getStartDate();
+        $end     = $contract->getEndDate();
+
+        if (!$listing || !$owner || !$student || !$start || !$end) {
+            return;
+        }
+
+        $months = (int) $start->diff($end)->m + ($start->diff($end)->y * 12);
+        if ($months <= 0) {
+            $months = 9;
+        }
+
+        $html = $this->renderContractHtml($listing, $owner, $student, $start, $end, $months);
+
+        // Re-embed owner signature
+        $ownerSigPath = $contract->getOwnerSignaturePath();
+        if ($ownerSigPath) {
+            $imgTag = sprintf(
+                '<img src="/%s" alt="Owner signature" style="max-height:110px; max-width:100%%;">',
+                htmlspecialchars($ownerSigPath, ENT_QUOTES, 'UTF-8')
+            );
+            $html = str_replace('<!--OWNER_SIGNATURE-->', $imgTag, $html);
+        }
+
+        // Re-embed student signature
+        $studentSigPath = $contract->getStudentSignaturePath();
+        if ($studentSigPath) {
+            $imgTag = sprintf(
+                '<img src="/%s" alt="Student signature" style="max-height:110px; max-width:100%%;">',
+                htmlspecialchars($studentSigPath, ENT_QUOTES, 'UTF-8')
+            );
+            $html = str_replace('<!--STUDENT_SIGNATURE-->', $imgTag, $html);
+        }
+
+        $contract->setContractContent($html);
+        $this->entityManager->flush();
+    }
+
+    /**
+     * Generate and return the contract as a PDF binary string using DomPDF.
+     */
+    public function downloadContract(Contract $contract): array
+    {
+        $html = $contract->getContractContent() ?? '';
+
+        // Embed signature images as base64 so DomPDF can render them without
+        // needing filesystem access or absolute URL resolution.
+        $html = $this->inlineSignatureImages($html);
+
+        // QR encodes structured contract data — works offline, no URL needed
+        $qrSvg = $this->generateContractQrSvg($this->buildContractQrData($contract));
+
+        try {
+            $options = new Options();
+            $options->set('defaultFont', 'serif');
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', false);   // all images are base64 — no HTTP needed
+            $options->set('chroot', $this->projectDir . '/public');
+
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($this->wrapPdfHtml($html, $qrSvg, $contract->getContractNumber() ?? ''), 'UTF-8');
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            return [
+                'content' => $dompdf->output(),
+                'type'    => 'application/pdf',
+                'ext'     => 'pdf',
+            ];
+        } catch (\Throwable $e) {
+            $this->logger->error('DomPDF generation failed: ' . $e->getMessage());
+            return ['content' => $html, 'type' => 'text/html; charset=UTF-8', 'ext' => 'html'];
+        }
+    }
+
+    /**
+     * Replace every <img src="/uploads/..."> in the contract HTML with an
+     * inline base64 data URI so the PDF renderer never needs filesystem look-ups.
+     */
+    private function inlineSignatureImages(string $html): string
+    {
+        return (string) preg_replace_callback(
+            '/<img(\s[^>]*)src="(\/uploads\/[^"]+)"([^>]*)>/i',
+            function (array $m) {
+                $absolutePath = $this->projectDir . '/public' . $m[2];
+
+                if (!is_file($absolutePath)) {
+                    return $m[0]; // file missing — leave tag as-is
+                }
+
+                $mime = mime_content_type($absolutePath) ?: 'image/png';
+                $b64  = base64_encode((string) file_get_contents($absolutePath));
+                $dataUri = "data:{$mime};base64,{$b64}";
+
+                return "<img{$m[1]}src=\"{$dataUri}\"{$m[3]}>";
+            },
+            $html
+        );
+    }
+
+    /**
+     * Build a compact, human-readable verification block to encode in the QR.
+     * Works offline — no URL, no network access needed.
+     */
+    private function buildContractQrData(Contract $contract): string
+    {
+        $lines = [
+            'UNIDAR - Verification du Contrat',
+            '---',
+            'Ref : ' . ($contract->getContractNumber() ?? 'N/A'),
+            'Etudiant  : ' . ($contract->getStudent()?->getFullName() ?? ''),
+            'Email     : ' . ($contract->getStudent()?->getEmail() ?? ''),
+            'Proprietaire : ' . ($contract->getOwner()?->getFullName() ?? ''),
+            'Bien      : ' . ($contract->getListing()?->getTitle() ?? ''),
+            'Loyer     : ' . $contract->getMonthlyRent() . ' TND/mois',
+            'Debut     : ' . ($contract->getStartDate()?->format('d/m/Y') ?? ''),
+            'Fin       : ' . ($contract->getEndDate()?->format('d/m/Y') ?? ''),
+            'Statut    : ' . ($contract->getStatus()?->value ?? ''),
+            '---',
+            'unidar.app | student.housing.community',
+        ];
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Generate a QR code as an inline SVG string.
+     * Uses SvgWriter so no GD / Imagick extension is required.
+     */
+    private function generateContractQrSvg(string $contractNumber): string
+    {
+        try {
+            $result = (new Builder(
+                writer: new SvgWriter(),
+                data: 'UNIDAR-CONTRACT:' . $contractNumber,
+                encoding: new Encoding('UTF-8'),
+                errorCorrectionLevel: ErrorCorrectionLevel::High,
+                size: 120,
+                margin: 6,
+            ))->build();
+
+            // Strip the XML declaration — DomPDF needs a bare <svg> for inline embedding
+            return (string) preg_replace('/<\?xml[^?]*\?>\s*/i', '', $result->getString());
+        } catch (\Throwable $e) {
+            $this->logger->warning('QR code generation failed: ' . $e->getMessage());
+            return ''; // PDF renders fine without it
+        }
+    }
+
+    private function wrapPdfHtml(string $body, string $qrSvg = '', string $contractNumber = ''): string
+    {
+        $date     = date('d/m/Y');
+        $numLabel = $contractNumber ? htmlspecialchars($contractNumber, ENT_QUOTES, 'UTF-8') : '—';
+
+        // Static UNIDAR shield mark — no animations, pure shapes, renders perfectly in DomPDF.
+        // Embedded as base64 <img> so DomPDF never has to parse inline SVG.
+        $shieldRaw = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 90" width="44" height="50">'
+            . '<path d="M40 3 L72 17 V50 C72 70 58 84 40 90 C22 84 8 70 8 50 V17 Z" fill="#6366f1"/>'
+            . '<path d="M40 24 L58 36 V56 H46 V44 H34 V56 H22 V36 Z" fill="#ffffff"/>'
+            . '<rect x="34" y="45" width="12" height="11" fill="#fbbf24"/>'
+            . '<circle cx="58" cy="29" r="3" fill="#ffffff" fill-opacity="0.8"/>'
+            . '</svg>';
+        $shieldSvg = '<img src="data:image/svg+xml;base64,' . base64_encode($shieldRaw) . '" '
+            . 'style="width:44px; height:50px; display:block;" alt="UNIDAR">';
+
+        // QR code — also embedded as base64 <img> so DomPDF renders it reliably
+        // (raw inline <svg> in a table cell is not reliably painted by DomPDF).
+        $qrImg = '';
+        if ($qrSvg !== '') {
+            $qrImg = '<img src="data:image/svg+xml;base64,' . base64_encode($qrSvg) . '" '
+                   . 'style="width:110px; height:110px; display:block;" alt="QR Code">';
+        }
+
+        // QR verification footer
+        $footer = $qrImg ? <<<FOOTER
+<div style="margin-top:2.5em; border-top:2px solid #e0e7ff; padding-top:1em;">
+  <table style="width:100%; border-collapse:collapse;">
+    <tr>
+      <td style="border:none; width:120px; padding:0; vertical-align:middle;">{$qrImg}</td>
+      <td style="border:none; padding:0 0 0 1.2em; vertical-align:middle;">
+        <p style="margin:0 0 .3em; font-size:8.5pt; font-weight:700; color:#4f46e5; text-transform:uppercase; letter-spacing:.06em;">✓ Document UNIDAR Vérifié</p>
+        <p style="margin:0 0 .2em; font-size:8pt; color:#374151;">Contrat n° <strong>{$numLabel}</strong></p>
+        <p style="margin:0 0 .15em; font-size:7pt; color:#6b7280;">Scannez le QR pour vérifier l'authenticité de ce document sur la plateforme UNIDAR.</p>
+        <p style="margin:0; font-size:7pt; color:#9ca3af;">Généré le {$date} · UNIDAR · student.housing.community</p>
+      </td>
+    </tr>
+  </table>
+</div>
+FOOTER : <<<NOFOOTER
+<div style="margin-top:2.5em; border-top:1px solid #e5e7eb; padding-top:.6em; text-align:center; font-size:7pt; color:#9ca3af;">
+  Document généré le {$date} · Plateforme UNIDAR · Contrat n° {$numLabel}
+</div>
+NOFOOTER;
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { margin: 2cm 2.2cm; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 11pt;
+    line-height: 1.75;
+    color: #1f2937;
+  }
+  /* ── Body typography ── */
+  h2 {
+    text-align: center;
+    font-size: 13pt;
+    font-weight: bold;
+    color: #1a1a2e;
+    margin: .8em 0 1.2em;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  h3 {
+    font-size: 10.5pt;
+    font-weight: bold;
+    color: #4f46e5;
+    margin: 1.3em 0 .4em;
+    border-bottom: 1px solid #e0e7ff;
+    padding-bottom: .25em;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+  }
+  p  { margin: .45em 0; }
+  ul { margin: .4em 0 .4em 1.4em; padding: 0; }
+  li { margin-bottom: .25em; }
+  strong { color: #1a1a2e; }
+  table { border-collapse: collapse; width: 100%; margin-top: 2em; }
+  td    { border: 1px solid #d1d5db; padding: .85em 1em; vertical-align: top; width: 50%; }
+  img   { max-height: 90px; max-width: 100%; display: block; margin: .5em auto; }
+</style>
+</head>
+<body>
+
+<!-- ═══ Document Header (native HTML table — reliable in DomPDF) ═══ -->
+<table style="width:100%; border-collapse:collapse; margin:0 0 1.6em 0;
+              border-bottom:3px solid #6366f1; padding-bottom:.8em;">
+  <tr>
+    <!-- Logo cell -->
+    <td style="border:none; padding:0; vertical-align:middle; width:55%;">
+      <table style="border-collapse:collapse; margin:0; width:auto;">
+        <tr>
+          <td style="border:none; padding:0; vertical-align:middle; width:54px;">
+            {$shieldSvg}
+          </td>
+          <td style="border:none; padding:0 0 0 10px; vertical-align:middle;">
+            <div style="font-size:22pt; font-weight:bold; color:#6366f1;
+                        font-family:Georgia,serif; letter-spacing:3px; line-height:1.1;">UNIDAR</div>
+            <div style="font-size:6.5pt; color:#64748b; letter-spacing:1.5px;
+                        font-family:'Courier New',monospace; margin-top:3px;">
+              student &middot; housing &middot; community
+            </div>
+          </td>
+        </tr>
+      </table>
+    </td>
+    <!-- Document info cell -->
+    <td style="border:none; padding:0; vertical-align:middle; text-align:right;
+               font-size:8.5pt; color:#374151; width:45%;">
+      <strong style="font-size:9pt; color:#1a1a2e;">CONTRAT DE LOCATION</strong><br>
+      R&eacute;f&eacute;rence : <strong>{$numLabel}</strong><br>
+      Date d&apos;&eacute;mission : {$date}<br>
+      <span style="display:inline-block; background:#ede9fe; color:#4f46e5;
+                   font-size:6.5pt; padding:1px 7px; border-radius:3px;
+                   font-weight:700; letter-spacing:.4px; margin-top:4px;">DOCUMENT OFFICIEL</span>
+    </td>
+  </tr>
+</table>
+
+<!-- ═══ Contract Body ═══ -->
+{$body}
+
+<!-- ═══ Footer ═══ -->
+{$footer}
+</body>
+</html>
+HTML;
     }
 
     /**
@@ -273,6 +580,8 @@ HTML;
         $this->cleanupAfterCancellation($contract);
 
         $this->entityManager->flush();
+
+        $this->notifyContractTerminated($contract);
     }
 
     /**
@@ -379,6 +688,7 @@ HTML;
         $count = 0;
         foreach ($contracts as $contract) {
             $contract->setStatus(ContractStatus::Completed);
+            $this->notifyContractExpired($contract);
             $count++;
         }
 
@@ -387,5 +697,75 @@ HTML;
         }
 
         return $count;
+    }
+
+    // -------------------------------------------------------------------------
+    // In-app notification helpers
+    // -------------------------------------------------------------------------
+
+    private function notifyContractGenerated(Contract $contract): void
+    {
+        $student = $contract->getStudent();
+        $owner   = $contract->getOwner();
+        $title   = $contract->getListing()->getTitle();
+        $num     = $contract->getContractNumber();
+
+        $this->notifier->notify(
+            $student,
+            "Bonjour {$student->getFullName()},\n\nVotre contrat n° {$num} pour le logement « {$title} » a été généré. Veuillez le signer dès que possible.\n\n— L'équipe UNIDAR"
+        );
+
+        $this->notifier->notify(
+            $owner,
+            "Bonjour {$owner->getFullName()},\n\nUn contrat n° {$num} a été généré pour votre logement « {$title} ». L'étudiant {$student->getFullName()} doit le signer.\n\n— L'équipe UNIDAR"
+        );
+    }
+
+    private function notifyContractSigned(Contract $contract, User $signer, bool $signerIsStudent): void
+    {
+        $num = $contract->getContractNumber();
+
+        if ($contract->getStatus() === ContractStatus::SignedByBoth) {
+            $date = $contract->getStartDate()->format('d/m/Y');
+            foreach ([$contract->getStudent(), $contract->getOwner()] as $recipient) {
+                $this->notifier->notify(
+                    $recipient,
+                    "Bonjour {$recipient->getFullName()},\n\nLe contrat n° {$num} est désormais signé par les deux parties. Il prend effet le {$date}.\n\n— L'équipe UNIDAR"
+                );
+            }
+            return;
+        }
+
+        $other = $signerIsStudent ? $contract->getOwner() : $contract->getStudent();
+        $this->notifier->notify(
+            $other,
+            "Bonjour {$other->getFullName()},\n\n{$signer->getFullName()} a signé le contrat n° {$num}. Votre signature est maintenant requise pour finaliser le contrat.\n\n— L'équipe UNIDAR"
+        );
+    }
+
+    private function notifyContractTerminated(Contract $contract): void
+    {
+        $num   = $contract->getContractNumber();
+        $title = $contract->getListing()->getTitle();
+
+        foreach ([$contract->getStudent(), $contract->getOwner()] as $recipient) {
+            $this->notifier->notify(
+                $recipient,
+                "Bonjour {$recipient->getFullName()},\n\nLe contrat n° {$num} pour le logement « {$title} » a été résilié.\n\n— L'équipe UNIDAR"
+            );
+        }
+    }
+
+    private function notifyContractExpired(Contract $contract): void
+    {
+        $num  = $contract->getContractNumber();
+        $date = $contract->getEndDate()->format('d/m/Y');
+
+        foreach ([$contract->getStudent(), $contract->getOwner()] as $recipient) {
+            $this->notifier->notify(
+                $recipient,
+                "Bonjour {$recipient->getFullName()},\n\nLe contrat n° {$num} est arrivé à échéance le {$date}.\n\n— L'équipe UNIDAR"
+            );
+        }
     }
 }

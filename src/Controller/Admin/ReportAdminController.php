@@ -9,6 +9,7 @@ use App\Enum\ReportStatus;
 use App\Enum\UserStatus;
 use App\Form\ReportResolutionType;
 use App\Repository\ReportRepository;
+use App\Service\InAppNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -30,8 +31,12 @@ class ReportAdminController extends AbstractController
     }
 
     #[Route('/{id}/resolve', name: 'admin_report_resolve', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function resolve(Request $request, Report $report, EntityManagerInterface $em): Response
-    {
+    public function resolve(
+        Request $request,
+        Report $report,
+        EntityManagerInterface $em,
+        InAppNotificationService $notifier,
+    ): Response {
         $form = $this->createForm(ReportResolutionType::class);
         $form->handleRequest($request);
 
@@ -44,12 +49,28 @@ class ReportAdminController extends AbstractController
             $report->setResolutionNotes($notes);
             $report->setResolvedBy($this->getUser());
 
-            // Side effects
+            // Side effects + notifications
             if ($action === 'ban_user' && $report->getReportedUser()) {
-                $report->getReportedUser()->setStatus(UserStatus::Banned);
+                $bannedUser = $report->getReportedUser();
+                $bannedUser->setStatus(UserStatus::Banned);
+                $notifier->notify($bannedUser, sprintf(
+                    "Bonjour %s,\n\nVotre compte UNIDAR a été banni suite à un signalement ❌\nMotif : %s\n\nPour contester cette décision, contactez le support UNIDAR.\n\n— L'équipe UNIDAR",
+                    $bannedUser->getFullName(),
+                    $notes ?: 'Violation des conditions d\'utilisation'
+                ));
             }
             if ($action === 'remove_listing' && $report->getReportedListing()) {
-                $report->getReportedListing()->setStatus('removed');
+                $listing = $report->getReportedListing();
+                $listing->setStatus('removed');
+                $owner = $listing->getOwner();
+                if ($owner) {
+                    $notifier->notify($owner, sprintf(
+                        "Bonjour %s,\n\nVotre annonce « %s » a été retirée de la plateforme suite à un signalement ❌\nMotif : %s\n\nPour toute question, contactez le support UNIDAR.\n\n— L'équipe UNIDAR",
+                        $owner->getFullName(),
+                        $listing->getTitle(),
+                        $notes ?: 'Non conforme aux conditions d\'utilisation'
+                    ));
+                }
             }
 
             $adminAction = new AdminAction();

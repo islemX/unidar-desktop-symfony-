@@ -3,6 +3,7 @@
 namespace App\Form;
 
 use App\Entity\User;
+use App\Validator\Constraints\ValidEmailDomain;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
@@ -12,6 +13,8 @@ use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Email;
+use Symfony\Component\Validator\Constraints\NotBlank;
 
 class RegistrationType extends AbstractType
 {
@@ -19,7 +22,16 @@ class RegistrationType extends AbstractType
     {
         $builder
             ->add('email', EmailType::class, [
-                'required' => true,
+                'required'    => true,
+                'attr'        => [
+                    'autocomplete' => 'email',
+                    'data-email-validate' => 'true',  // hook for JS real-time check
+                ],
+                'constraints' => [
+                    new NotBlank(message: 'Please enter your email address.'),
+                    new Email(mode: 'html5', message: 'Please enter a valid email address.'),
+                    new ValidEmailDomain(),
+                ],
             ])
             ->add('password', RepeatedType::class, [
                 'type' => PasswordType::class,

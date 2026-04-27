@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+{% block title %}Check Your Email — UNIDAR{% endblock %}
+
+{% block body %}
+<div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div><div class="shape shape-3"></div></div>
+
+<div class="section" style="min-height:calc(100vh - 70px); display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
+  <div class="container" style="max-width:480px;">
+    <div class="card fade-in-up" style="padding:0; overflow:hidden;">
+
+      {# Icon header #}
+      <div style="background:linear-gradient(135deg,#6c63ff 0%,#4ecdc4 100%); padding:40px 40px 32px; text-align:center;">
+        <div style="font-size:56px; line-height:1; margin-bottom:16px;">✉️</div>
+        <h1 style="color:#fff; font-size:1.6rem; font-weight:800; margin:0;">Check your inbox</h1>
+        <p style="color:rgba(255,255,255,.8); margin:8px 0 0; font-size:.95rem;">A verification link is on its way</p>
+      </div>
+
+      <div style="padding:36px 40px;">
+        {% for type, messages in app.flashes %}
+          {% for message in messages %}
+            <div class="alert alert-{{ type }}" style="margin-bottom:1.25rem;">{{ message|raw }}</div>
+          {% endfor %}
+        {% endfor %}
+
+        <p style="font-size:.95rem; color:var(--color-surface-600); line-height:1.7; margin-bottom:20px;">
+          We've sent a verification email to
+          {% if email %}
+            <strong style="color:var(--color-surface-900);">{{ email }}</strong>.
+          {% else %}
+            your email address.
+          {% endif %}
+          Click the link inside to activate your UNIDAR account.
+        </p>
+
+        <div style="background:#f7f8fc; border-radius:10px; padding:16px 20px; margin-bottom:24px; font-size:.875rem; color:var(--color-surface-600); line-height:1.6;">
+          <p style="margin:0;"><strong>Didn't receive it?</strong> Check your spam / junk folder. The email arrives within a few minutes.</p>
+        </div>
+
+        <hr style="border:none; border-top:1px solid var(--color-surface-200); margin:24px 0;">
+
+        <p style="text-align:center; font-size:.875rem; color:var(--color-surface-500); margin-bottom:16px;">Still nothing?</p>
+
+        <a href="{{ path('app_resend_verification') }}" class="btn btn-primary" style="display:block; text-align:center; padding:.875rem; font-size:1rem;">
+          Resend verification email
+        </a>
+
+        <div class="text-center" style="margin-top:1.25rem;">
+          <a href="{{ path('app_login') }}" style="font-size:.875rem; color:var(--color-brand);">← Back to sign in</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

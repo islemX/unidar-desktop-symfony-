@@ -51,11 +51,15 @@
                     {{ form_errors(form.gender) }}
                 </div>
 
-                {# Email #}
+                {# Email — Layer 1: real-time format check via JS; Layer 2: MX via ValidEmailDomain constraint #}
                 <div class="form-group">
                     <label class="form-label" data-i18n="register_email">Email Address</label>
-                    {{ form_widget(form.email, {'attr': {'class': 'form-input', 'placeholder': 'student@university.edu', 'data-i18n-placeholder': 'register_email_placeholder'}}) }}
-                    <span class="form-hint" data-i18n="register_email_hint">University email helps with trust and verification.</span>
+                    <div style="position:relative;">
+                        {{ form_widget(form.email, {'attr': {'class': 'form-input', 'placeholder': 'student@university.edu', 'data-i18n-placeholder': 'register_email_placeholder', 'id': 'registration_email', 'autocomplete': 'email'}}) }}
+                        <span id="emailStatusIcon" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:1.1rem; display:none;"></span>
+                    </div>
+                    <span id="emailFeedback" class="form-hint" style="min-height:1.2em; display:block;"></span>
+                    <span class="form-hint" data-i18n="register_email_hint" style="display:none;">University email helps with trust and verification.</span>
                     {{ form_errors(form.email) }}
                 </div>
 
@@ -201,6 +205,63 @@
                 display.textContent = '📍 ' + coords;
             });
     }
+})();
+
+/* ── Layer 1: Real-time email format validation ─────────────────── */
+(function () {
+    var emailInput   = document.getElementById('registration_email');
+    var feedbackEl   = document.getElementById('emailFeedback');
+    var iconEl       = document.getElementById('emailStatusIcon');
+    if (!emailInput) return;
+
+    // RFC-5322 simplified pattern — covers 99.9 % of real addresses
+    var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+    function setStatus(state, msg) {
+        feedbackEl.textContent = msg;
+        if (state === 'ok') {
+            iconEl.textContent = '✅';
+            iconEl.style.display = '';
+            feedbackEl.style.color = 'var(--color-success, #38a169)';
+            emailInput.style.borderColor = '#38a169';
+        } else if (state === 'error') {
+            iconEl.textContent = '❌';
+            iconEl.style.display = '';
+            feedbackEl.style.color = 'var(--color-error, #e53e3e)';
+            emailInput.style.borderColor = '#e53e3e';
+        } else {
+            iconEl.style.display = 'none';
+            feedbackEl.style.color = '';
+            emailInput.style.borderColor = '';
+        }
+    }
+
+    emailInput.addEventListener('input', function () {
+        var val = this.value.trim();
+        if (!val) { setStatus('idle', ''); return; }
+
+        if (!EMAIL_RE.test(val)) {
+            setStatus('error', 'Please enter a valid email address (e.g. you@example.com).');
+            return;
+        }
+
+        // Looks like a valid format
+        var domain = val.split('@')[1].toLowerCase();
+        var freemail = ['gmail.com','yahoo.com','hotmail.com','outlook.com','live.com','icloud.com','protonmail.com'];
+        if (freemail.indexOf(domain) !== -1) {
+            setStatus('ok', 'Valid email address.');
+        } else {
+            setStatus('ok', '✓ Format OK — domain will be verified on submit.');
+        }
+    });
+
+    emailInput.addEventListener('blur', function () {
+        var val = this.value.trim();
+        if (!val) { setStatus('idle', ''); return; }
+        if (!EMAIL_RE.test(val)) {
+            setStatus('error', 'Please enter a valid email address.');
+        }
+    });
 })();
 </script>
 {% endblock %}

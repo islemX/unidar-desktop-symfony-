@@ -576,7 +576,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         }>,
  *     },
  *     mailer?: bool|array{ // Mailer configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         message_bus?: scalar|Param|null, // The message bus to use. Defaults to the default bus if the Messenger component is installed. // Default: null
  *         dsn?: scalar|Param|null, // Default: null
  *         transports?: array<string, scalar|Param|null>,
@@ -617,7 +617,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         decryption_env_var?: scalar|Param|null, // Default: "base64:default::SYMFONY_DECRYPTION_SECRET"
  *     },
  *     notifier?: bool|array{ // Notifier configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         message_bus?: scalar|Param|null, // The message bus to use. Defaults to the default bus if the Messenger component is installed. // Default: null
  *         chatter_transports?: array<string, scalar|Param|null>,
  *         texter_transports?: array<string, scalar|Param|null>,
@@ -997,6 +997,9 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             filter?: scalar|Param|null, // Default: "({uid_key}={user_identifier})"
  *             password_attribute?: scalar|Param|null, // Default: null
  *         },
+ *         lexik_jwt?: array{
+ *             class?: scalar|Param|null, // Default: "Lexik\\Bundle\\JWTAuthenticationBundle\\Security\\User\\JWTUser"
+ *         },
  *     }>,
  *     firewalls?: array<string, array{ // Default: []
  *         pattern?: scalar|Param|null,
@@ -1054,6 +1057,10 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         remote_user?: array{
  *             provider?: scalar|Param|null,
  *             user?: scalar|Param|null, // Default: "REMOTE_USER"
+ *         },
+ *         jwt?: array{
+ *             provider?: scalar|Param|null, // Default: null
+ *             authenticator?: scalar|Param|null, // Default: "lexik_jwt_authentication.security.jwt_authenticator"
  *         },
  *         login_link?: array{
  *             check_route?: scalar|Param|null, // Route that will validate the login link - e.g. "app_login_link_verify".
@@ -1375,6 +1382,245 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         db_driver?: scalar|Param|null, // Default: null
  *     }>,
  * }
+ * @psalm-type LexikJwtAuthenticationConfig = array{
+ *     public_key?: scalar|Param|null, // The key used to sign tokens (useless for HMAC). If not set, the key will be automatically computed from the secret key. // Default: null
+ *     additional_public_keys?: list<scalar|Param|null>,
+ *     secret_key?: scalar|Param|null, // The key used to sign tokens. It can be a raw secret (for HMAC), a raw RSA/ECDSA key or the path to a file itself being plaintext or PEM. // Default: null
+ *     pass_phrase?: scalar|Param|null, // The key passphrase (useless for HMAC) // Default: ""
+ *     token_ttl?: scalar|Param|null, // Default: 3600
+ *     allow_no_expiration?: bool|Param, // Allow tokens without "exp" claim (i.e. indefinitely valid, no lifetime) to be considered valid. Caution: usage of this should be rare. // Default: false
+ *     clock_skew?: scalar|Param|null, // Default: 0
+ *     encoder?: array{
+ *         service?: scalar|Param|null, // Default: "lexik_jwt_authentication.encoder.lcobucci"
+ *         signature_algorithm?: scalar|Param|null, // Default: "RS256"
+ *     },
+ *     user_id_claim?: scalar|Param|null, // Default: "username"
+ *     token_extractors?: array{
+ *         authorization_header?: bool|array{
+ *             enabled?: bool|Param, // Default: true
+ *             prefix?: scalar|Param|null, // Default: "Bearer"
+ *             name?: scalar|Param|null, // Default: "Authorization"
+ *         },
+ *         cookie?: bool|array{
+ *             enabled?: bool|Param, // Default: false
+ *             name?: scalar|Param|null, // Default: "BEARER"
+ *         },
+ *         query_parameter?: bool|array{
+ *             enabled?: bool|Param, // Default: false
+ *             name?: scalar|Param|null, // Default: "bearer"
+ *         },
+ *         split_cookie?: bool|array{
+ *             enabled?: bool|Param, // Default: false
+ *             cookies?: list<scalar|Param|null>,
+ *         },
+ *     },
+ *     remove_token_from_body_when_cookies_used?: scalar|Param|null, // Default: true
+ *     set_cookies?: array<string, array{ // Default: []
+ *         lifetime?: scalar|Param|null, // The cookie lifetime. If null, the "token_ttl" option value will be used // Default: null
+ *         samesite?: "none"|"lax"|"strict"|Param, // Default: "lax"
+ *         path?: scalar|Param|null, // Default: "/"
+ *         domain?: scalar|Param|null, // Default: null
+ *         secure?: scalar|Param|null, // Default: true
+ *         httpOnly?: scalar|Param|null, // Default: true
+ *         partitioned?: scalar|Param|null, // Default: false
+ *         split?: list<scalar|Param|null>,
+ *     }>,
+ *     api_platform?: bool|array{ // API Platform compatibility: add check_path in OpenAPI documentation.
+ *         enabled?: bool|Param, // Default: false
+ *         check_path?: scalar|Param|null, // The login check path to add in OpenAPI. // Default: null
+ *         username_path?: scalar|Param|null, // The path to the username in the JSON body. // Default: null
+ *         password_path?: scalar|Param|null, // The path to the password in the JSON body. // Default: null
+ *     },
+ *     access_token_issuance?: bool|array{
+ *         enabled?: bool|Param, // Default: false
+ *         signature?: array{
+ *             algorithm?: scalar|Param|null, // The algorithm use to sign the access tokens.
+ *             key?: scalar|Param|null, // The signature key. It shall be JWK encoded.
+ *         },
+ *         encryption?: bool|array{
+ *             enabled?: bool|Param, // Default: false
+ *             key_encryption_algorithm?: scalar|Param|null, // The key encryption algorithm is used to encrypt the token.
+ *             content_encryption_algorithm?: scalar|Param|null, // The key encryption algorithm is used to encrypt the token.
+ *             key?: scalar|Param|null, // The encryption key. It shall be JWK encoded.
+ *         },
+ *     },
+ *     access_token_verification?: bool|array{
+ *         enabled?: bool|Param, // Default: false
+ *         signature?: array{
+ *             header_checkers?: list<scalar|Param|null>,
+ *             claim_checkers?: list<scalar|Param|null>,
+ *             mandatory_claims?: list<scalar|Param|null>,
+ *             allowed_algorithms?: list<scalar|Param|null>,
+ *             keyset?: scalar|Param|null, // The signature keyset. It shall be JWKSet encoded.
+ *         },
+ *         encryption?: bool|array{
+ *             enabled?: bool|Param, // Default: false
+ *             continue_on_decryption_failure?: bool|Param, // If enable, non-encrypted tokens or tokens that failed during decryption or verification processes are accepted. // Default: false
+ *             header_checkers?: list<scalar|Param|null>,
+ *             allowed_key_encryption_algorithms?: list<scalar|Param|null>,
+ *             allowed_content_encryption_algorithms?: list<scalar|Param|null>,
+ *             keyset?: scalar|Param|null, // The encryption keyset. It shall be JWKSet encoded.
+ *         },
+ *     },
+ *     blocklist_token?: bool|array{
+ *         enabled?: bool|Param, // Default: false
+ *         cache?: scalar|Param|null, // Storage to track blocked tokens // Default: "cache.app"
+ *     },
+ * }
+ * @psalm-type KnpSnappyConfig = array{
+ *     temporary_folder?: scalar|Param|null,
+ *     process_timeout?: int|Param, // Generator process timeout in seconds.
+ *     pdf?: array{
+ *         enabled?: bool|Param, // Default: true
+ *         binary?: scalar|Param|null, // Default: "wkhtmltopdf"
+ *         options?: array<string, scalar|Param|null>,
+ *         env?: list<scalar|Param|null>,
+ *     },
+ *     image?: array{
+ *         enabled?: bool|Param, // Default: true
+ *         binary?: scalar|Param|null, // Default: "wkhtmltoimage"
+ *         options?: array<string, scalar|Param|null>,
+ *         env?: list<scalar|Param|null>,
+ *     },
+ * }
+ * @psalm-type StofDoctrineExtensionsConfig = array{
+ *     orm?: array<string, array{ // Default: []
+ *         translatable?: scalar|Param|null, // Default: false
+ *         timestampable?: scalar|Param|null, // Default: false
+ *         blameable?: scalar|Param|null, // Default: false
+ *         sluggable?: scalar|Param|null, // Default: false
+ *         tree?: scalar|Param|null, // Default: false
+ *         loggable?: scalar|Param|null, // Default: false
+ *         ip_traceable?: scalar|Param|null, // Default: false
+ *         sortable?: scalar|Param|null, // Default: false
+ *         softdeleteable?: scalar|Param|null, // Default: false
+ *         uploadable?: scalar|Param|null, // Default: false
+ *         reference_integrity?: scalar|Param|null, // Default: false
+ *     }>,
+ *     mongodb?: array<string, array{ // Default: []
+ *         translatable?: scalar|Param|null, // Default: false
+ *         timestampable?: scalar|Param|null, // Default: false
+ *         blameable?: scalar|Param|null, // Default: false
+ *         sluggable?: scalar|Param|null, // Default: false
+ *         tree?: scalar|Param|null, // Default: false
+ *         loggable?: scalar|Param|null, // Default: false
+ *         ip_traceable?: scalar|Param|null, // Default: false
+ *         sortable?: scalar|Param|null, // Default: false
+ *         softdeleteable?: scalar|Param|null, // Default: false
+ *         uploadable?: scalar|Param|null, // Default: false
+ *         reference_integrity?: scalar|Param|null, // Default: false
+ *     }>,
+ *     class?: array{
+ *         translatable?: scalar|Param|null, // Default: "Gedmo\\Translatable\\TranslatableListener"
+ *         timestampable?: scalar|Param|null, // Default: "Gedmo\\Timestampable\\TimestampableListener"
+ *         blameable?: scalar|Param|null, // Default: "Gedmo\\Blameable\\BlameableListener"
+ *         sluggable?: scalar|Param|null, // Default: "Gedmo\\Sluggable\\SluggableListener"
+ *         tree?: scalar|Param|null, // Default: "Gedmo\\Tree\\TreeListener"
+ *         loggable?: scalar|Param|null, // Default: "Gedmo\\Loggable\\LoggableListener"
+ *         sortable?: scalar|Param|null, // Default: "Gedmo\\Sortable\\SortableListener"
+ *         softdeleteable?: scalar|Param|null, // Default: "Gedmo\\SoftDeleteable\\SoftDeleteableListener"
+ *         uploadable?: scalar|Param|null, // Default: "Gedmo\\Uploadable\\UploadableListener"
+ *         reference_integrity?: scalar|Param|null, // Default: "Gedmo\\ReferenceIntegrity\\ReferenceIntegrityListener"
+ *     },
+ *     softdeleteable?: array{
+ *         handle_post_flush_event?: bool|Param, // Default: false
+ *     },
+ *     uploadable?: array{
+ *         default_file_path?: scalar|Param|null, // Default: null
+ *         mime_type_guesser_class?: scalar|Param|null, // Default: "Stof\\DoctrineExtensionsBundle\\Uploadable\\MimeTypeGuesserAdapter"
+ *         default_file_info_class?: scalar|Param|null, // Default: "Stof\\DoctrineExtensionsBundle\\Uploadable\\UploadedFileInfo"
+ *         validate_writable_directory?: bool|Param, // Default: true
+ *     },
+ *     default_locale?: scalar|Param|null, // Default: "en"
+ *     translation_fallback?: bool|Param, // Default: false
+ *     persist_default_translation?: bool|Param, // Default: false
+ *     skip_translation_on_load?: bool|Param, // Default: false
+ *     metadata_cache_pool?: scalar|Param|null, // Default: null
+ * }
+ * @psalm-type SentryConfig = array{
+ *     dsn?: scalar|Param|null, // If this value is not provided, the SDK will try to read it from the SENTRY_DSN environment variable. If that variable also does not exist, the SDK will not send any events.
+ *     register_error_listener?: bool|Param, // Default: true
+ *     register_error_handler?: bool|Param, // Default: true
+ *     logger?: scalar|Param|null, // The service ID of the PSR-3 logger used to log messages coming from the SDK client. Be aware that setting the same logger of the application may create a circular loop when an event fails to be sent. // Default: null
+ *     options?: array{
+ *         integrations?: mixed, // Default: []
+ *         default_integrations?: bool|Param,
+ *         prefixes?: list<scalar|Param|null>,
+ *         sample_rate?: float|Param, // The sampling factor to apply to events. A value of 0 will deny sending any event, and a value of 1 will send all events.
+ *         enable_tracing?: bool|Param,
+ *         traces_sample_rate?: float|Param, // The sampling factor to apply to transactions. A value of 0 will deny sending any transaction, and a value of 1 will send all transactions.
+ *         traces_sampler?: scalar|Param|null,
+ *         profiles_sample_rate?: float|Param, // The sampling factor to apply to profiles. A value of 0 will deny sending any profiles, and a value of 1 will send all profiles. Profiles are sampled in relation to traces_sample_rate
+ *         enable_logs?: bool|Param,
+ *         log_flush_threshold?: mixed, // Default: null
+ *         enable_metrics?: bool|Param, // Default: true
+ *         attach_stacktrace?: bool|Param,
+ *         attach_metric_code_locations?: bool|Param,
+ *         context_lines?: int|Param,
+ *         environment?: scalar|Param|null, // Default: "%kernel.environment%"
+ *         logger?: scalar|Param|null,
+ *         spotlight?: bool|Param,
+ *         spotlight_url?: scalar|Param|null,
+ *         release?: scalar|Param|null, // Default: "%env(default::SENTRY_RELEASE)%"
+ *         org_id?: int|Param,
+ *         server_name?: scalar|Param|null,
+ *         ignore_exceptions?: list<scalar|Param|null>,
+ *         ignore_transactions?: list<scalar|Param|null>,
+ *         before_send?: scalar|Param|null,
+ *         before_send_transaction?: scalar|Param|null,
+ *         before_send_check_in?: scalar|Param|null,
+ *         before_send_metrics?: scalar|Param|null,
+ *         before_send_log?: scalar|Param|null,
+ *         before_send_metric?: scalar|Param|null,
+ *         trace_propagation_targets?: mixed,
+ *         strict_trace_continuation?: bool|Param,
+ *         tags?: array<string, scalar|Param|null>,
+ *         error_types?: scalar|Param|null,
+ *         max_breadcrumbs?: int|Param,
+ *         before_breadcrumb?: mixed,
+ *         in_app_exclude?: list<scalar|Param|null>,
+ *         in_app_include?: list<scalar|Param|null>,
+ *         send_default_pii?: bool|Param,
+ *         max_value_length?: int|Param,
+ *         transport?: scalar|Param|null,
+ *         http_client?: scalar|Param|null,
+ *         http_proxy?: scalar|Param|null,
+ *         http_proxy_authentication?: scalar|Param|null,
+ *         http_connect_timeout?: float|Param, // The maximum number of seconds to wait while trying to connect to a server. It works only when using the default transport.
+ *         http_timeout?: float|Param, // The maximum execution time for the request+response as a whole. It works only when using the default transport.
+ *         http_ssl_verify_peer?: bool|Param,
+ *         http_compression?: bool|Param,
+ *         capture_silenced_errors?: bool|Param,
+ *         max_request_body_size?: "none"|"never"|"small"|"medium"|"always"|Param,
+ *         class_serializers?: array<string, scalar|Param|null>,
+ *     },
+ *     messenger?: bool|array{
+ *         enabled?: bool|Param, // Default: true
+ *         capture_soft_fails?: bool|Param, // Default: true
+ *         isolate_breadcrumbs_by_message?: bool|Param, // Default: false
+ *         isolate_context_by_message?: bool|Param, // Default: false
+ *     },
+ *     tracing?: bool|array{
+ *         enabled?: bool|Param, // Default: true
+ *         dbal?: bool|array{
+ *             enabled?: bool|Param, // Default: true
+ *             ignore_prepare_spans?: bool|Param, // Default: false
+ *             connections?: list<scalar|Param|null>,
+ *         },
+ *         twig?: bool|array{
+ *             enabled?: bool|Param, // Default: true
+ *         },
+ *         cache?: bool|array{
+ *             enabled?: bool|Param, // Default: true
+ *         },
+ *         http_client?: bool|array{
+ *             enabled?: bool|Param, // Default: true
+ *         },
+ *         console?: array{
+ *             excluded_commands?: list<scalar|Param|null>,
+ *         },
+ *     },
+ * }
  * @psalm-type DebugConfig = array{
  *     max_items?: int|Param, // Max number of displayed items past the first level, -1 means no limit. // Default: 2500
  *     min_depth?: int|Param, // Minimum tree depth to clone all the items, 1 is default. // Default: 1
@@ -1395,6 +1641,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     intercept_redirects?: bool|Param, // Default: false
  *     excluded_ajax_paths?: scalar|Param|null, // Default: "^/((index|app(_[\\w]+)?)\\.php/)?_wdt"
  * }
+ * @psalm-type EndroidQrCodeConfig = array<string, mixed>
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,
  *     parameters?: ParametersConfig,
@@ -1407,6 +1654,11 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     knp_paginator?: KnpPaginatorConfig,
  *     nelmio_cors?: NelmioCorsConfig,
  *     vich_uploader?: VichUploaderConfig,
+ *     lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
+ *     knp_snappy?: KnpSnappyConfig,
+ *     stof_doctrine_extensions?: StofDoctrineExtensionsConfig,
+ *     sentry?: SentryConfig,
+ *     endroid_qr_code?: EndroidQrCodeConfig,
  *     "when@dev"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
@@ -1419,9 +1671,14 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         knp_paginator?: KnpPaginatorConfig,
  *         nelmio_cors?: NelmioCorsConfig,
  *         vich_uploader?: VichUploaderConfig,
+ *         lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
+ *         knp_snappy?: KnpSnappyConfig,
+ *         stof_doctrine_extensions?: StofDoctrineExtensionsConfig,
+ *         sentry?: SentryConfig,
  *         debug?: DebugConfig,
  *         maker?: MakerConfig,
  *         web_profiler?: WebProfilerConfig,
+ *         endroid_qr_code?: EndroidQrCodeConfig,
  *     },
  *     "when@prod"?: array{
  *         imports?: ImportsConfig,
@@ -1435,6 +1692,11 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         knp_paginator?: KnpPaginatorConfig,
  *         nelmio_cors?: NelmioCorsConfig,
  *         vich_uploader?: VichUploaderConfig,
+ *         lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
+ *         knp_snappy?: KnpSnappyConfig,
+ *         stof_doctrine_extensions?: StofDoctrineExtensionsConfig,
+ *         sentry?: SentryConfig,
+ *         endroid_qr_code?: EndroidQrCodeConfig,
  *     },
  *     "when@test"?: array{
  *         imports?: ImportsConfig,
@@ -1448,7 +1710,12 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         knp_paginator?: KnpPaginatorConfig,
  *         nelmio_cors?: NelmioCorsConfig,
  *         vich_uploader?: VichUploaderConfig,
+ *         lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
+ *         knp_snappy?: KnpSnappyConfig,
+ *         stof_doctrine_extensions?: StofDoctrineExtensionsConfig,
+ *         sentry?: SentryConfig,
  *         web_profiler?: WebProfilerConfig,
+ *         endroid_qr_code?: EndroidQrCodeConfig,
  *     },
  *     ...<string, ExtensionType|array{ // extra keys must follow the when@%env% pattern or match an extension alias
  *         imports?: ImportsConfig,

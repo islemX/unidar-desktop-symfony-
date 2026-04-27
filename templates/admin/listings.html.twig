@@ -1,0 +1,97 @@
+{% extends 'base.html.twig' %}
+{% block title %}Listings Review - Admin{% endblock %}
+{% block body %}
+<div class="container">
+    <h2 style="margin-bottom:1.5rem;">Listings Review</h2>
+
+    {% for msg in app.flashes('success') %}
+        <div class="alert alert-success" style="margin-bottom:1rem;">{{ msg }}</div>
+    {% endfor %}
+
+    {# ── Pending ── #}
+    <h3 style="margin-bottom:1rem;color:var(--color-brand);">⏳ Pending ({{ pending|length }})</h3>
+    {% if pending|length == 0 %}
+        <div class="card" style="text-align:center;padding:1.5rem;margin-bottom:2rem;"><p style="color:var(--color-text-muted);">No listings pending review.</p></div>
+    {% else %}
+        {% for l in pending %}
+        <div class="card" style="margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
+                <div style="flex:1;">
+                    <strong>{{ l.title }}</strong>
+                    <div style="font-size:0.85rem;color:var(--color-text-muted);margin-top:0.25rem;">
+                        👤 {{ l.owner.fullName }} ({{ l.owner.email }}) &nbsp;|&nbsp;
+                        📍 {{ l.address }} &nbsp;|&nbsp;
+                        💰 {{ l.price }} TND/mo &nbsp;|&nbsp;
+                        🛏 {{ l.bedrooms }} bed(s)
+                    </div>
+                    {% if l.description %}
+                        <p style="margin-top:0.5rem;font-size:0.87rem;color:#374151;max-width:600px;">{{ l.description|slice(0,200) }}{% if l.description|length > 200 %}…{% endif %}</p>
+                    {% endif %}
+                    <a href="{{ path('listing_show', {id: l.id}) }}" target="_blank" class="btn btn-outline btn-sm" style="margin-top:0.5rem;">🔍 View listing</a>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.5rem;min-width:220px;">
+                    <form method="post" action="{{ path('admin_listing_review', {id: l.id}) }}">
+                        <input type="hidden" name="action" value="approve">
+                        <button type="submit" class="btn btn-secondary" style="width:100%;">✅ Approve</button>
+                    </form>
+                    <form method="post" action="{{ path('admin_listing_review', {id: l.id}) }}">
+                        <input type="hidden" name="action" value="reject">
+                        <input type="text" name="reason" class="form-input" placeholder="Rejection reason" style="margin-bottom:0.4rem;font-size:0.85rem;">
+                        <button type="submit" class="btn btn-danger" style="width:100%;">❌ Reject</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    {# ── Active ── #}
+    <h3 style="margin-bottom:1rem;color:#10b981;">✅ Active ({{ active|length }})</h3>
+    {% if active|length == 0 %}
+        <div class="card" style="text-align:center;padding:1rem;margin-bottom:2rem;"><p style="color:var(--color-text-muted);">None.</p></div>
+    {% else %}
+        <div style="overflow-x:auto;margin-bottom:2rem;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+                <thead><tr style="background:var(--color-surface-50);border-bottom:2px solid var(--color-border);">
+                    <th style="padding:0.75rem 1rem;text-align:left;">Title</th>
+                    <th style="padding:0.75rem 1rem;text-align:left;">Owner</th>
+                    <th style="padding:0.75rem 1rem;text-align:left;">Price</th>
+                    <th style="padding:0.75rem 1rem;text-align:left;">Actions</th>
+                </tr></thead>
+                <tbody>
+                {% for l in active %}
+                <tr style="border-bottom:1px solid var(--color-surface-100);">
+                    <td style="padding:0.75rem 1rem;">{{ l.title }}</td>
+                    <td style="padding:0.75rem 1rem;">{{ l.owner.fullName }}</td>
+                    <td style="padding:0.75rem 1rem;">{{ l.price }} TND</td>
+                    <td style="padding:0.75rem 1rem;">
+                        <form method="post" action="{{ path('admin_listing_review', {id: l.id}) }}" style="display:inline;">
+                            <input type="hidden" name="action" value="reject">
+                            <input type="hidden" name="reason" value="Retiré par l'administration">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Remove this listing?')">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {# ── Rejected ── #}
+    <h3 style="margin-bottom:1rem;color:#ef4444;">❌ Rejected ({{ rejected|length }})</h3>
+    {% if rejected|length == 0 %}
+        <div class="card" style="text-align:center;padding:1rem;"><p style="color:var(--color-text-muted);">None.</p></div>
+    {% else %}
+        {% for l in rejected %}
+        <div class="card" style="margin-bottom:0.75rem;border-left:4px solid #ef4444;">
+            <strong>{{ l.title }}</strong> — {{ l.owner.fullName }}
+            <form method="post" action="{{ path('admin_listing_review', {id: l.id}) }}" style="display:inline;margin-left:1rem;">
+                <input type="hidden" name="action" value="approve">
+                <button type="submit" class="btn btn-secondary btn-sm">Re-approve</button>
+            </form>
+        </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}

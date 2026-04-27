@@ -6,6 +6,8 @@ use App\Entity\Subscription;
 use App\Enum\SubscriptionPlan;
 use App\Repository\SubscriptionRepository;
 use App\Service\FakePaymentGateway;
+use App\Service\InAppNotificationService;
+use App\Service\MailerService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,7 +31,9 @@ class SubscriptionController extends AbstractController
         Request $request,
         EntityManagerInterface $em,
         FakePaymentGateway $gateway,
-        SubscriptionRepository $subscriptionRepo
+        SubscriptionRepository $subscriptionRepo,
+        InAppNotificationService $notifier,
+        MailerService $mailer,
     ): Response {
         $planValue = $request->request->get('plan', 'monthly');
         $cardNumber = $request->request->get('cardNumber', '');
@@ -65,8 +69,21 @@ class SubscriptionController extends AbstractController
             $em->persist($subscription);
             $em->flush();
             $this->addFlash('success', 'Subscribed successfully! Enjoy premium features.');
+            $notifier->notify($this->getUser(), sprintf(
+                "Bonjour %s,\n\nVotre abonnement UNIDAR %s est maintenant actif ✅\nValide jusqu'au %s.\n\nProfitez de toutes les fonctionnalités premium : messagerie, génération de contrats et bien plus.\n\n— L'équipe UNIDAR",
+                $this->getUser()->getFullName(),
+                ucfirst($plan->value),
+                $expires->format('d/m/Y')
+            ));
+            $mailer->sendSubscriptionConfirmation($this->getUser(), $subscription);
         } else {
             $this->addFlash('error', 'Payment failed: ' . $result['message']);
+            $notifier->notify($this->getUser(), sprintf(
+                "Bonjour %s,\n\nLe paiement de votre abonnement UNIDAR a échoué ❌\nMotif : %s\n\nVeuillez réessayer avec un autre moyen de paiement.\n\n— L'équipe UNIDAR",
+                $this->getUser()->getFullName(),
+                $result['message'] ?? 'Erreur de paiement'
+            ));
+            $mailer->sendSubscriptionFailed($this->getUser(), $plan->value, $result['message'] ?? '');
         }
 
         return $this->redirectToRoute('subscription_index');

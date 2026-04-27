@@ -11,6 +11,7 @@ use App\Repository\ContractRepository;
 use App\Repository\ListingRepository;
 use App\Repository\SubscriptionRepository;
 use App\Service\ContractManager;
+use App\Service\MailerService;
 use App\Service\PaymentProcessor;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -30,7 +31,7 @@ class ContractController extends AbstractController
     }
 
     #[Route('/{id}', name: 'contract_show', requirements: ['id' => '\d+'])]
-    public function show(Contract $contract): Response
+    public function show(Contract $contract, ContractManager $contractManager): Response
     {
         $this->denyAccessUnlessGranted('CONTRACT_VIEW', $contract);
 
@@ -45,7 +46,23 @@ class ContractController extends AbstractController
             return $this->redirectToRoute('dashboard_student');
         }
 
+        // Auto-regenerate if the stored content is missing or is just a plain-text stub
+        // (contracts imported before the HTML generation feature existed).
+        $content = $contract->getContractContent();
+        if (!$content || mb_strlen(strip_tags($content)) < 400) {
+            $contractManager->regenerateContractContent($contract);
+        }
+
         return $this->render('contract/show.html.twig', ['contract' => $contract]);
+    }
+
+    #[Route('/{id}/regenerate', name: 'contract_regenerate', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function regenerate(Contract $contract, ContractManager $contractManager): Response
+    {
+        $this->denyAccessUnlessGranted('CONTRACT_VIEW', $contract);
+        $contractManager->regenerateContractContent($contract);
+        $this->addFlash('success', 'Contract content regenerated.');
+        return $this->redirectToRoute('contract_show', ['id' => $contract->getId()]);
     }
 
     #[Route('/generate', name: 'contract_generate', methods: ['GET', 'POST'])]
@@ -114,14 +131,34 @@ class ContractController extends AbstractController
     }
 
     #[Route('/{id}/sign', name: 'contract_sign', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function sign(Request $request, Contract $contract, ContractManager $contractManager): Response
-    {
+    public function sign(
+        Request         $request,
+        Contract        $contract,
+        ContractManager $contractManager,
+        MailerService   $mailer
+    ): Response {
         $this->denyAccessUnlessGranted('CONTRACT_SIGN', $contract);
 
         $signatureData = $request->request->get('signature');
         if ($signatureData) {
             $contractManager->signContract($contract, $this->getUser(), $signatureData);
             $this->addFlash('success', 'Contract signed successfully!');
+
+            // When both parties have signed, email the signed PDF to student and owner
+            if ($contract->getStatus() === \App\Enum\ContractStatus::SignedByBoth) {
+                try {
+                    $result   = $contractManager->downloadContract($contract);
+                    $filename = sprintf('contract-%s.pdf', substr($contract->getContractNumber() ?? '', 0, 8));
+
+                    foreach ([$contract->getStudent(), $contract->getOwner()] as $recipient) {
+                        if ($recipient) {
+                            $mailer->sendContractPdf($recipient, $contract, $result['content'], $filename);
+                        }
+                    }
+                } catch (\Throwable) {
+                    // Mail failure must not block the user flow
+                }
+            }
         } else {
             $this->addFlash('error', 'No signature provided.');
         }
@@ -134,11 +171,38 @@ class ContractController extends AbstractController
     {
         $this->denyAccessUnlessGranted('CONTRACT_VIEW', $contract);
 
-        $content = $contractManager->downloadContract($contract);
-        return new Response($content, 200, [
-            'Content-Type'        => 'text/html; charset=UTF-8',
-            'Content-Disposition' => 'inline; filename="contract-' . $contract->getContractNumber() . '.html"',
+        $result = $contractManager->downloadContract($contract);
+        return new Response($result['content'], 200, [
+            'Content-Type'        => $result['type'],
+            'Content-Disposition' => sprintf(
+                'inline; filename="contract-%s.%s"',
+                $contract->getContractNumber(),
+                $result['ext']
+            ),
         ]);
+    }
+
+    /**
+     * Email the signed contract PDF to the currently logged-in user on demand.
+     */
+    #[Route('/{id}/email-pdf', name: 'contract_email_pdf', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function emailPdf(
+        Contract        $contract,
+        ContractManager $contractManager,
+        MailerService   $mailer
+    ): Response {
+        $this->denyAccessUnlessGranted('CONTRACT_VIEW', $contract);
+
+        try {
+            $result   = $contractManager->downloadContract($contract);
+            $filename = sprintf('contract-%s.pdf', substr($contract->getContractNumber() ?? '', 0, 8));
+            $mailer->sendContractPdf($this->getUser(), $contract, $result['content'], $filename);
+            $this->addFlash('success', '📧 Contract PDF sent to ' . $this->getUser()->getEmail());
+        } catch (\Throwable $e) {
+            $this->addFlash('error', 'Could not send email: ' . $e->getMessage());
+        }
+
+        return $this->redirectToRoute('contract_show', ['id' => $contract->getId()]);
     }
 
     #[Route('/{id}/pay', name: 'contract_pay', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
@@ -181,12 +245,39 @@ class ContractController extends AbstractController
     }
 
     #[Route('/{id}/request-termination', name: 'contract_request_termination', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function requestTermination(Request $request, Contract $contract, ContractManager $contractManager): Response
+    public function requestTermination(Request $request, Contract $contract, ContractManager $contractManager, MailerService $mailer): Response
     {
         $this->denyAccessUnlessGranted('CONTRACT_REQUEST_TERMINATION', $contract);
         $reason = $request->request->get('reason', 'No reason provided.');
-        $contractManager->requestTermination($contract, $this->getUser(), $reason);
-        $this->addFlash('success', 'Termination request submitted.');
+
+        // For contracts that are not yet active (no payment made, no active tenancy),
+        // allow the student to cancel directly without requiring owner approval.
+        $preActiveStatuses = [
+            \App\Enum\ContractStatus::Draft,
+            \App\Enum\ContractStatus::PendingSignature,
+            \App\Enum\ContractStatus::SignedByStudent,
+            \App\Enum\ContractStatus::SignedByBoth,
+        ];
+
+        if (in_array($contract->getStatus(), $preActiveStatuses, true)) {
+            $contractManager->terminateContract($contract);
+            $this->addFlash('success', 'Contract cancelled successfully.');
+            return $this->redirectToRoute('dashboard_student');
+        }
+
+        // Active / paid contracts → standard owner-approval flow
+        $terminationRequest = $contractManager->requestTermination($contract, $this->getUser(), $reason);
+
+        if ($terminationRequest instanceof ContractTerminationRequest) {
+            try {
+                $mailer->sendContractTerminationToOwner($contract->getOwner(), $terminationRequest, $this->getUser());
+                $mailer->sendContractTerminationToStudent($this->getUser(), $terminationRequest);
+            } catch (\Throwable) {
+                // Mail failure must not block the request
+            }
+        }
+
+        $this->addFlash('success', 'Termination request submitted. The owner has been notified by email.');
         return $this->redirectToRoute('contract_show', ['id' => $contract->getId()]);
     }
 

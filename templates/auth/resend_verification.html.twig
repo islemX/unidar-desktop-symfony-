@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+{% block title %}Resend Verification Email — UNIDAR{% endblock %}
+
+{% block body %}
+<div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div><div class="shape shape-3"></div></div>
+
+<div class="section" style="min-height:calc(100vh - 70px); display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
+  <div class="container" style="max-width:440px;">
+    <div class="card fade-in-up" style="padding:0; overflow:hidden;">
+
+      <div class="card-header text-center" style="padding:2rem;">
+        <div class="section-tag">Verify your account</div>
+        <h1 style="font-size:1.6rem; margin:.5rem 0 .25rem;">Resend verification</h1>
+        <p class="text-muted">We'll send a fresh 6-digit code to your inbox</p>
+      </div>
+
+      <div style="padding:2rem;">
+        {% for type, messages in app.flashes %}
+          {% for message in messages %}
+            <div class="alert alert-{{ type }}" style="margin-bottom:1.25rem;">{{ message|raw }}</div>
+          {% endfor %}
+        {% endfor %}
+
+        <form method="post" action="{{ path('app_resend_verification') }}" novalidate>
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('resend_verification') }}">
+
+          <div class="form-group">
+            <label class="form-label" for="email">Email address</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              class="form-input"
+              required
+              autofocus
+              placeholder="you@example.com"
+              autocomplete="email"
+            >
+            <p class="text-small text-muted" style="margin-top:.375rem;">Enter the address you used when signing up.</p>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width:100%; padding:.875rem; font-size:1rem;">
+            Send verification code
+          </button>
+        </form>
+
+        <div class="text-center" style="margin-top:1.5rem;">
+          <a href="{{ path('app_login') }}" style="font-size:.875rem; color:var(--color-brand);">← Back to sign in</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -16,6 +16,12 @@ class UserChecker implements UserCheckerInterface
             return;
         }
 
+        if (!$user->isEmailVerified()) {
+            throw new CustomUserMessageAccountStatusException(
+                'email_not_verified'
+            );
+        }
+
         if ($user->getStatus() === UserStatus::Banned) {
             throw new CustomUserMessageAccountStatusException('Your account has been banned.');
         }

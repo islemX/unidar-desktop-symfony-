@@ -103,8 +103,10 @@
         <div class="field-grid-3">
             <div class="form-group">
                 <label class="form-label" for="{{ form.price.vars.id }}">Price (TND/mo) <span class="required-star">*</span></label>
-                {{ form_widget(form.price, {'attr': {'class': 'form-input'}}) }}
+                {{ form_widget(form.price, {'attr': {'class': 'form-input', 'id': 'priceField'}}) }}
                 {{ form_errors(form.price) }}
+                <div id="editPriceSuggestion" style="margin-top:0.4rem;"></div>
+                <button type="button" onclick="loadEditPriceSuggestion()" style="margin-top:0.35rem;font-size:0.78rem;color:var(--color-brand);background:none;border:none;cursor:pointer;padding:0;font-weight:600;">💡 Get AI price suggestion</button>
             </div>
             <div class="form-group">
                 <label class="form-label" for="{{ form.bedrooms.vars.id }}">Bedrooms <span class="required-star">*</span></label>
@@ -331,5 +333,27 @@ document.getElementById('editListingForm').addEventListener('submit', function()
         document.getElementById('ownerSignatureInput').value = ownerPad.toDataURL();
     }
 });
+
+// ── AI Price Suggestion ──────────────────────────────────────────────────────
+function loadEditPriceSuggestion() {
+    var box = document.getElementById('editPriceSuggestion');
+    box.innerHTML = '<span style="font-size:0.78rem;color:var(--color-text-muted);">Loading…</span>';
+    fetch('/api/listings/{{ listing.id }}/price-suggestion', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            var price = d.recommended_price || d.suggested_price || 0;
+            var min   = d.min || d.price_min || 0;
+            var max   = d.max || d.price_max || 0;
+            var html  = '<div style="background:linear-gradient(100deg,#eef2ff,#f5f3ff);border:1px solid #c7d2fe;border-radius:8px;padding:0.55rem 0.75rem;font-size:0.8rem;">';
+            html += '<strong style="color:var(--color-brand);">💡 Suggested: ' + price + ' TND/mo</strong>';
+            if (min && max) { html += ' &nbsp; <span style="color:#4b5563;">(range: ' + min + '–' + max + ')</span>'; }
+            html += '<button type="button" onclick="document.getElementById(\'priceField\').value=' + price + '" style="margin-left:0.75rem;font-size:0.75rem;color:var(--color-brand);background:none;border:none;cursor:pointer;font-weight:700;text-decoration:underline;">Apply</button>';
+            html += '</div>';
+            box.innerHTML = html;
+        })
+        .catch(function() {
+            box.innerHTML = '<span style="font-size:0.78rem;color:#ef4444;">Could not load suggestion.</span>';
+        });
+}
 </script>
 {% endblock %}

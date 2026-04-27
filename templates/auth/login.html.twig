@@ -17,10 +17,19 @@
             </div>
             <div style="padding: 2rem;">
                 {% if error %}
-                    <div class="alert alert-error" style="margin-bottom: 1.5rem;">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+                    {% if error.messageKey == 'email_not_verified' %}
+                        <div class="alert alert-error" style="margin-bottom: 1.5rem;">
+                            ✉️ <strong>Email not verified.</strong>
+                            Check your inbox for the 6-digit code and
+                            <a href="{{ path('app_verify_code') }}" style="color:inherit; font-weight:700; text-decoration:underline;">enter it here</a>,
+                            or <a href="{{ path('app_resend_verification') }}" style="color:inherit; font-weight:700; text-decoration:underline;">request a new code</a>.
+                        </div>
+                    {% else %}
+                        <div class="alert alert-error" style="margin-bottom: 1.5rem;">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+                    {% endif %}
                 {% endif %}
 
-                <form method="post" action="{{ path('app_login') }}">
+                <form method="post" action="{{ path('app_login') }}" id="loginForm">
                     <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
 
                     <div class="form-group">
@@ -60,3 +69,4 @@
     </div>
 </div>
 {% endblock %}
+

@@ -5,7 +5,24 @@
 {% block title %}Browse Listings - UNIDAR{% endblock %}
 
 {% block stylesheets %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <style>
+/* ── Cluster bubble (overrides default MarkerCluster styles) ── */
+.price-cluster-bubble {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: white;
+    border: 3px solid white;
+    border-radius: 50px;
+    padding: 6px 14px;
+    font-weight: 800;
+    font-size: 0.82rem;
+    box-shadow: 0 6px 20px rgba(79,70,229,0.5);
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
 /* ============ Page shell ============ */
 .lst-page { padding: 2.5rem 0 5rem; position: relative; }
 .lst-page::before {
@@ -401,28 +418,60 @@
 
         if (_listingsData.length === 0) return;
 
+        // ── MarkerCluster group ──────────────────────────────────────────
+        var cluster = L.markerClusterGroup({
+            maxClusterRadius: 70,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            // Custom cluster bubble showing count + price range
+            iconCreateFunction: function(c) {
+                var children = c.getAllChildMarkers();
+                var prices   = children.map(function(m) { return m._listingPrice || 0; });
+                var minP     = Math.min.apply(null, prices);
+                var maxP     = Math.max.apply(null, prices);
+                var label    = c.getChildCount() === 1
+                    ? minP + ' TND'
+                    : c.getChildCount() + ' listings · ' + minP + '–' + maxP + ' TND';
+                return L.divIcon({
+                    className: '',
+                    html: '<div class="price-cluster-bubble">🏠 ' + label + '</div>',
+                    iconSize: null,
+                    iconAnchor: [0, 0]
+                });
+            }
+        });
+
         var bounds = [];
         _listingsData.forEach(function(l) {
             var priceIcon = L.divIcon({
                 className: 'price-marker',
                 html: '<div style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 5px 12px; border-radius: 50px; font-weight: 700; font-size: 0.8rem; box-shadow: 0 6px 14px rgba(79,70,229,0.5); white-space: nowrap; border: 2px solid white;">' + l.price + ' TND</div>',
-                iconSize: [null, null],
+                iconSize: null,
                 iconAnchor: [30, 12]
             });
-            var m = L.marker([l.lat, l.lng], { icon: priceIcon }).addTo(_listingsMap);
+            var m = L.marker([l.lat, l.lng], { icon: priceIcon });
+            m._listingPrice = l.price; // stored for cluster label calculation
             var imgHtml = l.image ? '<img src="' + l.image + '" alt="">' : '';
             m.bindPopup(
                 '<div class="map-popup-card">' + imgHtml +
                 '<strong>' + l.title + '</strong>' +
-                '<div style="font-size: 0.8rem; color: #64748b;">' + l.address + '</div>' +
+                '<div style="font-size:0.8rem;color:#64748b;">' + l.address + '</div>' +
                 '<div class="price">' + l.price + ' TND/mo</div>' +
                 '<a href="' + l.url + '">View details →</a>' +
                 '</div>'
             );
+            cluster.addLayer(m);
             bounds.push([l.lat, l.lng]);
         });
+
+        _listingsMap.addLayer(cluster);
         if (bounds.length > 0) _listingsMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
         setTimeout(function() { _listingsMap.invalidateSize(); }, 200);
     }
 </script>
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 {% endblock %}

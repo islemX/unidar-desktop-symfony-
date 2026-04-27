@@ -12,20 +12,23 @@ security:
         dev:
             pattern: ^/(_(profiler|wdt))/
             security: false
-        api:
-            pattern: ^/api/
-            stateless: false
-            context: main
-            provider: app_user_provider
         main:
             lazy: true
             provider: app_user_provider
             user_checker: App\Security\UserChecker
+            entry_point: form_login
+            jwt: ~
             form_login:
                 login_path: app_login
                 check_path: app_login
                 default_target_path: app_home
                 enable_csrf: true
+            json_login:
+                check_path: api_login
+                username_path: email
+                password_path: password
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
             logout:
                 path: app_logout
                 target: app_home
@@ -41,6 +44,7 @@ security:
         - { path: ^/$, roles: PUBLIC_ACCESS }
         - { path: ^/login, roles: PUBLIC_ACCESS }
         - { path: ^/register, roles: PUBLIC_ACCESS }
+        - { path: ^/api/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/faculties, roles: PUBLIC_ACCESS }
         - { path: ^/voice, roles: PUBLIC_ACCESS }
         - { path: ^/admin, roles: ROLE_ADMIN }

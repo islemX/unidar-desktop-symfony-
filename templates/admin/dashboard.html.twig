@@ -68,7 +68,10 @@
                     <span class="badge badge-error" style="margin-left:0.5rem;">Admin</span>
                 </p>
             </div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <a href="{{ path('admin_listings') }}" class="btn btn-secondary btn-sm">🏠 Listings Review</a>
             <a href="{{ path('app_logout') }}" class="btn btn-secondary">Logout</a>
+        </div>
         </div>
 
         {% for flash in app.flashes('success') %}<div class="flash-success" style="margin-bottom:1rem;">{{ flash }}</div>{% endfor %}
@@ -117,7 +120,7 @@
             <div class="card" style="border-left: 4px solid var(--color-success);">
                 <div class="card-body stat-card-admin">
                     <p class="stat-value" style="color: var(--color-success);">{{ stats.total_contracts }}</p>
-                    <p class="stat-label">📄 Signed Contracts</p>
+                    <p class="stat-label">📄 Active Contracts</p>
                 </div>
             </div>
             <div class="card" style="border-left: 4px solid #8b5cf6;">
@@ -240,6 +243,7 @@
                                             {% if r.reportedUser %}
                                                 <form method="post" action="{{ path('admin_user_update', {id: r.reportedUser.id}) }}" onsubmit="return confirm('Ban this user?');">
                                                     <input type="hidden" name="status" value="banned">
+                                                    <input type="hidden" name="cause" value="Signalement : {{ r.reason|default('Violation des conditions') }}">
                                                     <button class="btn btn-danger btn-sm" type="submit">Ban User</button>
                                                 </form>
                                             {% endif %}
@@ -300,8 +304,9 @@
                                     <td>
                                         <div class="action-buttons">
                                             {% if u.status.value != 'banned' %}
-                                                <form method="post" action="{{ path('admin_user_update', {id: u.id}) }}" onsubmit="return confirm('Ban this user?');">
+                                                <form method="post" action="{{ path('admin_user_update', {id: u.id}) }}" onsubmit="var c=prompt('Ban reason (required):'); if(!c){return false;} this.querySelector('[name=cause]').value=c; return true;">
                                                     <input type="hidden" name="status" value="banned">
+                                                    <input type="hidden" name="cause" value="">
                                                     <button class="btn btn-danger btn-sm" type="submit">Ban</button>
                                                 </form>
                                             {% else %}

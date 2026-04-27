@@ -1,0 +1,109 @@
+{% extends 'emails/_layout.html.twig' %}
+{% set recipient_email = user.email %}
+
+{% block body %}
+<div style="text-align:center; margin-bottom:32px;">
+  <div style="font-size:48px; line-height:1; margin-bottom:14px;">🎉</div>
+  <h1 style="margin:0 0 8px; font-size:24px; font-weight:800; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif; line-height:1.25;">
+    Welcome to UNIDAR, {{ user.fullName|split(' ')|first }}!
+  </h1>
+  <p style="margin:0; font-size:15px; color:#6c63ff; font-weight:600; font-family:-apple-system,Arial,sans-serif;">
+    Your account is verified and ready to go ✓
+  </p>
+</div>
+
+<p style="margin:0 0 20px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">
+  <strong style="color:#1a1d2e;">UNIDAR</strong> is Tunisia's dedicated student housing platform — connecting university students with verified landlords and trusted roommates near their campus, all in one place.
+</p>
+
+{% if user.role.value == 'student' %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+  <tr>
+    <td style="background:linear-gradient(135deg,#f0f0ff,#e8fffe); border-radius:14px; border-left:4px solid #6c63ff; padding:18px 22px;">
+      <p style="margin:0; font-size:14.5px; color:#3d3a6b; font-family:-apple-system,Arial,sans-serif; line-height:1.65;">
+        🎓 <strong>You're registered as a Student.</strong> Browse verified listings near your university, find a compatible roommate through AI matching, and manage contracts &amp; payments — all from your dashboard.
+      </p>
+    </td>
+  </tr>
+</table>
+{% elseif user.role.value == 'owner' %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+  <tr>
+    <td style="background:linear-gradient(135deg,#f0f0ff,#e8fffe); border-radius:14px; border-left:4px solid #4ecdc4; padding:18px 22px;">
+      <p style="margin:0; font-size:14.5px; color:#3d3a6b; font-family:-apple-system,Arial,sans-serif; line-height:1.65;">
+        🏠 <strong>You're registered as a Property Owner.</strong> Create and manage listings, receive inquiries from verified students, generate digital rental contracts, and track payments — all from your dashboard.
+      </p>
+    </td>
+  </tr>
+</table>
+{% endif %}
+
+<p style="margin:0 0 16px; font-size:16px; font-weight:700; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">What you can do with UNIDAR</p>
+
+{% set features = [
+  {icon: '🔍', title: 'Smart Listings',     desc: 'Browse hundreds of verified student-friendly properties filtered by location, price, and proximity to your university.'},
+  {icon: '🤝', title: 'AI Roommate Match',  desc: 'Our AI matches you with compatible roommates based on sleep schedule, cleanliness, budget and lifestyle.'},
+  {icon: '📄', title: 'Digital Contracts',  desc: 'Generate, sign and store rental contracts online. No paper, no trips to the notary.'},
+  {icon: '💬', title: 'Real-time Chat',     desc: 'Message landlords and students instantly via in-app chat.'},
+  {icon: '💳', title: 'Secure Payments',    desc: 'Track rent, deposits and commissions transparently through the platform.'},
+  {icon: '🛡️', title: 'Verified Profiles', desc: 'Every owner and student can verify their identity for added trust.'},
+] %}
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+  {% for f in features %}
+  <tr>
+    <td style="padding-bottom:14px; vertical-align:top;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td style="width:42px; vertical-align:top; padding-top:1px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#f3f2ff; text-align:center; line-height:36px; font-size:18px;">{{ f.icon }}</div>
+          </td>
+          <td style="padding-left:12px; vertical-align:top;">
+            <p style="margin:0 0 2px; font-size:14px; font-weight:700; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">{{ f.title }}</p>
+            <p style="margin:0; font-size:13px; color:#718096; line-height:1.55; font-family:-apple-system,Arial,sans-serif;">{{ f.desc }}</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+
+<p style="margin:0 0 14px; font-size:16px; font-weight:700; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">Subscription plans</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px; border-radius:12px; overflow:hidden; border:1px solid #eaecf2;">
+  <tr style="background:#f7f8fc;">
+    <td style="padding:10px 14px; font-size:12px; font-weight:700; color:#718096; text-transform:uppercase; letter-spacing:.6px; font-family:-apple-system,Arial,sans-serif; width:33%;">Plan</td>
+    <td style="padding:10px 14px; font-size:12px; font-weight:700; color:#718096; text-transform:uppercase; letter-spacing:.6px; font-family:-apple-system,Arial,sans-serif; width:25%;">Price</td>
+    <td style="padding:10px 14px; font-size:12px; font-weight:700; color:#718096; text-transform:uppercase; letter-spacing:.6px; font-family:-apple-system,Arial,sans-serif;">Best for</td>
+  </tr>
+  <tr style="border-top:1px solid #eaecf2;">
+    <td style="padding:12px 14px; font-size:14px; font-weight:600; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">🆓 Free</td>
+    <td style="padding:12px 14px; font-size:14px; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">0 TND</td>
+    <td style="padding:12px 14px; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif;">Browse &amp; discover listings</td>
+  </tr>
+  <tr style="border-top:1px solid #eaecf2; background:#fafbff;">
+    <td style="padding:12px 14px; font-size:14px; font-weight:700; color:#6c63ff; font-family:-apple-system,Arial,sans-serif;">⚡ Monthly</td>
+    <td style="padding:12px 14px; font-size:14px; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">29 TND / mo</td>
+    <td style="padding:12px 14px; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif;">Chat, contracts &amp; full access</td>
+  </tr>
+  <tr style="border-top:1px solid #eaecf2;">
+    <td style="padding:12px 14px; font-size:14px; font-weight:700; color:#4ecdc4; font-family:-apple-system,Arial,sans-serif;">🚀 Yearly</td>
+    <td style="padding:12px 14px; font-size:14px; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">249 TND / yr</td>
+    <td style="padding:12px 14px; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif;">Best value — save 28%</td>
+  </tr>
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="background:linear-gradient(135deg,#5b52e0,#3cbfb8); border-radius:14px; padding:20px 24px; text-align:center;">
+      <p style="margin:0; font-size:15px; font-weight:700; color:#ffffff; font-family:-apple-system,Arial,sans-serif;">
+        Sign in to your UNIDAR account to get started 🚀
+      </p>
+      <p style="margin:8px 0 0; font-size:13px; color:rgba(255,255,255,0.75); font-family:-apple-system,Arial,sans-serif;">
+        Questions? Contact us at support@unidar.app
+      </p>
+    </td>
+  </tr>
+</table>
+{% endblock %}

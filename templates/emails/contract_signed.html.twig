@@ -1,0 +1,62 @@
+{% extends 'emails/_layout.html.twig' %}
+
+{% block body %}
+<div style="text-align:center; margin-bottom:28px;">
+  <div style="font-size:50px; line-height:1; margin-bottom:14px;">✅</div>
+  <h1 style="margin:0 0 8px; font-size:22px; font-weight:800; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">Contract fully signed!</h1>
+  <span style="display:inline-block; background:#f0fdf4; color:#166534; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; padding:4px 12px; border-radius:20px; font-family:-apple-system,Arial,sans-serif;">Both parties have signed</span>
+</div>
+
+<p style="margin:0 0 16px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Hi <strong style="color:#1a1d2e;">{{ recipient.fullName }}</strong>,</p>
+
+<p style="margin:0 0 20px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">
+  Great news — your rental contract has been <strong style="color:#166534;">signed by both parties</strong> and is now legally binding.
+  The signed PDF is attached to this email for your records.
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="margin-bottom:22px; border-radius:12px; overflow:hidden; border:1px solid #eaecf2;">
+  <tr style="background:#f7f8fc;">
+    <td colspan="2" style="padding:13px 18px; font-size:12px; font-weight:700; color:#718096;
+                            text-transform:uppercase; letter-spacing:.6px; font-family:-apple-system,Arial,sans-serif;">
+      Contract details
+    </td>
+  </tr>
+  <tr style="border-top:1px solid #eaecf2;">
+    <td style="padding:11px 18px; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif; width:45%;">Reference</td>
+    <td style="padding:11px 18px; font-size:13px; font-weight:600; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">{{ contract.contractNumber }}</td>
+  </tr>
+  <tr style="border-top:1px solid #eaecf2; background:#fafbff;">
+    <td style="padding:11px 18px; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif;">Property</td>
+    <td style="padding:11px 18px; font-size:13px; font-weight:600; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">{{ contract.listing.title }}</td>
+  </tr>
+  <tr style="border-top:1px solid #eaecf2;">
+    <td style="padding:11px 18px; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif;">Start date</td>
+    <td style="padding:11px 18px; font-size:13px; font-weight:600; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">{{ contract.startDate|date('d M Y') }}</td>
+  </tr>
+  <tr style="border-top:1px solid #eaecf2; background:#fafbff;">
+    <td style="padding:11px 18px; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif;">End date</td>
+    <td style="padding:11px 18px; font-size:13px; font-weight:600; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">{{ contract.endDate|date('d M Y') }}</td>
+  </tr>
+  <tr style="border-top:1px solid #eaecf2;">
+    <td style="padding:11px 18px; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif;">Monthly rent</td>
+    <td style="padding:11px 18px; font-size:13px; font-weight:600; color:#6c63ff; font-family:-apple-system,Arial,sans-serif;">{{ contract.monthlyRent }} TND</td>
+  </tr>
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+  <tr><td style="background:#f0fdf4; border-radius:12px; border-left:4px solid #22c55e; padding:18px 22px;">
+    <p style="margin:0; font-size:14px; color:#166534; line-height:1.65; font-family:-apple-system,Arial,sans-serif;">
+      💡 <strong>Tip:</strong> The PDF contains a QR code — scan it anytime to re-download the contract directly to your device.
+    </p>
+  </td></tr>
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr><td style="background:linear-gradient(135deg,#5b52e0,#3cbfb8); border-radius:14px; padding:18px 24px; text-align:center;">
+    <p style="margin:0; font-size:15px; font-weight:700; color:#ffffff; font-family:-apple-system,Arial,sans-serif;">
+      Sign in to UNIDAR → My Contracts → Manage your tenancy
+    </p>
+  </td></tr>
+</table>
+{% endblock %}

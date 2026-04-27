@@ -27,12 +27,13 @@
                 <td><span class="badge badge-primary">{{ user.role.value }}</span></td>
                 <td><span class="badge {% if user.status.value == 'active' %}badge-success{% elseif user.status.value == 'suspended' %}badge-warning{% else %}badge-danger{% endif %}">{{ user.status.value }}</span></td>
                 <td>
-                    <form method="post" action="{{ path('admin_user_update', {id: user.id}) }}" style="display:inline;">
-                        <select name="status" class="form-control" style="display:inline;width:auto;padding:0.25rem 0.5rem;">
-                            <option value="active" {{ user.status.value == 'active' ? 'selected' }}>Active</option>
+                    <form method="post" action="{{ path('admin_user_update', {id: user.id}) }}" style="display:flex;flex-wrap:wrap;gap:0.35rem;align-items:center;">
+                        <select name="status" class="form-control" style="width:auto;padding:0.25rem 0.5rem;">
+                            <option value="active"    {{ user.status.value == 'active'    ? 'selected' }}>Active</option>
                             <option value="suspended" {{ user.status.value == 'suspended' ? 'selected' }}>Suspend</option>
-                            <option value="banned" {{ user.status.value == 'banned' ? 'selected' }}>Ban</option>
+                            <option value="banned"    {{ user.status.value == 'banned'    ? 'selected' }}>Ban</option>
                         </select>
+                        <input type="text" name="cause" class="form-control" placeholder="Reason (ban/suspend)" style="width:160px;padding:0.25rem 0.5rem;font-size:0.82rem;">
                         <button type="submit" class="btn btn-primary btn-sm">Update</button>
                     </form>
                 </td>

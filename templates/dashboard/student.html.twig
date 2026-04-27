@@ -162,7 +162,7 @@
         <!-- Stats row -->
         <div class="grid grid-3 fade-in-up stagger-1" style="margin-bottom: 2rem;">
             <div class="stat-card">
-                <h3>{{ contracts|length }}</h3>
+                <h3>{{ active_contracts_count }}</h3>
                 <p>Active Contracts</p>
             </div>
             <div class="stat-card" style="background: linear-gradient(135deg, var(--secondary), #00b5b0);">
@@ -226,6 +226,64 @@
                 </div>
             </div>
         </div>
+
+        <!-- AI Roommate Suggestions -->
+        <div class="card premium-card fade-in-up stagger-3" style="padding:0;overflow:hidden;margin-top:2rem;">
+            <div class="card-header" style="padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="font-size:1rem;margin:0;">🤖 AI Roommate Suggestions</h3>
+                <a href="{{ path('roommate_index') }}" style="font-size:0.82rem;color:var(--color-brand);font-weight:600;">View All →</a>
+            </div>
+            <div style="padding:1.5rem;" id="dashboardRoommateBox">
+                <div style="display:flex;align-items:center;gap:0.75rem;color:var(--color-text-muted);font-size:0.9rem;">
+                    <span style="font-size:1.5rem;">⏳</span>
+                    <span>Loading your best roommate matches…</span>
+                </div>
+            </div>
+        </div>
     </div>
 </main>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+(function() {
+    fetch('/api/roommate-matches?limit=3', { credentials: 'same-origin' })
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(payload) {
+            var box = document.getElementById('dashboardRoommateBox');
+            if (!box) return;
+            var data = payload && payload.matches ? payload.matches : [];
+            if (!data.length) {
+                box.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--color-text-muted);">'
+                    + '<div style="font-size:2rem;margin-bottom:0.5rem;">🤝</div>'
+                    + '<p>Set your roommate preferences to see AI-powered matches.</p>'
+                    + '<a href="{{ path("roommate_index") }}" class="btn btn-primary" style="margin-top:0.75rem;">Set Preferences</a></div>';
+                return;
+            }
+            var html = '<div style="display:flex;flex-direction:column;gap:0.75rem;">';
+            data.forEach(function(m) {
+                var score = m.compatibility_score || 0;
+                var color = score >= 80 ? '#10b981' : score >= 55 ? '#f59e0b' : '#6366f1';
+                var name  = (m.user && m.user.full_name) ? m.user.full_name : 'Student';
+                var uni   = (m.user && m.user.university) ? m.user.university : null;
+                html += '<div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:var(--color-surface-50);border-radius:var(--radius-lg);">';
+                html += '<div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--color-brand),#4f46e5);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;flex-shrink:0;">'
+                    + name.charAt(0).toUpperCase() + '</div>';
+                html += '<div style="flex:1;min-width:0;">';
+                html += '<div style="font-weight:600;font-size:0.9rem;">' + name + '</div>';
+                if (uni) { html += '<div style="font-size:0.78rem;color:var(--color-text-muted);">🎓 ' + uni + '</div>'; }
+                html += '</div>';
+                html += '<div style="font-size:1rem;font-weight:800;color:' + color + ';">' + score + '%</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+            html += '<a href="{{ path("roommate_index") }}" class="btn btn-secondary" style="width:100%;margin-top:1rem;font-size:0.85rem;">See all matches</a>';
+            box.innerHTML = html;
+        })
+        .catch(function() {
+            var box = document.getElementById('dashboardRoommateBox');
+            if (box) box.innerHTML = '<p style="color:var(--color-text-muted);font-size:0.85rem;">Could not load roommate suggestions.</p>';
+        });
+})();
+</script>
 {% endblock %}

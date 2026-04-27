@@ -37,6 +37,13 @@ class DashboardController extends AbstractController
         $unreadCount = $messageRepo->countUnreadByUser($user);
         $savedCount  = count($savedRepo->findBy(['user' => $user]));
 
+        // Count only non-terminal contracts for the KPI card
+        $terminalStatuses = [ContractStatus::Cancelled, ContractStatus::Completed];
+        $activeContractsCount = count(array_filter(
+            $contracts,
+            fn($c) => !in_array($c->getStatus(), $terminalStatuses, true)
+        ));
+
         // ── Access-gating signals for the notification bar ──
         $verification = $user?->getVerification();
         $verificationStatus = $verification?->getStatus()?->value;   // pending | approved | rejected | null
@@ -46,13 +53,14 @@ class DashboardController extends AbstractController
         $hasSubscription = $activeSub !== null;
 
         return $this->render('dashboard/student.html.twig', [
-            'contracts'          => $contracts,
-            'unread_count'       => $unreadCount,
-            'saved_count'        => $savedCount,
-            'verification_status'=> $verificationStatus,
-            'is_verified'        => $isVerified,
-            'has_subscription'   => $hasSubscription,
-            'active_subscription'=> $activeSub,
+            'contracts'             => $contracts,
+            'active_contracts_count'=> $activeContractsCount,
+            'unread_count'          => $unreadCount,
+            'saved_count'           => $savedCount,
+            'verification_status'   => $verificationStatus,
+            'is_verified'           => $isVerified,
+            'has_subscription'      => $hasSubscription,
+            'active_subscription'   => $activeSub,
         ]);
     }
 

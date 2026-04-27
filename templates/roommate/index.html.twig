@@ -123,15 +123,15 @@
                             <div style="display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 1rem;">
                                 {% set cIcons = {'very_clean': '🧼', 'clean': '✨', 'moderate': '🧹', 'relaxed': '🧸'} %}
                                 {% set sIcons = {'early_riser': '☀️', 'normal': '☕', 'night_owl': '🦉'} %}
-                                {% set cName = match.preference.cleanlinessLevel ? (cleanliness_map[match.preference.cleanlinessLevel] ?? 'clean') : 'clean' %}
+                                {% set cName = (match.preference and match.preference.cleanlinessLevel) ? (cleanliness_map[match.preference.cleanlinessLevel] ?? 'clean') : 'clean' %}
                                 <div class="pref-pill">{{ cIcons[cName] ?? '✨' }} {{ cName|replace({'_': ' '}) }}</div>
-                                {% if match.preference.sleepSchedule %}
+                                {% if match.preference and match.preference.sleepSchedule %}
                                     <div class="pref-pill">{{ sIcons[match.preference.sleepSchedule] ?? '☕' }} {{ match.preference.sleepSchedule|replace({'_': ' '}) }}</div>
                                 {% endif %}
-                                {% if match.preference.smokingPreference %}
+                                {% if match.preference and match.preference.smokingPreference %}
                                     <div class="pref-pill">{{ match.preference.smokingPreference == 'smoker' ? '🚬 Smoker' : '🚭 Non-Smoker' }}</div>
                                 {% endif %}
-                                {% if match.preference.budgetMax %}
+                                {% if match.preference and match.preference.budgetMax %}
                                     <div class="pref-pill">💰 &lt; {{ match.preference.budgetMax }} TND</div>
                                 {% endif %}
                             </div>

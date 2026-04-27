@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vérifiez votre email — UNIDAR</title>
+    <style>
+        body { font-family: Georgia, 'Times New Roman', serif; background: #f8fafc; margin: 0; padding: 0; color: #1a1a2e; }
+        .wrapper { max-width: 560px; margin: 40px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+        .header { background: linear-gradient(135deg, #6c63ff 0%, #3b82f6 100%); padding: 2.5rem 2rem; text-align: center; }
+        .header h1 { color: #fff; margin: 0; font-size: 1.5rem; letter-spacing: -.5px; }
+        .header p { color: rgba(255,255,255,.85); margin: .5rem 0 0; font-size: .95rem; }
+        .body { padding: 2rem 2.5rem; }
+        .body p { line-height: 1.7; color: #374151; margin: 0 0 1rem; }
+        .btn { display: inline-block; background: linear-gradient(135deg, #6c63ff 0%, #3b82f6 100%); color: #fff !important;
+               text-decoration: none; padding: .875rem 2rem; border-radius: 8px; font-weight: 700;
+               font-size: 1rem; letter-spacing: .3px; margin: 1.25rem 0; }
+        .link-fallback { font-size: .8rem; color: #9ca3af; word-break: break-all; }
+        .footer { background: #f1f5f9; padding: 1.25rem 2rem; text-align: center; font-size: .78rem; color: #9ca3af; }
+        .footer a { color: #6c63ff; text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <div class="header">
+        <h1>🏠 UNIDAR</h1>
+        <p>Plateforme de logement étudiant</p>
+    </div>
+    <div class="body">
+        <p>Bonjour <strong>{{ user.fullName }}</strong>,</p>
+        <p>
+            Merci de vous être inscrit sur UNIDAR. Pour activer votre compte et commencer à utiliser la plateforme,
+            veuillez confirmer votre adresse email en cliquant sur le bouton ci-dessous.
+        </p>
+
+        <div style="text-align: center;">
+            <a href="{{ verify_url }}" class="btn">✉️ Vérifier mon email</a>
+        </div>
+
+        <p>Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :</p>
+        <p class="link-fallback">{{ verify_url }}</p>
+
+        <p style="color: #6b7280; font-size: .875rem;">
+            Ce lien est valide indéfiniment. Si vous n'avez pas créé de compte UNIDAR, ignorez simplement cet email.
+        </p>
+    </div>
+    <div class="footer">
+        © {{ "now"|date("Y") }} UNIDAR · <a href="#">Politique de confidentialité</a>
+    </div>
+</div>
+</body>
+</html>
