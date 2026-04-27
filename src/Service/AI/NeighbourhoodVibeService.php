@@ -3,47 +3,94 @@
 namespace App\Service\AI;
 
 use App\Entity\Listing;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
  * Feature 20: Neighbourhood Vibe Classifier
- * Classifies neighbourhoods by student-relevant attributes using OSM Overpass API.
+ * Scores neighbourhoods by student-relevant attributes using coordinate-based
+ * proximity to known POI clusters. Fully offline — zero external API calls.
  */
 class NeighbourhoodVibeService
 {
-    private const OVERPASS_API = 'https://overpass-api.de/api/interpreter';
-
-    private const VIBE_TAGS = [
-        'student_friendly' => ['amenity=university', 'amenity=college', 'amenity=library', 'amenity=cafe', 'shop=books'],
-        'nightlife'        => ['amenity=bar', 'amenity=nightclub', 'amenity=pub', 'amenity=restaurant'],
-        'quiet'            => [], // inferred from low density
-        'market_nearby'    => ['shop=supermarket', 'shop=mall', 'amenity=marketplace', 'shop=convenience'],
-        'sports'           => ['leisure=sports_centre', 'leisure=swimming_pool', 'leisure=pitch', 'leisure=gym'],
-        'transport_hub'    => ['public_transport=station', 'highway=bus_stop', 'railway=subway_entrance'],
-        'green_space'      => ['leisure=park', 'leisure=garden', 'landuse=grass'],
-        'medical'          => ['amenity=hospital', 'amenity=clinic', 'amenity=pharmacy'],
+    /**
+     * Known POI clusters by category with (lat, lng, strength 1–3).
+     * Strength 1 = small venue, 2 = medium, 3 = major hub.
+     */
+    private const POI_CLUSTERS = [
+        'student_friendly' => [
+            [36.8665, 10.1647, 3, 'ESSECT campus'],
+            [36.8364, 10.0151, 3, 'ENIT campus'],
+            [36.7310, 10.2199, 3, 'ENSI campus'],
+            [36.8598, 10.1893, 2, 'IHEC Carthage'],
+            [36.8961, 10.1879, 2, 'ESPRIT'],
+            [36.8162, 10.1815, 2, 'ISG'],
+            [36.8050, 10.1800, 3, 'Cité universitaire El Manar'],
+            [36.7970, 10.1760, 2, 'Library El Manar'],
+            [36.8170, 10.1810, 2, 'Student café zone Tunis'],
+        ],
+        'nightlife' => [
+            [36.8050, 10.1725, 3, 'Avenue Habib Bourguiba bars'],
+            [36.8620, 10.2350, 2, 'La Marsa restaurants'],
+            [36.8710, 10.3200, 2, 'Gammarth nightlife'],
+            [36.8900, 10.1900, 2, 'Ariana restaurants'],
+            [35.8380, 10.6020, 2, 'Sousse medina cafés'],
+        ],
+        'market_nearby' => [
+            [36.7980, 10.1810, 3, 'Carrefour El Manar'],
+            [36.8190, 10.1650, 3, 'Marché Central Tunis'],
+            [36.8500, 10.2800, 2, 'Géant La Marsa'],
+            [36.8920, 10.1870, 2, 'Géant Ariana'],
+            [36.8100, 10.1750, 2, 'Monoprix Belvédère'],
+            [36.8070, 10.1810, 2, 'Marché Bab El Khadra'],
+            [35.8250, 10.6350, 2, 'Azur Sousse'],
+            [34.7200, 10.7700, 2, 'Géant Sfax'],
+        ],
+        'transport_hub' => [
+            [36.8130, 10.1750, 3, 'Tunis Marine metro'],
+            [36.8190, 10.1658, 3, 'Gare de Tunis'],
+            [36.8000, 10.1800, 2, 'Bab Saadoun bus terminal'],
+            [36.7960, 10.1770, 3, 'Bab El Fellah metro'],
+            [36.8450, 10.2550, 2, 'La Marsa plage TGM'],
+            [36.8260, 10.1680, 2, 'République metro'],
+            [36.8350, 10.1880, 2, 'El Menzah metro'],
+            [35.8250, 10.6350, 2, 'Sousse gare'],
+        ],
+        'green_space' => [
+            [36.8190, 10.1660, 3, 'Parc du Belvédère'],
+            [36.8300, 10.1900, 2, 'Jardins de Carthage'],
+            [36.8640, 10.2350, 2, 'Parc La Marsa'],
+            [36.8720, 10.3300, 2, 'Plage Gammarth'],
+            [36.7950, 10.1820, 1, 'Square El Manar'],
+            [35.8380, 10.5950, 2, 'Parc Sousse'],
+        ],
+        'sports' => [
+            [36.8220, 10.2200, 3, 'Stade El Menzah'],
+            [36.7800, 10.1700, 2, 'Salle de sport El Manar'],
+            [36.8600, 10.2300, 2, 'Club sportif La Marsa'],
+            [36.8000, 10.1780, 2, 'Piscine municipale Tunis'],
+            [35.8350, 10.6100, 2, 'Stade Olympique Sousse'],
+        ],
+        'medical' => [
+            [36.8170, 10.1820, 3, 'Hôpital La Rabta'],
+            [36.7990, 10.1760, 3, 'Hôpital Charles Nicolle'],
+            [36.8280, 10.1670, 2, 'Clinique les Oliviers'],
+            [36.8550, 10.2800, 2, 'Clinique La Marsa'],
+            [36.8700, 10.1750, 2, 'Hôpital Ariana'],
+            [35.8200, 10.6300, 2, 'CHU Sahloul Sousse'],
+            [34.7400, 10.7500, 2, 'CHU Hédi Chaker Sfax'],
+        ],
     ];
 
-    // Fallback POI scores for known Tunisian areas (when Overpass is unavailable)
-    private const AREA_FALLBACKS = [
-        'tunis centre' => ['student_friendly' => 80, 'nightlife' => 70, 'market_nearby' => 90, 'transport_hub' => 95],
-        'la marsa'     => ['student_friendly' => 65, 'nightlife' => 60, 'market_nearby' => 75, 'transport_hub' => 70, 'green_space' => 80],
-        'ariana'       => ['student_friendly' => 75, 'nightlife' => 50, 'market_nearby' => 80, 'transport_hub' => 75],
-        'sousse'       => ['student_friendly' => 70, 'nightlife' => 75, 'market_nearby' => 80, 'transport_hub' => 65],
-        'sfax'         => ['student_friendly' => 72, 'nightlife' => 55, 'market_nearby' => 78, 'transport_hub' => 60],
-    ];
-
-    public function __construct(private readonly HttpClientInterface $http) {}
+    // Radius in km within which a POI contributes to a neighbourhood's score
+    private const INFLUENCE_RADIUS_KM = 1.2;
 
     public function analyze(Listing $listing): array
     {
         $lat = (float) ($listing->getLatitude()  ?? 36.8190);
         $lng = (float) ($listing->getLongitude() ?? 10.1658);
 
-        $poiCounts = $this->fetchPOIs($lat, $lng, 800); // 800m radius
-        $scores    = $this->computeScores($poiCounts, $lat, $lng);
-        $tags      = $this->generateTags($scores);
-        $summary   = $this->buildSummary($scores, $listing->getCity() ?? '');
+        $scores  = $this->computeScores($lat, $lng);
+        $tags    = $this->generateTags($scores);
+        $summary = $this->buildSummary($scores, $listing->getCity() ?? 'Tunis');
 
         return [
             'scores'     => $scores,
@@ -51,133 +98,54 @@ class NeighbourhoodVibeService
             'summary'    => $summary,
             'top_vibes'  => array_slice($tags, 0, 3),
             'coords'     => ['lat' => $lat, 'lng' => $lng],
-            'radius_m'   => 800,
+            'method'     => 'coordinate_proximity',
         ];
     }
 
-    private function fetchPOIs(float $lat, float $lng, int $radius): array
+    private function computeScores(float $lat, float $lng): array
     {
-        // Build Overpass query for all POI types at once
-        $conditions = [];
-        foreach (self::VIBE_TAGS as $vibe => $osmTags) {
-            foreach ($osmTags as $tag) {
-                [$k, $v] = explode('=', $tag);
-                $conditions[] = "node[\"{$k}\"=\"{$v}\"](around:{$radius},{$lat},{$lng});";
-            }
-        }
-
-        $query = '[out:json][timeout:10];(' . implode('', $conditions) . ');out count;';
-
-        try {
-            $resp = $this->http->request('POST', self::OVERPASS_API, [
-                'body'    => 'data=' . urlencode($query),
-                'timeout' => 12,
-            ]);
-
-            $data   = $resp->toArray();
-            $total  = (int) ($data['elements'][0]['tags']['total'] ?? 0);
-
-            // Second query — count per category
-            return $this->countPerCategory($lat, $lng, $radius);
-
-        } catch (\Throwable) {
-            return [];
-        }
-    }
-
-    private function countPerCategory(float $lat, float $lng, int $radius): array
-    {
-        $counts = [];
-        foreach (self::VIBE_TAGS as $vibe => $osmTags) {
-            $conditions = [];
-            foreach ($osmTags as $tag) {
-                [$k, $v] = explode('=', $tag);
-                $conditions[] = "node[\"{$k}\"=\"{$v}\"](around:{$radius},{$lat},{$lng});";
-            }
-            if (empty($conditions)) continue;
-
-            $query = '[out:json][timeout:8];(' . implode('', $conditions) . ');out count;';
-            try {
-                $resp          = $this->http->request('POST', self::OVERPASS_API, [
-                    'body'    => 'data=' . urlencode($query),
-                    'timeout' => 10,
-                ]);
-                $data          = $resp->toArray();
-                $counts[$vibe] = (int) ($data['elements'][0]['tags']['total'] ?? 0);
-            } catch (\Throwable) {
-                $counts[$vibe] = 0;
-            }
-        }
-        return $counts;
-    }
-
-    private function computeScores(array $poiCounts, float $lat, float $lng): array
-    {
-        if (empty($poiCounts)) {
-            return $this->fallbackScores($lat, $lng);
-        }
-
-        $thresholds = [
-            'student_friendly' => [1 => 40, 3 => 70, 5 => 90],
-            'nightlife'        => [2 => 40, 5 => 70, 10 => 90],
-            'market_nearby'    => [1 => 50, 3 => 75, 6 => 95],
-            'sports'           => [1 => 40, 2 => 65, 4 => 85],
-            'transport_hub'    => [2 => 50, 5 => 75, 10 => 95],
-            'green_space'      => [1 => 45, 3 => 70, 5 => 90],
-            'medical'          => [1 => 50, 3 => 80, 5 => 95],
-        ];
-
         $scores = [];
-        foreach (self::VIBE_TAGS as $vibe => $_) {
-            $count = $poiCounts[$vibe] ?? 0;
-            $t     = $thresholds[$vibe] ?? [1 => 50, 3 => 75, 6 => 90];
-            $scores[$vibe] = $this->scoreFromCount($count, $t);
+
+        foreach (self::POI_CLUSTERS as $vibe => $pois) {
+            $total = 0.0;
+
+            foreach ($pois as [$poiLat, $poiLng, $strength]) {
+                $dist = $this->haversineKm($lat, $lng, $poiLat, $poiLng);
+
+                if ($dist <= self::INFLUENCE_RADIUS_KM) {
+                    // Inverse distance weighting × strength
+                    $influence = ($strength * (1.0 - $dist / self::INFLUENCE_RADIUS_KM));
+                    $total    += $influence;
+                }
+            }
+
+            // Normalise: max possible score if standing right on top of a strength-3 POI = 3.0
+            $scores[$vibe] = min(100, (int) round($total / 3.0 * 100));
         }
 
-        // Quiet = inverse of nightlife density
-        $scores['quiet'] = max(0, 100 - ($scores['nightlife'] ?? 50));
+        // Quiet = inverse of nightlife + transport density
+        $scores['quiet'] = max(0, 100 - (int)(($scores['nightlife'] + $scores['transport_hub']) / 2.5));
 
         return $scores;
-    }
-
-    private function scoreFromCount(int $count, array $thresholds): int
-    {
-        $score = 0;
-        foreach ($thresholds as $min => $pts) {
-            if ($count >= $min) $score = $pts;
-        }
-        return $score;
-    }
-
-    private function fallbackScores(float $lat, float $lng): array
-    {
-        // Match to nearest known area by coordinates
-        foreach (self::AREA_FALLBACKS as $area => $scores) {
-            return array_merge([
-                'student_friendly' => 60, 'nightlife' => 55, 'quiet' => 45,
-                'market_nearby' => 70, 'sports' => 45, 'transport_hub' => 65,
-                'green_space' => 40, 'medical' => 55,
-            ], $scores);
-        }
-        return ['student_friendly' => 60, 'nightlife' => 50, 'quiet' => 50,
-                'market_nearby' => 60, 'sports' => 40, 'transport_hub' => 60,
-                'green_space' => 40, 'medical' => 50];
     }
 
     private function generateTags(array $scores): array
     {
         $tags = [];
         arsort($scores);
+
         foreach ($scores as $vibe => $score) {
-            if ($score >= 65) {
+            if ($score >= 20) {  // Only show if meaningfully present
                 $tags[] = [
                     'key'   => $vibe,
                     'label' => $this->vibeLabel($vibe),
                     'score' => $score,
                     'icon'  => $this->vibeIcon($vibe),
+                    'bar'   => min(100, $score),
                 ];
             }
         }
+
         return $tags;
     }
 
@@ -185,20 +153,24 @@ class NeighbourhoodVibeService
     {
         arsort($scores);
         $top = array_slice(array_keys($scores), 0, 2);
+
+        if (empty($top)) {
+            return "A {$city} neighbourhood with mixed amenities.";
+        }
+
         $labels = array_map(fn($v) => strtolower($this->vibeLabel($v)), $top);
-        $city = ucfirst($city);
-        return "This {$city} neighbourhood is known for " . implode(' and ', $labels) . '.';
+        return ucfirst($city) . ' neighbourhood strong on ' . implode(' and ', $labels) . '.';
     }
 
     private function vibeLabel(string $key): string
     {
         return match ($key) {
             'student_friendly' => 'Student-friendly',
-            'nightlife'        => 'Active nightlife',
-            'quiet'            => 'Quiet & peaceful',
+            'nightlife'        => 'Dining & nightlife',
+            'quiet'            => 'Quiet & residential',
             'market_nearby'    => 'Shops & markets',
             'sports'           => 'Sports & fitness',
-            'transport_hub'    => 'Great transport links',
+            'transport_hub'    => 'Transport links',
             'green_space'      => 'Parks & green areas',
             'medical'          => 'Healthcare access',
             default            => ucfirst(str_replace('_', ' ', $key)),
@@ -218,5 +190,16 @@ class NeighbourhoodVibeService
             'medical'          => '🏥',
             default            => '📍',
         };
+    }
+
+    private function haversineKm(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $R   = 6371.0;
+        $rad = M_PI / 180;
+        $dLat = ($lat2 - $lat1) * $rad;
+        $dLng = ($lng2 - $lng1) * $rad;
+        $a = sin($dLat / 2) ** 2
+           + cos($lat1 * $rad) * cos($lat2 * $rad) * sin($dLng / 2) ** 2;
+        return $R * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 }
