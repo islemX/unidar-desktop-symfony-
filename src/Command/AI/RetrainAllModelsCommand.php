@@ -31,6 +31,9 @@ class RetrainAllModelsCommand extends Command
             'app:ai:train-listing-quality',
             'app:ai:train-price',
             'app:ai:train-roommate',
+            'ai:train:fraud',
+            'ai:train:churn',
+            'ai:train:dynamic-pricing',
         ];
 
         $failed = [];

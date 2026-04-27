@@ -1,0 +1,173 @@
+{% extends 'base.html.twig' %}
+{% block title %}AI Dashboard — UNIDAR Admin{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4" style="max-width:1400px;margin:auto;">
+
+  {# ── Header ── #}
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;">
+    <div>
+      <h1 style="font-size:1.8rem;font-weight:800;margin:0;">🤖 AI Intelligence Dashboard</h1>
+      <p style="color:#64748b;margin:0.3rem 0 0;">All 20 AI features · model statuses · real-time alerts</p>
+    </div>
+    <div style="display:flex;gap:0.75rem;align-items:center;">
+      <span style="padding:0.35rem 1rem;border-radius:50px;font-size:0.78rem;font-weight:700;
+            background:{{ llm_online ? '#dcfce7' : '#fee2e2' }};
+            color:{{ llm_online ? '#166534' : '#991b1b' }};">
+        {{ llm_online ? '🟢 LLM Online' : '🔴 LLM Offline' }}
+      </span>
+      <a href="/admin/ai/fraud-queue"   class="ai-btn">🔍 Fraud Queue</a>
+      <a href="/admin/ai/churn-report"  class="ai-btn">📉 Churn Report</a>
+      <a href="/admin/ai/anomaly-report" class="ai-btn">🚨 Anomalies</a>
+    </div>
+  </div>
+
+  {# ── Alerts ── #}
+  {% if alerts %}
+  <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+    {% for alert in alerts %}
+    <a href="{{ alert.url }}" style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 1.1rem;
+       background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;text-decoration:none;color:#9a3412;font-size:0.83rem;font-weight:600;">
+      {% if alert.type == 'fraud' %}🔍{% elseif alert.type == 'churn' %}📉{% else %}⚠️{% endif %}
+      {{ alert.message }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# ── Stats Row ── #}
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem;">
+    <div class="stat-card">
+      <div class="stat-val">{{ stats.total_listings }}</div>
+      <div class="stat-lbl">Total Listings</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">{{ stats.active_listings }}</div>
+      <div class="stat-lbl">Active Listings</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">{{ stats.total_users }}</div>
+      <div class="stat-lbl">Registered Users</div>
+    </div>
+  </div>
+
+  {# ── Model Status Grid ── #}
+  <h2 style="font-size:1.15rem;font-weight:700;margin-bottom:1rem;">🧠 ML Model Status</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;margin-bottom:2rem;">
+    {% for name, model in models %}
+    <div class="model-card {{ model.trained ? 'trained' : 'untrained' }}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <span style="font-weight:700;font-size:0.9rem;">{{ model.label }}</span>
+        <span class="badge {{ model.trained ? 'badge-green' : 'badge-red' }}">
+          {{ model.trained ? '✓ Trained' : '✗ Not trained' }}
+        </span>
+      </div>
+      {% if model.trained %}
+        <div style="font-size:0.75rem;color:#64748b;margin-top:0.4rem;">
+          {% if model.trained_at %}<div>🕐 {{ model.trained_at }}</div>{% endif %}
+          {% if model.samples %}<div>📊 {{ model.samples }} samples</div>{% endif %}
+        </div>
+      {% else %}
+        <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.4rem;">
+          Run training command to enable ML predictions
+        </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {# ── 20 AI Features Grid ── #}
+  <h2 style="font-size:1.15rem;font-weight:700;margin-bottom:1rem;">⚡ AI Features</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;">
+
+    {% set features = [
+      { icon:'🔍', n:1,  cat:'Search',     title:'Natural Language Search',    desc:'Free-text search across all listings',                   endpoint:'/api/ai/search?q=studio+near+ENIT+under+600' },
+      { icon:'🖼️', n:2,  cat:'Search',     title:'Visual Similarity Search',   desc:'Find listings with similar aesthetics',                  endpoint:null },
+      { icon:'🧠', n:3,  cat:'Search',     title:'Smart Adaptive Filters',     desc:'Filters that learn from user behaviour',                 endpoint:null },
+      { icon:'✍️', n:4,  cat:'Listing',    title:'AI Description Generator',   desc:'Generate EN/FR/AR descriptions from basic details',      endpoint:'/api/ai/listing/{id}/description' },
+      { icon:'📸', n:5,  cat:'Listing',    title:'Photo Quality Scorer',       desc:'Blur detection, brightness, room coverage',              endpoint:'/api/ai/listing/{id}/photo-quality' },
+      { icon:'🚨', n:6,  cat:'Listing',    title:'Fraud Detector',             desc:'Scores listing suspicion 0–100',                         endpoint:'/api/ai/listing/{id}/fraud-score' },
+      { icon:'⚡', n:7,  cat:'Listing',    title:'Energy Cost Estimator',      desc:'Monthly electricity + water bill prediction',            endpoint:'/api/ai/listing/{id}/energy' },
+      { icon:'💞', n:8,  cat:'Roommate',   title:'Roommate Chemistry Timeline',desc:'12-month conflict heatmap + tips',                       endpoint:'/api/ai/roommate/chemistry' },
+      { icon:'🏘️', n:9,  cat:'Roommate',   title:'Group House Assembler',      desc:'Optimal group of N from candidate pool',                 endpoint:null },
+      { icon:'📄', n:10, cat:'Legal',      title:'Lease Risk Analyzer',        desc:'Clause extraction + tenant fairness score 0–100',        endpoint:'/api/ai/lease/analyze' },
+      { icon:'⚖️', n:11, cat:'Legal',      title:'AI Dispute Mediator',        desc:'Neutral analysis of landlord–tenant disputes',           endpoint:'/api/ai/dispute/mediate' },
+      { icon:'💰', n:12, cat:'Pricing',    title:'Dynamic Market Pricing',     desc:'Real-time price nudges based on season & competition',   endpoint:'/api/ai/listing/{id}/dynamic-pricing' },
+      { icon:'🧮', n:13, cat:'Pricing',    title:'Cost of Living Calculator',  desc:'True monthly cost: rent + transport + food + utilities', endpoint:'/api/ai/listing/{id}/cost-of-living' },
+      { icon:'🪪', n:14, cat:'Trust',      title:'Document Verification',      desc:'OCR + validity check for student IDs and certificates',  endpoint:'/api/ai/document/verify' },
+      { icon:'👁️', n:15, cat:'Trust',      title:'Behavioural Anomaly Detect.', desc:'Detects scrapers, spammers, fake accounts',             endpoint:'/api/ai/user/{id}/anomaly' },
+      { icon:'📈', n:16, cat:'Owner',      title:'Listing Performance Pred.',  desc:'Days-to-fill forecast + improvement actions',            endpoint:'/api/ai/listing/{id}/performance' },
+      { icon:'📉', n:17, cat:'Owner',      title:'Churn Predictor',            desc:'Identifies users about to leave the platform',           endpoint:'/api/ai/user/{id}/churn' },
+      { icon:'💬', n:18, cat:'Owner',      title:'Review Sentiment Extractor', desc:'Theme extraction + sentiment scoring on reviews',        endpoint:'/api/ai/reviews/sentiment' },
+      { icon:'🚌', n:19, cat:'Map',        title:'Campus Commute Score',       desc:'Real travel time to all major universities',             endpoint:'/api/ai/listing/{id}/commute' },
+      { icon:'🏙️', n:20, cat:'Map',        title:'Neighbourhood Vibe Classif.', desc:'Student-friendly, nightlife, quiet, transport tags',    endpoint:'/api/ai/listing/{id}/neighbourhood' },
+    ] %}
+
+    {% for f in features %}
+    <div class="feature-card">
+      <div style="display:flex;align-items:flex-start;gap:0.75rem;">
+        <span style="font-size:1.5rem;line-height:1;">{{ f.icon }}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.2rem;">
+            <span style="font-weight:700;font-size:0.88rem;">{{ f.title }}</span>
+            <span class="cat-badge cat-{{ f.cat|lower }}">{{ f.cat }}</span>
+          </div>
+          <p style="font-size:0.78rem;color:#64748b;margin:0 0 0.5rem;">{{ f.desc }}</p>
+          {% if f.endpoint %}
+            <code style="font-size:0.68rem;background:#f1f5f9;padding:2px 6px;border-radius:4px;
+                         color:#0f172a;word-break:break-all;">{{ f.endpoint }}</code>
+          {% else %}
+            <span style="font-size:0.72rem;color:#94a3b8;">No direct endpoint — service-level feature</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+  </div>{# /features grid #}
+
+  {# ── Training Commands ── #}
+  <h2 style="font-size:1.15rem;font-weight:700;margin:2rem 0 1rem;">🖥️ Training Commands</h2>
+  <div style="background:#0f172a;border-radius:12px;padding:1.25rem 1.5rem;overflow-x:auto;">
+    <pre style="color:#e2e8f0;font-size:0.8rem;margin:0;white-space:pre;">
+<span style="color:#94a3b8"># Train all ML models at once</span>
+php bin/console ai:retrain-all
+
+<span style="color:#94a3b8"># Individual model training</span>
+php bin/console ai:train:price
+php bin/console ai:train:roommate
+php bin/console ai:train:listing-quality
+php bin/console ai:train:fraud
+php bin/console ai:train:churn
+php bin/console ai:train:dynamic-pricing
+
+<span style="color:#94a3b8"># Natural language search (uses TF-IDF, no training needed)</span>
+<span style="color:#94a3b8"># LLM features (lease, description, dispute, sentiment) require LLM server</span>
+LLM_PROVIDER=ollama LLM_MODEL=llama3 LLM_BASE_URL=http://localhost:11434</pre>
+  </div>
+
+</div>
+
+<style>
+.ai-btn { padding:.4rem 1rem;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:600; }
+.stat-card { background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:1.25rem;text-align:center; }
+.stat-val { font-size:2rem;font-weight:800;color:#1e293b; }
+.stat-lbl { font-size:.78rem;color:#64748b;margin-top:.25rem; }
+.model-card { background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:1rem; }
+.model-card.trained { border-color:#bbf7d0; }
+.badge { font-size:.7rem;font-weight:700;padding:.2rem .5rem;border-radius:50px; }
+.badge-green { background:#dcfce7;color:#166534; }
+.badge-red   { background:#fee2e2;color:#991b1b; }
+.feature-card { background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:1rem;transition:box-shadow .2s; }
+.feature-card:hover { box-shadow:0 4px 20px rgba(0,0,0,.08); }
+.cat-badge { font-size:.65rem;font-weight:700;padding:.15rem .45rem;border-radius:50px; }
+.cat-search   { background:#dbeafe;color:#1e40af; }
+.cat-listing  { background:#fce7f3;color:#9d174d; }
+.cat-roommate { background:#d1fae5;color:#065f46; }
+.cat-legal    { background:#fef3c7;color:#92400e; }
+.cat-pricing  { background:#ede9fe;color:#5b21b6; }
+.cat-trust    { background:#fee2e2;color:#991b1b; }
+.cat-owner    { background:#f0f9ff;color:#075985; }
+.cat-map      { background:#ecfdf5;color:#047857; }
+</style>
+{% endblock %}
