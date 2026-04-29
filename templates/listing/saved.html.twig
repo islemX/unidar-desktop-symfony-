@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+{% block voice_briefing %}
+<script>window.__vcPage__ = { page: 'saved_listings', role: 'student', briefing: { en: "Your saved listings. Properties you bookmarked for later.", fr: "Vos annonces sauvegardées.", ar: "قائمة المفضلة. العقارات التي حفظتها." }, suggestions: [ {label:'Browse all listings', cmd:'open listings'}, {label:'Open first saved', cmd:'open the first one'} ] };</script>
+{% endblock %}
+{% block title %}Saved Listings - UNIDAR{% endblock %}
+{% block body %}
+<div class="container">
+    <h2 style="margin-bottom:1.5rem;">Saved Listings</h2>
+    {% if saved|length == 0 %}
+        <div class="card" style="text-align:center;padding:3rem;">
+            <p style="font-size:3rem;margin-bottom:1rem;">🤍</p>
+            <p style="color:var(--gray);">No saved listings yet. <a href="{{ path('listing_index') }}" style="color:var(--primary);">Browse listings</a></p>
+        </div>
+    {% else %}
+        <div class="grid grid-3">
+            {% for save in saved %}
+                {% set listing = save.listing %}
+                {% include 'listing/_card.html.twig' %}
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

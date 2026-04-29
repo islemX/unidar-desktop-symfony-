@@ -1,0 +1,142 @@
+{% extends 'base.html.twig' %}
+{% block title %}Generate Contract{% endblock %}
+{% block body %}
+<div class="container" style="max-width:700px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <h2>Generate Rental Contract</h2>
+        <a href="{{ path('listing_show', {id: listing.id}) }}" class="btn btn-outline btn-sm">← Back to Listing</a>
+    </div>
+
+    <div class="card" style="margin-bottom:1.5rem;">
+        <div style="display:flex;gap:1rem;align-items:center;">
+            <div style="flex:1;">
+                <strong>{{ listing.title }}</strong>
+                <div style="color:var(--gray);font-size:0.9rem;">{{ listing.address }}</div>
+                <div style="margin-top:0.5rem;font-weight:600;color:var(--primary);">{{ listing.price }} TND / month</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="color:var(--gray);font-size:0.85rem;">Owner</div>
+                <div>{{ listing.owner.fullName }}</div>
+            </div>
+        </div>
+    </div>
+
+    {% if templates is not empty %}
+    <div class="card" style="margin-bottom:1.5rem;">
+        <h3 style="margin-bottom:1rem;">Select Template</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.75rem;" id="templateSelector">
+            {% for template in templates %}
+            <label style="cursor:pointer;">
+                <input type="radio" name="template_preview" value="{{ template.id }}" style="display:none;"
+                       onchange="previewTemplate({{ template.id }})">
+                <div class="card template-card" style="border:2px solid transparent;padding:1rem;text-align:center;transition:all 0.2s;"
+                     id="tcard_{{ template.id }}">
+                    <div style="font-size:1.5rem;margin-bottom:0.5rem;">
+                        {% if template.templateType == 'studio' %}🏠
+                        {% elseif template.templateType == 'apartment' %}🏢
+                        {% elseif template.templateType == 'shared_room' %}👥
+                        {% else %}📄{% endif %}
+                    </div>
+                    <div style="font-size:0.85rem;font-weight:600;">{{ template.templateName }}</div>
+                </div>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {{ form_start(form) }}
+    <div class="card">
+        <h3 style="margin-bottom:1rem;">Contract Details</h3>
+
+        <div style="margin-bottom:1rem;">
+            {{ form_label(form.startDate, 'Move-in Date') }}
+            {{ form_widget(form.startDate, {'attr': {'class': 'form-control'}}) }}
+            {{ form_errors(form.startDate) }}
+        </div>
+
+        <div style="margin-bottom:1rem;">
+            {{ form_label(form.duration, 'Duration (months)') }}
+            {{ form_widget(form.duration, {'attr': {'class': 'form-control', 'min': '1', 'max': '24'}}) }}
+            {{ form_errors(form.duration) }}
+        </div>
+
+        {% if form.templateId is defined %}
+        {{ form_widget(form.templateId) }}
+        {% endif %}
+
+        <div id="costPreview" style="background:var(--light);border-radius:8px;padding:1rem;margin-bottom:1rem;display:none;">
+            <h4 style="margin-bottom:0.75rem;">Cost Summary</h4>
+            <table style="width:100%;">
+                <tr>
+                    <td style="color:var(--gray);padding:0.3rem 0;">Monthly Rent:</td>
+                    <td style="text-align:right;font-weight:600;">{{ listing.price }} TND</td>
+                </tr>
+                <tr>
+                    <td style="color:var(--gray);padding:0.3rem 0;">Security Deposit:</td>
+                    <td style="text-align:right;" id="depositPreview">—</td>
+                </tr>
+                <tr>
+                    <td style="color:var(--gray);padding:0.3rem 0;">Platform Fee (5%):</td>
+                    <td style="text-align:right;color:var(--primary);" id="feePreview">—</td>
+                </tr>
+                <tr style="border-top:1px solid var(--border);margin-top:0.5rem;">
+                    <td style="padding-top:0.5rem;font-weight:600;">End Date:</td>
+                    <td style="text-align:right;font-weight:600;" id="endDatePreview">—</td>
+                </tr>
+            </table>
+        </div>
+
+        <div style="background:rgba(var(--warning-rgb,255,193,7),0.1);border:1px solid var(--warning);border-radius:8px;padding:1rem;margin-bottom:1.25rem;font-size:0.9rem;">
+            <strong>⚠️ Important:</strong> By generating this contract, you agree to the platform terms of service.
+            Both parties must sign digitally before the contract becomes active.
+            Payment of the security deposit activates the rental.
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;">
+            Generate Contract
+        </button>
+    </div>
+    {{ form_end(form) }}
+</div>
+
+<script>
+const monthlyRent = {{ listing.price }};
+
+document.getElementById('{{ form.duration.vars.id }}').addEventListener('input', updatePreview);
+document.getElementById('{{ form.startDate.vars.id }}').addEventListener('change', updatePreview);
+
+function updatePreview() {
+    const duration = parseInt(document.getElementById('{{ form.duration.vars.id }}').value) || 0;
+    const startVal = document.getElementById('{{ form.startDate.vars.id }}').value;
+
+    if (duration > 0 && startVal) {
+        const deposit = monthlyRent;
+        const fee = (monthlyRent * 0.05).toFixed(2);
+        const start = new Date(startVal);
+        const end = new Date(start);
+        end.setMonth(end.getMonth() + duration);
+
+        document.getElementById('depositPreview').textContent = deposit.toFixed(2) + ' TND';
+        document.getElementById('feePreview').textContent = fee + ' TND';
+        document.getElementById('endDatePreview').textContent = end.toLocaleDateString('fr-TN');
+        document.getElementById('costPreview').style.display = 'block';
+    }
+}
+
+function previewTemplate(id) {
+    document.querySelectorAll('.template-card').forEach(c => {
+        c.style.border = '2px solid transparent';
+        c.style.background = '';
+    });
+    const card = document.getElementById('tcard_' + id);
+    if (card) {
+        card.style.border = '2px solid var(--primary)';
+        card.style.background = 'rgba(var(--primary-rgb,0,123,255),0.05)';
+    }
+    {% if form.templateId is defined %}
+    document.getElementById('{{ form.templateId.vars.id }}').value = id;
+    {% endif %}
+}
+</script>
+{% endblock %}

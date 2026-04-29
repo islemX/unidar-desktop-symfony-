@@ -1,0 +1,336 @@
+{% extends 'base.html.twig' %}
+{% block title %}Subscribe — UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .sub-page { min-height: calc(100vh - 70px); display: flex; align-items: center; justify-content: center; padding: 2rem 1.5rem; position: relative; z-index: 1; }
+    .sub-wrapper { width: 100%; max-width: 900px; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; animation: fadeInUp 0.5s ease both; }
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+    @media (max-width: 700px) { .sub-wrapper { grid-template-columns: 1fr; } }
+
+    /* Plan Cards */
+    .plan-cards { display: flex; flex-direction: column; gap: 1rem; }
+    .plan-card { border: 2px solid var(--color-border); border-radius: 20px; padding: 1.5rem; cursor: pointer; transition: all 0.3s ease; background: white; position: relative; overflow: hidden; }
+    .plan-card:hover { border-color: var(--color-primary-300); transform: translateY(-2px); box-shadow: 0 8px 24px -8px rgba(99,102,241,0.2); }
+    .plan-card.selected { border-color: var(--color-brand); background: linear-gradient(135deg, #f0f0ff 0%, #e8e8ff 100%); box-shadow: 0 8px 24px -8px rgba(99,102,241,0.3); }
+    .plan-card input[type="radio"] { display: none; }
+    .plan-badge { display: inline-block; background: linear-gradient(135deg, #10b981, #34d399); color: white; font-size: 0.7rem; font-weight: 800; padding: 3px 10px; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .plan-name { font-size: 1.2rem; font-weight: 800; color: var(--color-surface-900); margin: 0 0 0.25rem; }
+    .plan-price { font-size: 2.2rem; font-weight: 900; color: var(--color-brand); line-height: 1; }
+    .plan-price span { font-size: 1rem; font-weight: 500; color: var(--color-surface-500); }
+    .plan-desc { font-size: 0.85rem; color: var(--color-surface-500); margin-top: 0.5rem; }
+    .plan-features { list-style: none; padding: 0; margin: 1rem 0 0; display: flex; flex-direction: column; gap: 6px; }
+    .plan-features li { font-size: 0.85rem; color: var(--color-surface-600); display: flex; align-items: center; gap: 8px; }
+    .plan-features li::before { content: '\2713'; color: var(--color-brand); font-weight: 800; font-size: 0.9rem; }
+
+    /* Payment Panel */
+    .payment-panel { background: white; border-radius: 24px; padding: 2rem; border: 1px solid var(--color-border); box-shadow: 0 4px 24px -8px rgba(0,0,0,0.08); display: flex; flex-direction: column; gap: 1.25rem; }
+    .payment-panel h3 { font-size: 1.3rem; font-weight: 800; color: var(--color-surface-900); margin: 0; }
+
+    /* Card Visual */
+    .card-visual { background: linear-gradient(135deg, var(--color-brand) 0%, #4f46e5 100%); border-radius: 16px; padding: 1.5rem; color: white; position: relative; overflow: hidden; min-height: 130px; display: flex; flex-direction: column; justify-content: space-between; }
+    .card-visual::before { content: ''; position: absolute; top: -40px; right: -40px; width: 140px; height: 140px; background: rgba(255,255,255,0.1); border-radius: 50%; }
+    .card-visual::after { content: ''; position: absolute; bottom: -50px; left: -20px; width: 160px; height: 160px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+    .card-chip { width: 36px; height: 26px; background: linear-gradient(135deg, #fbbf24, #f59e0b); border-radius: 6px; position: relative; z-index: 1; }
+    .card-number-display { font-size: 1.1rem; font-weight: 600; letter-spacing: 0.2em; font-family: 'Courier New', monospace; position: relative; z-index: 1; }
+    .card-bottom { display: flex; justify-content: space-between; align-items: flex-end; position: relative; z-index: 1; }
+    .card-label { font-size: 0.65rem; opacity: 0.7; text-transform: uppercase; margin-bottom: 2px; }
+    .card-value { font-size: 0.9rem; font-weight: 700; }
+
+    /* Form Fields */
+    .payment-form { display: flex; flex-direction: column; gap: 1rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .field-group { display: flex; flex-direction: column; gap: 6px; }
+    .field-group label { font-size: 0.75rem; font-weight: 700; color: var(--color-surface-600); text-transform: uppercase; letter-spacing: 0.05em; }
+    .field-group input { padding: 12px 14px; border: 1.5px solid var(--color-border); border-radius: 12px; font-size: 0.95rem; transition: border-color 0.2s, box-shadow 0.2s; background: var(--color-surface-50); width: 100%; box-sizing: border-box; }
+    .field-group input:focus { outline: none; border-color: var(--color-brand); background: white; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+
+    /* Submit */
+    .btn-subscribe { width: 100%; padding: 16px; font-size: 1.05rem; font-weight: 800; border: none; border-radius: 14px; background: linear-gradient(135deg, var(--color-brand) 0%, #4f46e5 100%); color: white; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 8px 20px -6px rgba(99,102,241,0.4); display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .btn-subscribe:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 28px -6px rgba(99,102,241,0.5); }
+    .btn-subscribe:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* Order Summary */
+    .order-summary { background: var(--color-surface-50); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: 8px; }
+    .summary-row { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--color-surface-600); }
+    .summary-row.total { font-size: 1rem; font-weight: 800; color: var(--color-surface-900); border-top: 1px solid var(--color-surface-200); padding-top: 8px; margin-top: 4px; }
+
+    /* Hero */
+    .sub-hero { grid-column: 1 / -1; text-align: center; margin-bottom: 0.5rem; }
+    .sub-hero h1 { font-size: 2.2rem; font-weight: 900; background: linear-gradient(135deg, var(--color-brand) 0%, #4f46e5 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin: 0 0 0.5rem; }
+    .sub-hero p { color: var(--color-surface-500); margin: 0; }
+
+    /* Alert */
+    .sub-alert { padding: 12px 16px; border-radius: 10px; font-size: 0.9rem; font-weight: 600; display: none; }
+    .sub-alert.error { background: #fee2e2; color: #991b1b; }
+    .sub-alert.success { background: #d1fae5; color: #065f46; }
+
+    /* Already subscribed */
+    .sub-active-card { grid-column: 1 / -1; background: linear-gradient(135deg, #ecfdf5, #f0fdf4); border: 2px solid #10b981; border-radius: 24px; padding: 2.5rem; text-align: center; }
+
+    /* ── Benefits Showcase ── */
+    .benefits-section { grid-column: 1 / -1; margin-bottom: 0.25rem; }
+    .benefits-title { text-align: center; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--color-brand); margin: 0 0 1.25rem; }
+    .benefits-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    @media (max-width: 700px) { .benefits-grid { grid-template-columns: repeat(2, 1fr); } }
+    .benefit-card {
+        position: relative; overflow: hidden;
+        background: white; border: 1px solid var(--color-surface-100);
+        border-radius: 18px; padding: 1.4rem 1rem 1.2rem; text-align: center;
+        transition: all 0.35s cubic-bezier(.2,.8,.2,1);
+        animation: benefitPop 0.5s cubic-bezier(.2,.8,.2,1) both;
+    }
+    .benefit-card:nth-child(1) { animation-delay: 0.05s; }
+    .benefit-card:nth-child(2) { animation-delay: 0.12s; }
+    .benefit-card:nth-child(3) { animation-delay: 0.19s; }
+    .benefit-card:nth-child(4) { animation-delay: 0.26s; }
+    .benefit-card::before {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%);
+        transform: translateX(-120%);
+        animation: benefitShimmer 4s 1.2s ease-in-out infinite;
+        pointer-events: none;
+    }
+    .benefit-card:hover { transform: translateY(-5px); box-shadow: 0 12px 28px -8px rgba(99,102,241,0.18); border-color: var(--color-primary-200); }
+    .benefit-icon {
+        width: 52px; height: 52px; margin: 0 auto 0.75rem;
+        border-radius: 16px; display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; color: white;
+        box-shadow: 0 8px 20px -6px var(--bi-shadow, rgba(99,102,241,0.4));
+    }
+    .benefit-card h4 { font-size: 0.88rem; font-weight: 800; margin: 0 0 0.3rem; color: var(--color-surface-900); }
+    .benefit-card p  { font-size: 0.78rem; line-height: 1.4; color: var(--color-surface-500); margin: 0; }
+    @keyframes benefitPop  { from { opacity:0; transform: translateY(14px) scale(.95); } to { opacity:1; transform: translateY(0) scale(1); } }
+    @keyframes benefitShimmer { 0%,10% { transform: translateX(-120%); } 45%,100% { transform: translateX(120%); } }
+    @media (prefers-reduced-motion: reduce) { .benefit-card, .benefit-card::before { animation: none !important; } }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div></div>
+
+<section class="sub-page">
+    <div class="sub-wrapper" id="mainWrapper">
+
+        {# Hero #}
+        <div class="sub-hero">
+            <p style="font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--color-brand); margin-bottom:0.5rem;">Unlock Everything</p>
+            <h1>Choose Your Plan</h1>
+            <p>Get full access to Listings, Roommate Matching, and all platform features.</p>
+        </div>
+
+        {# ── What you unlock ── #}
+        {% if not current %}
+        <div class="benefits-section">
+            <p class="benefits-title">What you unlock with a subscription</p>
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);--bi-shadow:rgba(99,102,241,0.4);">💬</div>
+                    <h4>Message Anyone</h4>
+                    <p>Contact property owners and potential roommates directly through our built-in messenger.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon" style="background:linear-gradient(135deg,#10b981,#34d399);--bi-shadow:rgba(16,185,129,0.4);">📝</div>
+                    <h4>Generate Contracts</h4>
+                    <p>Create, sign, and manage rental contracts for any listing — all handled digitally on UNIDAR.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon" style="background:linear-gradient(135deg,#f59e0b,#f97316);--bi-shadow:rgba(245,158,11,0.4);">🤝</div>
+                    <h4>Roommate Chat</h4>
+                    <p>Found a compatible roommate? Start chatting instantly and plan your shared living together.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon" style="background:linear-gradient(135deg,#ec4899,#f43f5e);--bi-shadow:rgba(236,72,153,0.4);">🔓</div>
+                    <h4>Full Platform Access</h4>
+                    <p>Unlock every UNIDAR feature — smart search, saved listings, directions, and priority support.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if current %}
+            {# Already subscribed #}
+            <div class="sub-active-card">
+                <div style="font-size:4rem; margin-bottom:1rem;">✅</div>
+                <h2 style="font-size:1.8rem; font-weight:900; color:#065f46; margin:0 0 0.5rem;">You're Subscribed!</h2>
+                <p style="color:#047857; margin:0 0 0.5rem;">Your UNIDAR {{ current.plan.getLabel() }} subscription is active. Enjoy all platform features.</p>
+                <p style="color:#047857; font-size:0.9rem; margin:0 0 1.5rem;">Expires: {{ current.expiresAt|date('d/m/Y') }}</p>
+                <a href="{{ path('dashboard_student') }}" class="btn btn-primary" style="display:inline-flex;">Go to Dashboard</a>
+            </div>
+        {% else %}
+            {# Plan Selection #}
+            <div class="plan-cards" id="planCards">
+                <label class="plan-card selected" id="planMonthly" onclick="selectPlan('monthly')">
+                    <input type="radio" name="plan" value="monthly" checked>
+                    <p class="plan-name">Monthly</p>
+                    <div class="plan-price">25 <span>TND / month</span></div>
+                    <p class="plan-desc">Billed monthly - Cancel any time</p>
+                    <ul class="plan-features">
+                        <li>Contact owners & roommates via messenger</li>
+                        <li>Generate and sign rental contracts</li>
+                        <li>Smart roommate matching & chat</li>
+                        <li>Full access to listings, maps & directions</li>
+                    </ul>
+                </label>
+
+                <label class="plan-card" id="planYearly" onclick="selectPlan('yearly')">
+                    <input type="radio" name="plan" value="yearly">
+                    <span class="plan-badge">Best Value - 2 months free</span>
+                    <p class="plan-name">Yearly</p>
+                    <div class="plan-price">250 <span>TND / year</span></div>
+                    <p class="plan-desc">That's 20.83 TND/month - save 50 TND</p>
+                    <ul class="plan-features">
+                        <li>Everything in Monthly</li>
+                        <li>Priority support & faster responses</li>
+                        <li>Early access to new features</li>
+                        <li>Save 50 TND over 12 months</li>
+                    </ul>
+                </label>
+            </div>
+
+            {# Payment Panel #}
+            <div class="payment-panel" id="paymentPanel">
+                <h3>Payment Details</h3>
+
+                {# Virtual Card Display #}
+                <div class="card-visual">
+                    <div class="card-chip"></div>
+                    <div class="card-number-display" id="cardNumberDisplay">---- ---- ---- ----</div>
+                    <div class="card-bottom">
+                        <div>
+                            <div class="card-label">Card Holder</div>
+                            <div class="card-value" id="cardNameDisplay">Your Name</div>
+                        </div>
+                        <div>
+                            <div class="card-label">Expires</div>
+                            <div class="card-value" id="cardExpiryDisplay">MM/YY</div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Order Summary #}
+                <div class="order-summary">
+                    <div class="summary-row">
+                        <span id="summaryPlanName">Monthly Plan</span>
+                        <span id="summaryPlanPrice">25 TND</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Billing Cycle</span>
+                        <span id="summaryBilling">Monthly</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Total Today</span>
+                        <span id="summaryTotal">25.00 TND</span>
+                    </div>
+                </div>
+
+                {# Payment Form — POST to Symfony controller #}
+                <form class="payment-form" id="paymentForm" method="post" action="{{ path('subscription_create') }}" autocomplete="off">
+                    <input type="hidden" name="plan" id="hiddenPlan" value="monthly">
+                    <input type="hidden" name="paymentMethod" value="credit_card">
+
+                    <div class="field-group">
+                        <label for="cardNumber">Card Number</label>
+                        <input type="text" id="cardNumber" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" autocomplete="cc-number" required>
+                    </div>
+                    <div class="field-group">
+                        <label for="cardName">Cardholder Name</label>
+                        <input type="text" id="cardName" name="cardName" placeholder="John Doe" autocomplete="cc-name" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="field-group">
+                            <label for="cardExpiry">Expiry Date</label>
+                            <input type="text" id="cardExpiry" name="cardExpiry" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp" required>
+                        </div>
+                        <div class="field-group">
+                            <label for="cardCvv">CVV</label>
+                            <input type="text" id="cardCvv" name="cardCvv" placeholder="---" maxlength="4" autocomplete="cc-csc" required>
+                        </div>
+                    </div>
+
+                    <div class="sub-alert" id="subAlert"></div>
+
+                    <button type="submit" class="btn-subscribe" id="subscribeBtn">
+                        <span id="subscribeBtnText">Subscribe — 25 TND</span>
+                    </button>
+
+                    <p style="font-size:0.75rem; color:var(--color-surface-400); text-align:center; margin:0;">
+                        Secure simulated payment - No real charges
+                    </p>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block javascripts %}
+{% if not current %}
+<script>
+    var selectedPlan = 'monthly';
+
+    var PLANS = {
+        monthly: { name: 'Monthly Plan', price: 25, billing: 'Monthly', total: '25.00' },
+        yearly:  { name: 'Yearly Plan',  price: 250, billing: 'Yearly', total: '250.00' }
+    };
+
+    function selectPlan(plan) {
+        selectedPlan = plan;
+        document.getElementById('planMonthly').classList.toggle('selected', plan === 'monthly');
+        document.getElementById('planYearly').classList.toggle('selected', plan === 'yearly');
+        document.getElementById('hiddenPlan').value = plan;
+
+        var p = PLANS[plan];
+        document.getElementById('summaryPlanName').textContent = p.name;
+        document.getElementById('summaryPlanPrice').textContent = p.price + ' TND';
+        document.getElementById('summaryBilling').textContent = p.billing;
+        document.getElementById('summaryTotal').textContent = p.total + ' TND';
+        document.getElementById('subscribeBtnText').textContent = 'Subscribe — ' + p.price + ' TND';
+    }
+
+    // Live card preview
+    document.getElementById('cardNumber').addEventListener('input', function() {
+        var v = this.value.replace(/\D/g, '').substring(0, 16);
+        this.value = v.match(/.{1,4}/g) ? v.match(/.{1,4}/g).join(' ') : '';
+        document.getElementById('cardNumberDisplay').textContent = this.value || '---- ---- ---- ----';
+    });
+
+    document.getElementById('cardName').addEventListener('input', function() {
+        document.getElementById('cardNameDisplay').textContent = this.value || 'Your Name';
+    });
+
+    document.getElementById('cardExpiry').addEventListener('input', function() {
+        var v = this.value.replace(/\D/g, '');
+        if (v.length >= 2) v = v.substring(0, 2) + '/' + v.substring(2, 4);
+        this.value = v;
+        document.getElementById('cardExpiryDisplay').textContent = this.value || 'MM/YY';
+    });
+
+    // Client-side validation
+    document.getElementById('paymentForm').addEventListener('submit', function(e) {
+        var cardNum = document.getElementById('cardNumber').value.replace(/\s/g, '');
+        var cardName = document.getElementById('cardName').value.trim();
+        var expiry = document.getElementById('cardExpiry').value;
+        var cvv = document.getElementById('cardCvv').value;
+        var alert = document.getElementById('subAlert');
+
+        alert.style.display = 'none';
+
+        if (cardNum.length < 12) { showError('Please enter a valid card number.'); e.preventDefault(); return; }
+        if (!cardName) { showError('Please enter the cardholder name.'); e.preventDefault(); return; }
+        if (expiry.length < 5) { showError('Please enter a valid expiry date (MM/YY).'); e.preventDefault(); return; }
+        if (cvv.length < 3) { showError('Please enter a valid CVV.'); e.preventDefault(); return; }
+
+        document.getElementById('subscribeBtn').disabled = true;
+        document.getElementById('subscribeBtnText').textContent = 'Processing...';
+    });
+
+    function showError(msg) {
+        var a = document.getElementById('subAlert');
+        a.className = 'sub-alert error';
+        a.textContent = msg;
+        a.style.display = 'block';
+    }
+</script>
+{% endif %}
+{% endblock %}

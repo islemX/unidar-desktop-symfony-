@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+{% block title %}Payment #{{ payment.id }} - Admin{% endblock %}
+{% block body %}
+<div class="container" style="max-width:700px;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:1.5rem;">
+        <h2>Payment #{{ payment.id }}</h2>
+        <a href="{{ path('admin_payments') }}" class="btn btn-outline btn-sm">← Back</a>
+    </div>
+    <div class="card">
+        <table style="width:100%;">
+            <tr><td style="color:var(--gray);padding:0.5rem 0;">Contract:</td><td><code>{{ payment.contract.contractNumber }}</code></td></tr>
+            <tr><td style="color:var(--gray);padding:0.5rem 0;">Student:</td><td>{{ payment.contract.student.fullName }}</td></tr>
+            <tr><td style="color:var(--gray);padding:0.5rem 0;">Owner:</td><td>{{ payment.contract.owner.fullName }}</td></tr>
+            <tr><td style="color:var(--gray);padding:0.5rem 0;">Amount:</td><td><strong>{{ payment.amount }} TND</strong></td></tr>
+            <tr><td style="color:var(--gray);padding:0.5rem 0;">Owner Share:</td><td>{{ payment.ownerAmount }} TND</td></tr>
+            <tr><td style="color:var(--gray);padding:0.5rem 0;">Platform Fee:</td><td style="color:var(--primary);">{{ payment.platformFee }} TND</td></tr>
+            <tr><td style="color:var(--gray);padding:0.5rem 0;">Status:</td><td><span class="badge badge-success">{{ payment.status.value }}</span></td></tr>
+            <tr><td style="color:var(--gray);padding:0.5rem 0;">Method:</td><td>{{ payment.paymentMethod }}</td></tr>
+            <tr><td style="color:var(--gray);padding:0.5rem 0;">Transaction ID:</td><td><code>{{ payment.transactionId }}</code></td></tr>
+            <tr><td style="color:var(--gray);padding:0.5rem 0;">Date:</td><td>{{ payment.createdAt|date('d/m/Y H:i:s') }}</td></tr>
+        </table>
+    </div>
+</div>
+{% endblock %}

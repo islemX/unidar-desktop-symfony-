@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+{% block title %}Contract Templates — UNIDAR Admin{% endblock %}
+{% block body %}
+<div class="container-fluid px-4 py-4">
+
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle d-flex align-items-center justify-content-center"
+           style="width:48px;height:48px;background:linear-gradient(135deg,#10b981,#059669)">
+        <i class="fas fa-file-contract text-white fs-5"></i>
+      </div>
+      <div>
+        <h1 class="h4 mb-0 fw-bold">Contract Templates</h1>
+        <p class="text-muted mb-0 small">Versioned, multi-locale templates rendered by UnidarContractTemplateBundle</p>
+      </div>
+    </div>
+    <a href="{{ path('admin_contract_template_new') }}" class="btn btn-sm fw-semibold text-white"
+       style="background:linear-gradient(135deg,#10b981,#059669);">
+      <i class="fas fa-plus me-1"></i> New Template
+    </a>
+  </div>
+
+  {% for flash in app.flashes('success') %}
+    <div class="alert alert-success border-0 shadow-sm py-2 small">{{ flash }}</div>
+  {% endfor %}
+
+  {% if templates is empty %}
+    <div class="text-center py-5 text-muted">
+      <i class="fas fa-file-contract fa-3x mb-3 opacity-25"></i>
+      <p>No templates yet. <a href="{{ path('admin_contract_template_new') }}">Create one</a> or run <code>app:seed:contract-templates</code>.</p>
+    </div>
+  {% else %}
+    <div class="row g-3">
+      {% for t in templates %}
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm h-100" style="border-left:4px solid {% if t.locale == 'ar' %}#f59e0b{% elseif t.locale == 'en' %}#6366f1{% else %}#10b981{% endif %} !important;border-radius:12px;">
+          <div class="card-body">
+            <div class="d-flex align-items-start justify-content-between mb-2">
+              <div>
+                <span class="badge rounded-pill me-1"
+                  style="background:{% if t.locale == 'ar' %}#fef3c7;color:#d97706;{% elseif t.locale == 'en' %}#ede9fe;color:#6366f1;{% else %}#d1fae5;color:#059669;{% endif %}">
+                  {{ t.locale|upper }}
+                </span>
+                <span class="badge rounded-pill" style="background:#f1f5f9;color:#64748b;">v{{ t.version }}</span>
+                {% if t.isDefault %}
+                  <span class="badge rounded-pill ms-1" style="background:#6366f1;color:#fff;">DEFAULT</span>
+                {% endif %}
+                {% if not t.isActive %}
+                  <span class="badge rounded-pill ms-1" style="background:#fee2e2;color:#dc2626;">INACTIVE</span>
+                {% endif %}
+              </div>
+            </div>
+            <h6 class="fw-bold mb-1">{{ t.templateName }}</h6>
+            <p class="text-muted small mb-3">Type: {{ t.templateType }} · Updated: {{ t.updatedAt|date('d/m/Y') }}</p>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="{{ path('admin_contract_template_edit', {id: t.id}) }}"
+                 class="btn btn-sm btn-outline-primary py-0 px-3">Edit</a>
+              <form method="post" action="{{ path('admin_contract_template_toggle', {id: t.id}) }}" class="d-inline">
+                <button class="btn btn-sm py-0 px-3 {% if t.isActive %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                  {{ t.isActive ? 'Deactivate' : 'Activate' }}
+                </button>
+              </form>
+              {% if not t.isDefault %}
+              <form method="post" action="{{ path('admin_contract_template_set_default', {id: t.id}) }}" class="d-inline">
+                <button class="btn btn-sm btn-outline-secondary py-0 px-3">Set Default</button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

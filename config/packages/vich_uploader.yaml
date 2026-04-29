@@ -1,0 +1,25 @@
+vich_uploader:
+    db_driver: orm
+    metadata:
+        type: attribute
+    mappings:
+        listing_images:
+            uri_prefix: /uploads/listings
+            upload_destination: '%kernel.project_dir%/public/uploads/listings'
+            namer: Vich\UploaderBundle\Naming\UniqidNamer
+            inject_on_load: false
+        verification_documents:
+            uri_prefix: /uploads/verifications
+            upload_destination: '%kernel.project_dir%/public/uploads/verifications'
+            namer: Vich\UploaderBundle\Naming\UniqidNamer
+            inject_on_load: false
+        signatures:
+            uri_prefix: /uploads/signatures
+            upload_destination: '%kernel.project_dir%/public/uploads/signatures'
+            namer: Vich\UploaderBundle\Naming\UniqidNamer
+            inject_on_load: false
+        contracts:
+            uri_prefix: /uploads/contracts
+            upload_destination: '%kernel.project_dir%/public/uploads/contracts'
+            namer: Vich\UploaderBundle\Naming\UniqidNamer
+            inject_on_load: false

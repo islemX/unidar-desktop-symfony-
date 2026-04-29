@@ -1,0 +1,97 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Audit Trail — UNIDAR Admin{% endblock %}
+
+{% block stylesheets %}
+<style>
+  .audit-badge-create { background:#d1fae5; color:#065f46; }
+  .audit-badge-update { background:#fef3c7; color:#92400e; }
+  .audit-badge-delete { background:#fee2e2; color:#991b1b; }
+  .changed-pre { font-size:11px; max-width:320px; background:#f8fafc; border-radius:8px; padding:0.5rem; border:1px solid #e2e8f0; }
+  .toggle-btn { font-size:0.75rem; padding:0.15rem 0.5rem; }
+</style>
+{% endblock %}
+
+{% block body %}
+<main class="section fade-in" style="padding:2rem 0;">
+  <div class="container">
+
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:var(--space-xl);padding-bottom:var(--space-md);border-bottom:2px solid var(--color-border);">
+      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <span style="font-size:1.3rem;">📋</span>
+      </div>
+      <div>
+        <h1 class="title-pro" style="margin:0;font-size:2rem;">Audit Trail</h1>
+        <p class="text-muted" style="margin:0;">Last {{ logs|length }} entity changes across the platform</p>
+      </div>
+      <div style="margin-left:auto;">
+        <a href="{{ path('admin_dashboard') }}" class="btn btn-secondary btn-sm">← Back to Dashboard</a>
+      </div>
+    </div>
+
+    {% if logs is empty %}
+      <div class="card"><div class="card-body" style="text-align:center;padding:3rem;color:var(--color-text-muted);">
+        <p style="font-size:2rem;">📋</p>
+        <p>No audit logs recorded yet. Entity changes will appear here automatically.</p>
+      </div></div>
+    {% else %}
+      <div class="card">
+        <div class="card-body" style="padding:0;">
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Action</th>
+                  <th>Entity</th>
+                  <th>ID</th>
+                  <th>User</th>
+                  <th>IP</th>
+                  <th>Changes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for log in logs %}
+                <tr>
+                  <td style="white-space:nowrap;color:var(--color-text-muted);font-size:0.85rem;">{{ log.createdAt|date('d/m/Y H:i:s') }}</td>
+                  <td>
+                    {% if log.action == 'create' %}
+                      <span class="badge badge-success">CREATE</span>
+                    {% elseif log.action == 'update' %}
+                      <span class="badge badge-warning">UPDATE</span>
+                    {% else %}
+                      <span class="badge badge-error">DELETE</span>
+                    {% endif %}
+                  </td>
+                  <td style="font-weight:600;font-size:0.85rem;">{{ log.entityClass|split('\\')|last }}</td>
+                  <td style="color:var(--color-text-muted);">#{{ log.entityId }}</td>
+                  <td>
+                    {% if log.userEmail %}
+                      <span style="color:var(--color-brand);">{{ log.userEmail }}</span>
+                    {% else %}
+                      <span style="color:var(--color-text-muted);font-style:italic;">System</span>
+                    {% endif %}
+                  </td>
+                  <td style="color:var(--color-text-muted);font-size:0.85rem;">{{ log.ipAddress ?? '—' }}</td>
+                  <td>
+                    {% if log.changedFields %}
+                      <details>
+                        <summary class="btn btn-secondary btn-sm toggle-btn" style="cursor:pointer;display:inline-block;">{{ log.changedFields|length }} field(s)</summary>
+                        <pre class="changed-pre">{{ log.changedFields|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+                      </details>
+                    {% else %}
+                      <span style="color:var(--color-text-muted);">—</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+</main>
+{% endblock %}

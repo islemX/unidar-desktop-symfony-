@@ -1,0 +1,375 @@
+<a href="{{ path('listing_show', {id: listing.id}) }}" class="pro-listing-card" aria-label="{{ listing.title }}">
+    <div class="plc-media">
+        {% if listing.images is not empty %}
+            {% set imgSrc = listing.images.first.imagePath %}
+            <img class="plc-img" src="{{ imgSrc starts with 'http' ? imgSrc : '/uploads/listings/' ~ imgSrc }}" alt="{{ listing.title }}" loading="lazy">
+            {% if listing.images|length > 1 %}
+                <span class="plc-photo-count">📷 {{ listing.images|length }}</span>
+            {% endif %}
+        {% else %}
+            <div class="plc-img plc-placeholder">🏠</div>
+        {% endif %}
+
+        <div class="plc-gradient"></div>
+
+        <div class="plc-top-badges">
+            <span class="plc-chip plc-chip-type">{{ listing.propertyType.value|replace({'_': ' '})|title }}</span>
+            {% if listing.genderPreference %}
+                <span class="plc-chip plc-chip-gender">{{ listing.genderPreference|capitalize }} only</span>
+            {% endif %}
+        </div>
+
+        <div class="plc-price-pill">
+            <strong>{{ listing.price }}</strong><span>TND/mo</span>
+        </div>
+
+        <span class="plc-cta" aria-hidden="true">
+            View details
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </span>
+    </div>
+
+    <div class="plc-body">
+        <h3 class="plc-title">{{ listing.title }}</h3>
+        <p class="plc-address">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-7.5 8-13a8 8 0 10-16 0c0 5.5 8 13 8 13z"/><circle cx="12" cy="9" r="3"/></svg>
+            <span>{{ listing.address|slice(0,55) }}{% if listing.address|length > 55 %}…{% endif %}</span>
+        </p>
+
+        <div class="plc-stats">
+            <div class="plc-stat"><span class="plc-stat-i">🛏</span><span class="plc-stat-v">{{ listing.bedrooms }}</span><span class="plc-stat-l">bed{{ listing.bedrooms > 1 ? 's' }}</span></div>
+            <div class="plc-stat"><span class="plc-stat-i">🚿</span><span class="plc-stat-v">{{ listing.bathrooms }}</span><span class="plc-stat-l">bath{{ listing.bathrooms > 1 ? 's' }}</span></div>
+            <div class="plc-stat"><span class="plc-stat-i">👥</span><span class="plc-stat-v">{{ listing.capacity }}</span><span class="plc-stat-l">max</span></div>
+        </div>
+
+        {% if listing.availableFrom %}
+            <div class="plc-avail">
+                <span class="plc-avail-dot"></span>
+                Available {{ listing.availableFrom|date('d M Y') }}
+            </div>
+        {% endif %}
+
+        {# AI Quick Badges — lazy loaded via JS #}
+        <div class="plc-ai-badges" id="plc-ai-{{ listing.id }}"
+             data-id="{{ listing.id }}"
+             data-lat="{{ listing.latitude }}"
+             data-lng="{{ listing.longitude }}"
+             style="display:flex;flex-wrap:wrap;gap:4px;margin-top:0.4rem;">
+        </div>
+    </div>
+</a>
+
+{% if not plc_styles_included is defined %}
+{% set plc_styles_included = true %}
+<style>
+/* ===== Pro Listing Card ================================================== */
+.pro-listing-card {
+    --plc-radius: 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: var(--plc-radius);
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.3s ease;
+    box-shadow: 0 2px 6px -2px rgba(15, 23, 42, 0.06),
+                0 6px 14px -6px rgba(15, 23, 42, 0.08);
+    isolation: isolate;
+    cursor: pointer;
+    will-change: transform;
+}
+.pro-listing-card::before {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.0), rgba(99,102,241,0.0));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    transition: background 0.45s ease;
+    pointer-events: none;
+    z-index: 2;
+}
+.pro-listing-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(99, 102, 241, 0.35);
+    box-shadow: 0 20px 40px -18px rgba(99, 102, 241, 0.45),
+                0 10px 20px -10px rgba(15, 23, 42, 0.18);
+}
+.pro-listing-card:hover::before {
+    background: linear-gradient(135deg, rgba(99,102,241,0.6), rgba(168,85,247,0.6));
+}
+.pro-listing-card:focus-visible {
+    outline: 3px solid rgba(99,102,241,0.55);
+    outline-offset: 3px;
+}
+.pro-listing-card:active { transform: translateY(-4px) scale(0.995); }
+
+/* --- Media -------------------------------------------------------------- */
+.plc-media {
+    position: relative;
+    aspect-ratio: 16 / 11;
+    overflow: hidden;
+    background: linear-gradient(135deg, #eef2ff, #f3e8ff);
+}
+.plc-img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transform: scale(1.001);
+    transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease;
+}
+.plc-placeholder {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 4.5rem;
+    color: rgba(99,102,241,0.45);
+}
+.pro-listing-card:hover .plc-img { transform: scale(1.08); filter: brightness(1.03); }
+
+.plc-gradient {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(15,23,42,0.72) 0%, rgba(15,23,42,0.15) 40%, transparent 62%);
+    pointer-events: none;
+    opacity: 0.95;
+    transition: opacity 0.4s ease;
+}
+.pro-listing-card:hover .plc-gradient { opacity: 1; }
+
+/* Animated shimmer on hover */
+.plc-media::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -75%;
+    width: 60%; height: 100%;
+    background: linear-gradient(100deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%);
+    transform: skewX(-20deg);
+    pointer-events: none;
+    transition: none;
+}
+.pro-listing-card:hover .plc-media::after {
+    animation: plcShimmer 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes plcShimmer {
+    to { left: 125%; }
+}
+
+/* Top badges */
+.plc-top-badges {
+    position: absolute; top: 12px; left: 12px; right: 12px;
+    display: flex; flex-wrap: wrap; gap: 6px;
+    z-index: 3;
+}
+.plc-chip {
+    display: inline-flex; align-items: center;
+    padding: 5px 11px;
+    font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.02em;
+    border-radius: 50px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.9);
+    color: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 2px 8px rgba(15,23,42,0.12);
+}
+.plc-chip-gender {
+    background: linear-gradient(135deg, rgba(251,191,36,0.95), rgba(249,115,22,0.95));
+    color: white;
+    border-color: rgba(255,255,255,0.4);
+}
+
+/* Photo counter */
+.plc-photo-count {
+    position: absolute;
+    bottom: 12px; left: 12px;
+    z-index: 3;
+    background: rgba(15, 23, 42, 0.7);
+    color: #fff;
+    font-size: 0.72rem; font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 50px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+/* Price pill anchored bottom-right */
+.plc-price-pill {
+    position: absolute;
+    bottom: 12px; right: 12px;
+    z-index: 3;
+    display: inline-flex; align-items: baseline; gap: 4px;
+    padding: 7px 14px;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: #fff;
+    border-radius: 50px;
+    box-shadow: 0 10px 20px -6px rgba(79, 70, 229, 0.55),
+                inset 0 1px 0 rgba(255,255,255,0.25);
+    transform: translateY(0);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.4s ease;
+}
+.plc-price-pill strong {
+    font-size: 1.05rem; font-weight: 800; letter-spacing: -0.01em;
+}
+.plc-price-pill span {
+    font-size: 0.7rem; font-weight: 500; opacity: 0.85;
+}
+.pro-listing-card:hover .plc-price-pill {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px -6px rgba(79, 70, 229, 0.65),
+                inset 0 1px 0 rgba(255,255,255,0.3);
+}
+
+/* Floating CTA — slides up from bottom on hover */
+.plc-cta {
+    position: absolute;
+    bottom: 12px; left: 12px;
+    z-index: 3;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 13px;
+    font-size: 0.78rem; font-weight: 700;
+    color: #4f46e5;
+    background: rgba(255,255,255,0.96);
+    border-radius: 50px;
+    box-shadow: 0 8px 20px -6px rgba(15,23,42,0.25);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.35s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+}
+.plc-cta svg {
+    transition: transform 0.3s ease;
+}
+.pro-listing-card:hover .plc-cta {
+    opacity: 1;
+    transform: translateY(0);
+}
+.pro-listing-card:hover .plc-cta svg { transform: translateX(3px); }
+/* Hide photo-count when CTA appears so they don't overlap */
+.pro-listing-card:hover .plc-photo-count { opacity: 0; }
+
+/* --- Body --------------------------------------------------------------- */
+.plc-body {
+    padding: 1.1rem 1.2rem 1.25rem;
+    display: flex; flex-direction: column; gap: 0.55rem;
+}
+.plc-title {
+    margin: 0;
+    font-size: 1.02rem; font-weight: 700; line-height: 1.35;
+    color: #0f172a;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: color 0.25s ease;
+}
+.pro-listing-card:hover .plc-title { color: #4f46e5; }
+.plc-address {
+    margin: 0;
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.82rem;
+    color: #64748b;
+}
+.plc-address svg { flex-shrink: 0; color: #94a3b8; }
+
+/* Stats strip */
+.plc-stats {
+    margin-top: 0.25rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    padding: 0.75rem 0.5rem;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-radius: 14px;
+    border: 1px solid #eef2f7;
+}
+.plc-stat {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    font-size: 0.72rem;
+    color: #64748b;
+}
+.plc-stat-i { font-size: 1rem; }
+.plc-stat-v { font-weight: 700; color: #0f172a; font-size: 0.88rem; }
+.plc-stat-l { text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.65rem; }
+
+/* Availability */
+.plc-avail {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 0.76rem; font-weight: 600;
+    color: #047857;
+    padding: 5px 11px;
+    background: #ecfdf5;
+    border-radius: 50px;
+    align-self: flex-start;
+    border: 1px solid #a7f3d0;
+}
+.plc-avail-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+    animation: plcPulse 2s infinite;
+}
+@keyframes plcPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+    70%  { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .pro-listing-card,
+    .plc-img,
+    .plc-price-pill,
+    .plc-cta,
+    .plc-cta svg,
+    .plc-avail-dot { transition: none !important; animation: none !important; }
+    .pro-listing-card:hover { transform: none; }
+    .pro-listing-card:hover .plc-img { transform: scale(1); }
+    .pro-listing-card:hover .plc-media::after { animation: none; }
+}
+
+/* AI badge chips on card */
+.plc-ai-chip {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 3px 8px; border-radius: 50px;
+    font-size: 0.68rem; font-weight: 700;
+    background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+    border: 1px solid #c7d2fe; color: #4338ca;
+    animation: plcChipIn 0.3s ease both;
+}
+@keyframes plcChipIn {
+    from { opacity:0; transform: scale(0.8); }
+    to   { opacity:1; transform: scale(1); }
+}
+</style>
+{% endif %}
+
+{# Lazy-load top vibe tags for this card via IntersectionObserver #}
+<script>
+(function() {
+    var el = document.getElementById('plc-ai-{{ listing.id }}');
+    if (!el || !el.dataset.lat || !window.IntersectionObserver) return;
+    var loaded = false;
+    var obs = new IntersectionObserver(function(entries) {
+        if (loaded || !entries[0].isIntersecting) return;
+        loaded = true; obs.disconnect();
+        fetch('/api/ai/listing/{{ listing.id }}/neighbourhood', { credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                var tags = (d.top_vibes || d.tags || []).slice(0, 3);
+                tags.forEach(function(t) {
+                    var span = document.createElement('span');
+                    span.className = 'plc-ai-chip';
+                    span.textContent = (t.icon || '') + ' ' + (t.label || t.key || t);
+                    el.appendChild(span);
+                });
+            })
+            .catch(function(){});
+    }, { rootMargin: '100px' });
+    obs.observe(el);
+})();
+</script>

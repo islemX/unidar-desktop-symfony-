@@ -1,0 +1,57 @@
+{% extends 'emails/_layout.html.twig' %}
+{% set recipient_email = user.email %}
+
+{% block body %}
+<div style="text-align:center; margin-bottom:28px;">
+  <div style="font-size:50px; line-height:1; margin-bottom:14px;">🤝</div>
+  <h1 style="margin:0 0 8px; font-size:22px; font-weight:800; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">{{ matchCount }} new roommate match{{ matchCount != 1 ? 'es' : '' }} found!</h1>
+  <p style="margin:0; font-size:14px; color:#6c63ff; font-weight:600; font-family:-apple-system,Arial,sans-serif;">Our AI found compatible flatmates for you</p>
+</div>
+
+<p style="margin:0 0 22px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">
+  Hi <strong style="color:#1a1d2e;">{{ user.fullName }}</strong>, UNIDAR's roommate AI has found <strong>{{ matchCount }} student{{ matchCount != 1 ? 's' : '' }}</strong> who match your lifestyle, schedule and budget preferences.
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:22px;">
+  <tr><td style="background:linear-gradient(135deg,#f3f2ff,#f0fffe); border-radius:12px; border-left:4px solid #6c63ff; padding:16px 20px;">
+    <p style="margin:0; font-size:13.5px; color:#3d3a6b; font-family:-apple-system,Arial,sans-serif; line-height:1.65;">
+      🧠 Compatibility is scored from <strong>sleep schedule, cleanliness, smoking preference, noise tolerance, budget and gender preference</strong> — not just location.
+    </p>
+  </td></tr>
+</table>
+
+{% for match in matches %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px; border-radius:14px; overflow:hidden; border:1.5px solid {% if match.score >= 0.8 %}#c6f6d5{% elseif match.score >= 0.6 %}#bee3f8{% else %}#e2e8f0{% endif %};">
+  <tr style="background:{% if match.score >= 0.8 %}#f0fff4{% elseif match.score >= 0.6 %}#ebf8ff{% else %}#f7f8fc{% endif %};">
+    <td style="padding:18px 22px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="vertical-align:middle; width:50px;">
+            <div style="width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#6c63ff,#4ecdc4); text-align:center; line-height:44px; font-size:18px; font-weight:800; color:white; font-family:-apple-system,Arial,sans-serif;">{{ match.student.fullName|first|upper }}</div>
+          </td>
+          <td style="padding-left:14px; vertical-align:middle;">
+            <p style="margin:0 0 2px; font-size:15px; font-weight:700; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">{{ match.student.fullName }}</p>
+            <p style="margin:0; font-size:12.5px; color:#718096; font-family:-apple-system,Arial,sans-serif;">{% if match.student.university is defined and match.student.university %}🎓 {{ match.student.university }}{% endif %}</p>
+          </td>
+          <td style="text-align:right; vertical-align:middle;">
+            <div style="display:inline-block; padding:5px 14px; border-radius:20px; background:{% if match.score >= 0.8 %}#c6f6d5{% elseif match.score >= 0.6 %}#bee3f8{% else %}#e2e8f0{% endif %};">
+              <span style="font-size:15px; font-weight:800; color:{% if match.score >= 0.8 %}#276749{% elseif match.score >= 0.6 %}#2a69ac{% else %}#4a5568{% endif %}; font-family:-apple-system,Arial,sans-serif;">{{ (match.score * 100)|round }}%</span>
+            </div>
+            <p style="margin:4px 0 0; font-size:10px; color:#a0aab8; font-family:-apple-system,Arial,sans-serif; text-align:center;">match</p>
+          </td>
+        </tr>
+      </table>
+      {% if match.traits is defined and match.traits|length %}
+      <p style="margin:12px 0 0; font-size:12.5px; color:#718096; font-family:-apple-system,Arial,sans-serif;">✓ {{ match.traits|join(' · ') }}</p>
+      {% endif %}
+    </td>
+  </tr>
+</table>
+{% endfor %}
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;">
+  <tr><td style="background:linear-gradient(135deg,#5b52e0,#3cbfb8); border-radius:14px; padding:18px 24px; text-align:center;">
+    <p style="margin:0; font-size:15px; font-weight:700; color:#ffffff; font-family:-apple-system,Arial,sans-serif;">Sign in → Roommate Matching → View full profiles &amp; message</p>
+  </td></tr>
+</table>
+{% endblock %}

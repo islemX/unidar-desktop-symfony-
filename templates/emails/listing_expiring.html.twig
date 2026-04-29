@@ -1,0 +1,43 @@
+{% extends 'emails/_layout.html.twig' %}
+{% set recipient_email = user.email %}
+
+{% block body %}
+<div style="text-align:center; margin-bottom:28px;">
+  <div style="font-size:50px; line-height:1; margin-bottom:14px;">🏠</div>
+  <h1 style="margin:0 0 8px; font-size:22px; font-weight:800; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">Your listing is expiring soon</h1>
+  <span style="display:inline-block; background:#fefcbf; color:#7b6c0b; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; padding:4px 12px; border-radius:20px; font-family:-apple-system,Arial,sans-serif;">{{ daysLeft }} day{{ daysLeft != 1 ? 's' : '' }} left</span>
+</div>
+
+<p style="margin:0 0 16px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Hi <strong style="color:#1a1d2e;">{{ user.fullName }}</strong>,</p>
+
+<p style="margin:0 0 22px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">
+  Your listing <strong style="color:#6c63ff;">"{{ listing.title }}"</strong> is available until <strong style="color:#d69e2e;">{{ listing.availableUntil ? listing.availableUntil|date('d M Y') : 'soon' }}</strong> — only <strong>{{ daysLeft }} day{{ daysLeft != 1 ? 's' : '' }}</strong> away.
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px; border-radius:14px; overflow:hidden; border:1.5px solid #eaecf2;">
+  <tr style="background:linear-gradient(135deg,#f8f7ff,#f0fffe);">
+    <td style="padding:18px 22px;">
+      <p style="margin:0 0 4px; font-size:16px; font-weight:800; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">{{ listing.title }}</p>
+      <p style="margin:0 0 12px; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif;">📍 {{ listing.address }}</p>
+      <p style="margin:0; font-size:18px; font-weight:800; color:#6c63ff; font-family:-apple-system,Arial,sans-serif;">{{ listing.price }} TND<span style="font-size:13px; font-weight:400; color:#a0aab8;">/mo</span></p>
+    </td>
+  </tr>
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+  <tr><td style="background:#f0fffe; border-radius:12px; border-left:4px solid #4ecdc4; padding:18px 22px;">
+    <p style="margin:0 0 10px; font-size:13px; font-weight:700; color:#2c7a7b; font-family:-apple-system,Arial,sans-serif;">What would you like to do?</p>
+    <p style="margin:0; font-size:13.5px; color:#4a5568; line-height:1.8; font-family:-apple-system,Arial,sans-serif;">
+      ✅ &nbsp;<strong>Extend availability</strong> — update the available-until date to keep your listing live.<br>
+      🔄 &nbsp;<strong>Renew the listing</strong> — edit details and resubmit for review.<br>
+      🏁 &nbsp;<strong>Mark as rented</strong> — close the listing if a tenant has been found.
+    </p>
+  </td></tr>
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr><td style="background:linear-gradient(135deg,#5b52e0,#3cbfb8); border-radius:14px; padding:18px 24px; text-align:center;">
+    <p style="margin:0; font-size:15px; font-weight:700; color:#ffffff; font-family:-apple-system,Arial,sans-serif;">Sign in → My Listings → Manage this listing</p>
+  </td></tr>
+</table>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+{% block title %}Payments - Admin{% endblock %}
+{% block body %}
+<div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <h2>Payment Management</h2>
+        <div style="display:flex;gap:0.5rem;">
+            <a href="{{ path('admin_payment_export') }}" class="btn btn-outline">📥 Export CSV</a>
+            <a href="{{ path('admin_dashboard') }}" class="btn btn-outline btn-sm">← Dashboard</a>
+        </div>
+    </div>
+    {% if stats %}
+    <div class="grid grid-3" style="margin-bottom:1.5rem;">
+        <div class="card" style="text-align:center;">
+            <div style="font-size:1.5rem;font-weight:700;color:var(--success);">{{ stats.completed_total|default(0)|number_format(2) }} TND</div>
+            <div style="color:var(--gray);">Total Revenue</div>
+        </div>
+        <div class="card" style="text-align:center;">
+            <div style="font-size:1.5rem;font-weight:700;color:var(--warning);">{{ stats.pending_count|default(0) }}</div>
+            <div style="color:var(--gray);">Pending Payments</div>
+        </div>
+        <div class="card" style="text-align:center;">
+            <div style="font-size:1.5rem;font-weight:700;color:var(--primary);">{{ stats.completed_count|default(0) }}</div>
+            <div style="color:var(--gray);">Completed</div>
+        </div>
+    </div>
+    {% endif %}
+    <form method="get" style="display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+        <select name="period" class="form-control" style="max-width:150px;">
+            <option value="all">All time</option>
+            <option value="today" {{ app.request.query.get('period') == 'today' ? 'selected' }}>Today</option>
+            <option value="week" {{ app.request.query.get('period') == 'week' ? 'selected' }}>This week</option>
+            <option value="month" {{ app.request.query.get('period') == 'month' ? 'selected' }}>This month</option>
+        </select>
+        <select name="status" class="form-control" style="max-width:150px;">
+            <option value="">All statuses</option>
+            <option value="completed">Completed</option>
+            <option value="pending">Pending</option>
+            <option value="failed">Failed</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Filter</button>
+    </form>
+    <div class="card">
+        <table class="table">
+            <thead><tr><th>ID</th><th>Contract</th><th>Amount</th><th>Platform Fee</th><th>Status</th><th>Date</th><th></th></tr></thead>
+            <tbody>
+            {% for payment in payments %}
+            <tr>
+                <td>#{{ payment.id }}</td>
+                <td><code>{{ payment.contract.contractNumber }}</code></td>
+                <td>{{ payment.amount }} TND</td>
+                <td style="color:var(--primary);">{{ payment.platformFee }} TND</td>
+                <td><span class="badge {% if payment.status.value == 'completed' %}badge-success{% elseif payment.status.value == 'failed' %}badge-danger{% else %}badge-warning{% endif %}">{{ payment.status.value }}</span></td>
+                <td>{{ payment.createdAt|date('d/m/Y H:i') }}</td>
+                <td><a href="{{ path('admin_payment_detail', {id: payment.id}) }}" class="btn btn-outline btn-sm">View</a></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {{ knp_pagination_render(payments) }}
+    </div>
+</div>
+{% endblock %}

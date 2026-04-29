@@ -1,0 +1,94 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ mode }} Contract Template — UNIDAR Admin{% endblock %}
+{% block body %}
+<div class="container-fluid px-4 py-4" style="max-width:1100px;">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{{ path('admin_contract_template_index') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i> Back
+    </a>
+    <h1 class="h5 mb-0 fw-bold">{{ mode }} Contract Template</h1>
+  </div>
+
+  <div class="card border-0 shadow-sm" style="border-radius:14px;">
+    <div class="card-body p-4">
+      <form method="post">
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-5">
+            <label class="form-label fw-semibold small">Template Name</label>
+            <input type="text" name="template_name" class="form-control"
+                   value="{{ template.templateName ?? '' }}" required>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold small">Locale</label>
+            <select name="locale" class="form-select">
+              {% for loc in ['fr', 'en', 'ar'] %}
+                <option value="{{ loc }}" {% if (template.locale ?? 'fr') == loc %}selected{% endif %}>{{ loc|upper }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold small">Type</label>
+            <select name="template_type" class="form-select">
+              <option value="residential" {% if (template.templateType ?? 'residential') == 'residential' %}selected{% endif %}>Residential</option>
+              <option value="commercial" {% if (template.templateType ?? '') == 'commercial' %}selected{% endif %}>Commercial</option>
+            </select>
+          </div>
+          <div class="col-md-1">
+            <label class="form-label fw-semibold small">Version</label>
+            <input type="number" name="version" class="form-control" min="1"
+                   value="{{ template.version ?? 1 }}">
+          </div>
+          <div class="col-md-2 d-flex align-items-end gap-3 pb-1">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="is_active" id="is_active"
+                     {% if template.isActive ?? true %}checked{% endif %}>
+              <label class="form-check-label small" for="is_active">Active</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="is_default" id="is_default"
+                     {% if template.isDefault ?? false %}checked{% endif %}>
+              <label class="form-check-label small" for="is_default">Default</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">
+            Contract HTML Body
+            <span class="badge rounded-pill ms-2" style="background:#ede9fe;color:#6366f1;font-weight:500;">
+              Twig template — use {{ '{{' }} listing.title {{ '}}' }}, {{ '{{' }} owner.fullName {{ '}}' }}, {{ '{{' }} student.email {{ '}}' }}, etc.
+            </span>
+          </label>
+          <textarea name="contract_content" class="form-control font-monospace"
+                    rows="22" style="font-size:12.5px;line-height:1.6;resize:vertical;">{{ template.contractContent ?? '' }}</textarea>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold small">Legal Clauses (optional)</label>
+            <textarea name="legal_clauses" class="form-control" rows="4"
+                      style="font-size:12.5px;">{{ template.legalClauses ?? '' }}</textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold small">Tunisia-Specific Clauses (optional)</label>
+            <textarea name="tunisia_clauses" class="form-control" rows="4"
+                      style="font-size:12.5px;">{{ template.tunisiaSpecificClauses ?? '' }}</textarea>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn fw-semibold text-white px-4"
+                  style="background:linear-gradient(135deg,#10b981,#059669);">
+            <i class="fas fa-save me-1"></i> Save Template
+          </button>
+          <a href="{{ path('admin_contract_template_index') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

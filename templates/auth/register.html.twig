@@ -1,0 +1,525 @@
+{% extends 'base.html.twig' %}
+{% block voice_briefing %}
+<script>window.__vcPage__ = { page: 'register', role: 'guest', briefing: { en: "Registration page. Create your UNIDAR account. Say 'start dictation' to fill fields by voice.", fr: "Inscription. Créez votre compte UNIDAR. Dites 'commencer dictée'.", ar: "صفحة التسجيل. أنشئ حسابك. قل 'ابدأ الإملاء'." }, suggestions: [ {label:'Start dictation', cmd:'start dictation'}, {label:'Login instead', cmd:'login'} ] };</script>
+{% endblock %}
+{% block title %}Register - UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<style>
+    #map { height: 280px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); margin-top: 0.5rem; }
+    #universityGroup { display: none; }
+    #genderGroup     { display: none; }
+    .form-hint { font-size: 0.78rem; color: var(--color-text-muted); margin-top: 0.3rem; display: block; }
+    #selectedLocationDisplay { font-size: 0.85rem; color: var(--color-brand); font-weight: 500; margin-top: 0.5rem; min-height: 1.2em; }
+    #uniSuggestions { position: fixed; z-index: 9999; background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); max-height: 220px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+    .uni-suggestion-item { padding: 0.6rem 0.9rem; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid var(--color-surface-100); }
+    .uni-suggestion-item:last-child { border-bottom: none; }
+    .uni-suggestion-item:hover, .uni-suggestion-item.active { background: var(--color-primary-50, #eff6ff); color: var(--color-brand); }
+    .uni-suggestion-city { font-size: 0.75rem; color: var(--color-text-muted); }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div><div class="shape shape-3"></div></div>
+
+<div class="section" style="min-height: calc(100vh - 70px); display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; padding: 2rem 1rem;">
+    <div class="container" style="max-width: 650px;">
+        <div class="card fade-in-up" style="padding: 0; overflow: hidden;">
+            <div class="card-header text-center" style="padding: 2rem;">
+                <div class="section-tag" data-i18n="register_welcome">Join Us</div>
+                <h1 style="font-size: 1.75rem; margin: 0.5rem 0 0.25rem;" data-i18n="register_title">Create Account</h1>
+                <p class="text-muted" data-i18n="register_start">Start your journey with UNIDAR</p>
+            </div>
+            <div class="card-body" style="padding: 2rem;">
+
+                {{ form_start(form, {'attr': {'id': 'registerForm', 'novalidate': 'novalidate'}}) }}
+                {{ form_errors(form) }}
+
+                {# Row 1: Full Name + Role #}
+                <div class="flex gap-md" style="margin-bottom: 1.25rem;">
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label class="form-label" data-i18n="register_fullname">Full Name</label>
+                        {{ form_widget(form.fullName, {'attr': {'class': 'form-input', 'placeholder': 'John Doe', 'data-i18n-placeholder': 'register_fullname_placeholder'}}) }}
+                        {{ form_errors(form.fullName) }}
+                    </div>
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label class="form-label" data-i18n="register_role">I am a</label>
+                        {{ form_widget(form.role, {'attr': {'class': 'form-input'}}) }}
+                        {{ form_errors(form.role) }}
+                    </div>
+                </div>
+
+                {# Gender — students only #}
+                <div id="genderGroup" class="form-group">
+                    <label class="form-label">Gender *</label>
+                    {{ form_widget(form.gender, {'attr': {'class': 'form-input'}}) }}
+                    {{ form_errors(form.gender) }}
+                </div>
+
+                {# Email — Layer 1: real-time format check via JS; Layer 2: MX via ValidEmailDomain constraint #}
+                <div class="form-group">
+                    <label class="form-label" data-i18n="register_email">Email Address</label>
+                    <div style="position:relative;">
+                        {{ form_widget(form.email, {'attr': {'class': 'form-input', 'placeholder': 'student@university.edu', 'data-i18n-placeholder': 'register_email_placeholder', 'id': 'registration_email', 'autocomplete': 'email'}}) }}
+                        <span id="emailStatusIcon" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:1.1rem; display:none;"></span>
+                    </div>
+                    <span id="emailFeedback" class="form-hint" style="min-height:1.2em; display:block;"></span>
+                    <span class="form-hint" data-i18n="register_email_hint" style="display:none;">University email helps with trust and verification.</span>
+                    {{ form_errors(form.email) }}
+                </div>
+
+                {# Password row #}
+                <div class="flex gap-md" style="margin-bottom: 1.25rem;">
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label class="form-label" data-i18n="register_password">Password</label>
+                        {{ form_widget(form.password.first, {'attr': {'class': 'form-input', 'placeholder': 'Min. 8 characters', 'data-i18n-placeholder': 'register_password_placeholder'}}) }}
+                        {{ form_errors(form.password.first) }}
+                    </div>
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label class="form-label" data-i18n="register_confirm">Confirm Password</label>
+                        {{ form_widget(form.password.second, {'attr': {'class': 'form-input', 'placeholder': 'Re-enter password', 'data-i18n-placeholder': 'register_confirm_placeholder'}}) }}
+                        {{ form_errors(form.password.second) }}
+                    </div>
+                </div>
+
+                {# Phone #}
+                <div class="form-group">
+                    <label class="form-label" data-i18n="register_phone">Phone Number (Optional)</label>
+                    {{ form_widget(form.phone, {'attr': {'class': 'form-input', 'placeholder': '+216 ...', 'data-i18n-placeholder': 'register_phone_placeholder'}}) }}
+                </div>
+
+                {# University + Map — students only #}
+                <div id="universityGroup">
+                    <div class="form-group" style="position: relative;">
+                        <label class="form-label" data-i18n="register_university">University Name</label>
+                        <div style="position: relative;">
+                            {{ form_widget(form.university, {'attr': {'class': 'form-input', 'placeholder': 'e.g. ESPRIT, INSAT, FST...', 'autocomplete': 'off'}}) }}
+                            <div id="uniSuggestions" style="display:none;"></div>
+                        </div>
+                        <span id="uniFeedback" class="form-hint" style="min-height:1.2em; display:block;"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="register_map_radius">Search Radius (Preferred Area)</label>
+                        <p class="text-small text-muted mb-sm" data-i18n="register_map_hint" style="margin-bottom: 0.5rem;">Click on the map to mark your study area, or select a university above to auto-locate it.</p>
+                        <div id="map"></div>
+                        <div id="selectedLocationDisplay"></div>
+                    </div>
+                </div>
+
+                {# Hidden fields — rendered explicitly so form_end can close cleanly #}
+                <div style="display: none;">
+                    {{ form_widget(form.preferredLat) }}
+                    {{ form_widget(form.preferredLng) }}
+                    {{ form_widget(form.preferredAddress) }}
+                    {{ form_widget(form.universityAddress) }}
+                    {{ form_rest(form) }}{# renders _token + any remaining fields #}
+                </div>
+
+                <div id="errorMessage" class="alert alert-error" style="display: none;"></div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.875rem; font-size: 1rem; margin-top: var(--space-md);">
+                    <span data-i18n="register_create">Create Account</span>
+                </button>
+
+                {{ form_end(form, {'render_rest': false}) }}
+
+                <div class="text-center" style="margin-top: 1.5rem;">
+                    <p class="text-small text-muted">
+                        <span data-i18n="register_have_account">Already have an account?</span>
+                        <a href="{{ path('app_login') }}" style="font-weight: 600; color: var(--color-brand);" data-i18n="register_signin">Sign in</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+(function () {
+    var regMap = null, regMarker = null;
+
+    var roleField = document.getElementById('registration_role');
+    var universityGroup = document.getElementById('universityGroup');
+    var genderGroup = document.getElementById('genderGroup');
+    var latInput = document.getElementById('registration_preferredLat');
+    var lngInput = document.getElementById('registration_preferredLng');
+    var addrInput = document.getElementById('registration_preferredAddress');
+
+    if (!roleField) {
+        console.warn('registration_role not found');
+        return;
+    }
+
+    function updateVisibility() {
+        var isStudent = (roleField.value === 'student');
+        universityGroup.style.display = isStudent ? 'block' : 'none';
+        genderGroup.style.display     = isStudent ? 'block' : 'none';
+
+        if (isStudent) {
+            // Use increasing timeouts to ensure the DOM has reflowed
+            setTimeout(function() {
+                initRegMap();
+                if (regMap) regMap.invalidateSize();
+            }, 300);
+        }
+    }
+
+    roleField.addEventListener('change', updateVisibility);
+
+    // Run on load in case role already has a value
+    updateVisibility();
+
+    // ── University autocomplete ────────────────────────────────
+    (function () {
+        // Symfony may render its own id="registration_university" before attr.id,
+        // so fall back to a structural selector inside #universityGroup
+        var uniSearch = document.getElementById('uniSearch')
+            || document.querySelector('#universityGroup .form-group input[type="text"]');
+        var uniDropdown  = document.getElementById('uniSuggestions');
+        var uniFeedback  = document.getElementById('uniFeedback');
+        // universityAddress hidden field — Symfony auto-generates this id
+        var uniAddrInput = document.getElementById('registration_universityAddress')
+            || document.querySelector('input[name$="[universityAddress]"]');
+        if (!uniSearch) return;
+
+        // ── Comprehensive Tunisian Universities & Grandes Écoles Dataset ──────────
+        var UNIVERSITIES = [
+            // ── Tunis / Grand Tunis ───────────────────────────────────────────────
+            { name: 'ESPRIT', city: 'Tunis', address: '2 Rue Ibn Haythem, Ariana, Tunis', latitude: 36.8984, longitude: 10.1877 },
+            { name: 'INSAT – Institut National des Sciences Appliquées et de Technologie', city: 'Tunis', address: 'Centre Urbain Nord, Tunis', latitude: 36.8322, longitude: 10.2117 },
+            { name: 'ENIT – École Nationale d\'Ingénieurs de Tunis', city: 'Tunis', address: 'Rue Belvédère, Tunis', latitude: 36.8382, longitude: 10.1980 },
+            { name: 'FST – Faculté des Sciences de Tunis', city: 'Tunis', address: 'Campus El Manar, Tunis', latitude: 36.8334, longitude: 10.1681 },
+            { name: 'ISG – Institut Supérieur de Gestion de Tunis', city: 'Tunis', address: '41 Rue de la Liberté, Le Bardo, Tunis', latitude: 36.8246, longitude: 10.1318 },
+            { name: 'Université de Tunis', city: 'Tunis', address: '92 Blvd du 9 Avril 1938, Tunis', latitude: 36.8203, longitude: 10.1609 },
+            { name: 'Université de Tunis El Manar', city: 'Tunis', address: 'Campus Universitaire El Manar, Tunis', latitude: 36.8340, longitude: 10.1700 },
+            { name: 'Université de la Manouba', city: 'Manouba', address: 'Campus Universitaire de la Manouba', latitude: 36.8082, longitude: 10.1001 },
+            { name: 'ENSI – École Nationale des Sciences de l\'Informatique', city: 'Manouba', address: 'Campus Universitaire de la Manouba', latitude: 36.8590, longitude: 10.1050 },
+            { name: 'ESEN – École Supérieure de l\'Économie Numérique', city: 'Manouba', address: 'Campus Universitaire de la Manouba', latitude: 36.8082, longitude: 10.1001 },
+            { name: 'ISI – Institut Supérieur d\'Informatique', city: 'Ariana', address: '2 Rue Abou Rayhane Bayrouni, Ariana', latitude: 36.8590, longitude: 10.0854 },
+            { name: 'Université de Carthage', city: 'Carthage', address: 'Carthage, Tunis', latitude: 36.8581, longitude: 10.3258 },
+            { name: 'IHEC – Institut des Hautes Études Commerciales de Carthage', city: 'Carthage', address: 'Carthage Présidence, Tunis', latitude: 36.8581, longitude: 10.3258 },
+            { name: 'EPI – École Polytechnique Internationale Privée', city: 'Tunis', address: 'Centre Urbain Nord, Tunis', latitude: 36.8488, longitude: 10.1895 },
+            { name: 'ISET de Tunis', city: 'Tunis', address: 'Bab Mnara, Tunis', latitude: 36.8256, longitude: 10.1646 },
+            { name: 'Université Virtuelle de Tunis', city: 'Tunis', address: '43 Rue Sibawayhi, Montfleury, Tunis', latitude: 36.8224, longitude: 10.1947 },
+            { name: 'IPT – Institut Préparatoire aux Études d\'Ingénieur de Tunis', city: 'Tunis', address: 'Montfleury, Tunis', latitude: 36.8224, longitude: 10.1947 },
+            { name: 'IPEIG – Institut Préparatoire aux Études d\'Ingénieur El Ghazala', city: 'Ariana', address: 'El Ghazala Technopôle, Ariana', latitude: 36.9100, longitude: 10.1886 },
+            // ── Sfax ─────────────────────────────────────────────────────────────
+            { name: 'Université de Sfax', city: 'Sfax', address: 'Route de l\'Aérodrome km 0.5, Sfax', latitude: 34.7405, longitude: 10.7603 },
+            { name: 'ENIS – École Nationale d\'Ingénieurs de Sfax', city: 'Sfax', address: 'Route Soukra km 4, Sfax', latitude: 34.7479, longitude: 10.7570 },
+            { name: 'FSS – Faculté des Sciences de Sfax', city: 'Sfax', address: 'Route Soukra km 3.5, Sfax', latitude: 34.7405, longitude: 10.7560 },
+            { name: 'ISIMS – Institut Supérieur d\'Informatique et Multimédia de Sfax', city: 'Sfax', address: 'Route Mahdia km 1, Sfax', latitude: 34.7498, longitude: 10.7572 },
+            { name: 'FSEGS – Faculté des Sciences Économiques et de Gestion de Sfax', city: 'Sfax', address: 'Route de l\'Aérodrome km 4, Sfax', latitude: 34.7380, longitude: 10.7620 },
+            { name: 'ISET de Sfax', city: 'Sfax', address: 'Route Mahdia, Sfax', latitude: 34.7392, longitude: 10.7556 },
+            // ── Sousse ───────────────────────────────────────────────────────────
+            { name: 'Université de Sousse', city: 'Sousse', address: 'Cité Erriadh, Sousse', latitude: 35.8288, longitude: 10.6390 },
+            { name: 'ENIS – École Nationale d\'Ingénieurs de Sousse', city: 'Sousse', address: 'Rue Ibn Khaldoun, Sousse', latitude: 35.8295, longitude: 10.6394 },
+            { name: 'ISSAT Sousse', city: 'Sousse', address: 'Cité Ibn Khaldoun, Sousse', latitude: 35.8288, longitude: 10.6390 },
+            { name: 'ISET de Sousse', city: 'Sousse', address: 'Cité Hammam Sousse', latitude: 35.8618, longitude: 10.5935 },
+            { name: 'Faculté de Médecine de Sousse', city: 'Sousse', address: 'Avenue Mohammed Karoui, Sousse', latitude: 35.8289, longitude: 10.6337 },
+            // ── Monastir ─────────────────────────────────────────────────────────
+            { name: 'Université de Monastir', city: 'Monastir', address: 'Avenue Ibn Sinaa, Monastir', latitude: 35.7643, longitude: 10.8113 },
+            { name: 'Faculté de Médecine de Monastir', city: 'Monastir', address: 'Avenue Ibn Sinaa, Monastir', latitude: 35.7643, longitude: 10.8113 },
+            { name: 'ENIM – École Nationale d\'Ingénieurs de Monastir', city: 'Monastir', address: 'Rue Ibn El Jazzar, Monastir', latitude: 35.7776, longitude: 10.8263 },
+            { name: 'ISSAT Mahdia', city: 'Mahdia', address: 'Route de Riadh Sidi Messaoud, Mahdia', latitude: 35.5049, longitude: 11.0622 },
+            // ── Gabès ────────────────────────────────────────────────────────────
+            { name: 'Université de Gabès', city: 'Gabès', address: 'Cité Erriadh Zrig, Gabès', latitude: 33.8869, longitude: 10.0987 },
+            { name: 'ENIG – École Nationale d\'Ingénieurs de Gabès', city: 'Gabès', address: 'Omar Ibn El Khattab, Gabès', latitude: 33.8869, longitude: 10.0987 },
+            { name: 'ISSAT Gabès', city: 'Gabès', address: 'Route Médenine km 6, Gabès', latitude: 33.8956, longitude: 10.1183 },
+            // ── Bizerte ──────────────────────────────────────────────────────────
+            { name: 'Université de Bizerte', city: 'Bizerte', address: 'Zarzouna, Bizerte', latitude: 37.2744, longitude: 9.8739 },
+            { name: 'ENIB – École Nationale d\'Ingénieurs de Bizerte', city: 'Bizerte', address: 'Bizerte', latitude: 37.2744, longitude: 9.8739 },
+            { name: 'ISET de Bizerte', city: 'Bizerte', address: 'Zarzouna, Bizerte', latitude: 37.2744, longitude: 9.8739 },
+            // ── Jendouba ─────────────────────────────────────────────────────────
+            { name: 'Université de Jendouba', city: 'Jendouba', address: 'Avenue du 7 Novembre, Jendouba', latitude: 36.5011, longitude: 8.7757 },
+            { name: 'ISSABT – Institut Supérieur des Sciences Appliquées et de Technologie de Béja', city: 'Béja', address: 'Béja', latitude: 36.7333, longitude: 9.1833 },
+            // ── Kairouan ─────────────────────────────────────────────────────────
+            { name: 'Université de Kairouan', city: 'Kairouan', address: 'Avenue Zama El Balaoui, Kairouan', latitude: 35.6784, longitude: 10.1013 },
+            { name: 'ISSAT Kairouan', city: 'Kairouan', address: 'Route Tunis km 5, Kairouan', latitude: 35.6764, longitude: 10.0943 },
+            { name: 'ISSIG – Institut Supérieur d\'Informatique et de Gestion de Kairouan', city: 'Kairouan', address: 'Kairouan', latitude: 35.6784, longitude: 10.1013 },
+            // ── Gafsa ────────────────────────────────────────────────────────────
+            { name: 'Université de Gafsa', city: 'Gafsa', address: 'Campus Universitaire Sidi Ahmed Zarroug, Gafsa', latitude: 34.4200, longitude: 8.7843 },
+            { name: 'ISSAT Gafsa', city: 'Gafsa', address: 'Gafsa', latitude: 34.4200, longitude: 8.7843 },
+            // ── Kasserine ────────────────────────────────────────────────────────
+            { name: 'ISSAT Kasserine', city: 'Kasserine', address: 'Route de Sbiba, Kasserine', latitude: 35.1675, longitude: 8.8365 },
+            // ── Le Kef ───────────────────────────────────────────────────────────
+            { name: 'Université du Kef', city: 'Le Kef', address: 'Le Kef', latitude: 36.1825, longitude: 8.7147 },
+            { name: 'ISSAT Kef', city: 'Le Kef', address: 'Le Kef', latitude: 36.1825, longitude: 8.7147 },
+            // ── Nabeul / Cap Bon ─────────────────────────────────────────────────
+            { name: 'IPEIN – Institut Préparatoire aux Études d\'Ingénieur de Nabeul', city: 'Nabeul', address: 'Nabeul', latitude: 36.4513, longitude: 10.7357 },
+            { name: 'ISET de Nabeul', city: 'Nabeul', address: 'Nabeul', latitude: 36.4513, longitude: 10.7357 },
+            // ── Sidi Bouzid ──────────────────────────────────────────────────────
+            { name: 'ISSAT Sidi Bouzid', city: 'Sidi Bouzid', address: 'Route de Gafsa, Sidi Bouzid', latitude: 35.0380, longitude: 9.4840 },
+            // ── Siliana ──────────────────────────────────────────────────────────
+            { name: 'ISSS – Institut Supérieur de Siliana', city: 'Siliana', address: 'Siliana', latitude: 36.0850, longitude: 9.3714 },
+            // ── Zaghouan ─────────────────────────────────────────────────────────
+            { name: 'ISSAT Zaghouan', city: 'Zaghouan', address: 'Zaghouan', latitude: 36.4017, longitude: 10.1432 },
+            // ── Médenine ─────────────────────────────────────────────────────────
+            { name: 'Université de Médenine', city: 'Médenine', address: 'Médenine', latitude: 33.3549, longitude: 10.5056 },
+            { name: 'ISSAT Médenine', city: 'Médenine', address: 'Médenine', latitude: 33.3549, longitude: 10.5056 },
+            // ── Tataouine ────────────────────────────────────────────────────────
+            { name: 'ISSAT Tataouine', city: 'Tataouine', address: 'Tataouine', latitude: 32.9297, longitude: 10.4516 },
+            // ── Tozeur ───────────────────────────────────────────────────────────
+            { name: 'ISSAT Tozeur', city: 'Tozeur', address: 'Tozeur', latitude: 33.9187, longitude: 8.1335 },
+            // ── Kébili ───────────────────────────────────────────────────────────
+            { name: 'Institut Supérieur de Kébili', city: 'Kébili', address: 'Kébili', latitude: 33.7024, longitude: 8.9686 },
+        ];
+        // ── End dataset ──────────────────────────────────────────────────────────
+
+        var debounceTimer = null;
+        var activeIndex   = -1;
+        var currentResults = [];
+
+        uniSearch.addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            var q = this.value.trim();
+            if (q.length < 2) { closeDropdown(); return; }
+            debounceTimer = setTimeout(function () { fetchSuggestions(q); }, 150);
+        });
+
+        uniSearch.addEventListener('keydown', function (e) {
+            var items = uniDropdown.querySelectorAll('.uni-suggestion-item');
+            if (!items.length) return;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIndex = Math.min(activeIndex + 1, items.length - 1);
+                highlightItem(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIndex = Math.max(activeIndex - 1, 0);
+                highlightItem(items);
+            } else if (e.key === 'Enter' && activeIndex >= 0) {
+                e.preventDefault();
+                selectFaculty(currentResults[activeIndex]);
+            } else if (e.key === 'Escape') {
+                closeDropdown();
+            }
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!uniSearch.contains(e.target) && !uniDropdown.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        function fetchSuggestions(q) {
+            var qLow = q.toLowerCase().replace(/[-–—]/g, ' ');
+            // 1️⃣ Search local dataset first — instant, works offline
+            var local = UNIVERSITIES.filter(function (u) {
+                var haystack = (u.name + ' ' + u.city + ' ' + (u.address || '')).toLowerCase();
+                // Support multi-word queries: every word must match somewhere
+                return qLow.split(/\s+/).every(function (word) {
+                    return word.length === 0 || haystack.indexOf(word) !== -1;
+                });
+            }).slice(0, 8);
+
+            if (local.length > 0) {
+                currentResults = local;
+                renderDropdown(local);
+            } else {
+                // 2️⃣ Fallback to Nominatim for unlisted / custom names
+                fetchNominatim(q);
+            }
+        }
+
+        function fetchNominatim(q) {
+            var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=1'
+                    + '&q=' + encodeURIComponent(q + ' université Tunisia')
+                    + '&countrycodes=tn';
+            fetch(url, { headers: { 'Accept-Language': 'fr,en' } })
+                .then(function (r) { return r.json(); })
+                .then(function (items) {
+                    var results = items.map(function (item) {
+                        return {
+                            name: item.display_name.split(',')[0],
+                            address: item.display_name,
+                            latitude: parseFloat(item.lat),
+                            longitude: parseFloat(item.lon)
+                        };
+                    });
+                    currentResults = results;
+                    renderDropdown(results);
+                })
+                .catch(function () { closeDropdown(); });
+        }
+
+        function renderDropdown(faculties) {
+            uniDropdown.innerHTML = '';
+            activeIndex = -1;
+            if (!faculties.length) { closeDropdown(); return; }
+
+            faculties.forEach(function (f) {
+                var item = document.createElement('div');
+                item.className = 'uni-suggestion-item';
+                // Show city badge when the dataset entry has one
+                var cityBadge = f.city
+                    ? '<span style="display:inline-block;background:var(--color-primary-50,#eff6ff);color:var(--color-brand);border-radius:4px;padding:1px 6px;font-size:0.7rem;margin-left:6px;font-weight:600;">'
+                      + escHtml(f.city) + '</span>'
+                    : '';
+                item.innerHTML = '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">'
+                    + escHtml(f.name) + cityBadge + '</div>'
+                    + '<div class="uni-suggestion-city">' + escHtml(f.address || '') + '</div>';
+                item.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    selectFaculty(f);
+                });
+                uniDropdown.appendChild(item);
+            });
+
+            // Position under the input using fixed coords (avoids overflow:hidden clipping)
+            var rect = uniSearch.getBoundingClientRect();
+            uniDropdown.style.top    = rect.bottom + 'px';
+            uniDropdown.style.left   = rect.left + 'px';
+            uniDropdown.style.width  = rect.width + 'px';
+            uniDropdown.style.display = 'block';
+        }
+
+        function highlightItem(items) {
+            items.forEach(function (el) { el.classList.remove('active'); });
+            if (activeIndex >= 0) items[activeIndex].classList.add('active');
+        }
+
+        function selectFaculty(f) {
+            uniSearch.value = f.name;
+            if (uniAddrInput) uniAddrInput.value = f.address || '';
+            uniFeedback.textContent = '📍 ' + (f.address || f.name);
+            uniFeedback.style.color = 'var(--color-brand)';
+            closeDropdown();
+
+            // Auto-pin the map
+            if (!regMap) initRegMap();
+            var hasCoords = f.latitude && f.longitude && !isNaN(f.latitude) && !isNaN(f.longitude);
+            if (regMap && hasCoords) {
+                regMap.setView([f.latitude, f.longitude], 16);
+                if (regMarker) regMap.removeLayer(regMarker);
+                regMarker = L.marker([f.latitude, f.longitude]).addTo(regMap)
+                    .bindPopup('<strong>' + escHtml(f.name) + '</strong><br>' + escHtml(f.address || '')).openPopup();
+
+                if (latInput)  latInput.value  = f.latitude;
+                if (lngInput)  lngInput.value  = f.longitude;
+                if (addrInput) addrInput.value = f.address || f.name;
+
+                var display = document.getElementById('selectedLocationDisplay');
+                display.textContent = '📍 ' + (f.address || f.name);
+            }
+        }
+
+        function closeDropdown() {
+            uniDropdown.style.display = 'none';
+            uniDropdown.innerHTML = '';
+            activeIndex = -1;
+        }
+
+        function escHtml(str) {
+            var d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+    })();
+    // ── End University autocomplete ────────────────────────────
+
+    function initRegMap() {
+        if (regMap) return;
+        var mapEl = document.getElementById('map');
+        if (!mapEl) return;
+        // Don't check offsetParent — the container is visible after updateVisibility sets display:block
+
+        regMap = L.map('map').setView([36.8065, 10.1815], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(regMap);
+
+        // Force tile render after a short delay
+        setTimeout(function() { regMap.invalidateSize(); }, 100);
+
+        regMap.on('click', onMapClick);
+    }
+
+    function onMapClick(e) {
+        var lat = e.latlng.lat;
+        var lng = e.latlng.lng;
+
+        if (regMarker) regMap.removeLayer(regMarker);
+        regMarker = L.marker([lat, lng]).addTo(regMap);
+
+        if (latInput) latInput.value = lat;
+        if (lngInput) lngInput.value = lng;
+
+        var display = document.getElementById('selectedLocationDisplay');
+        display.textContent = '📍 Locating...';
+
+        // Reverse geocode with Nominatim
+        fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng)
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (addrInput) addrInput.value = data.display_name;
+                display.textContent = '📍 ' + data.display_name;
+            })
+            .catch(function () {
+                var coords = lat.toFixed(4) + ', ' + lng.toFixed(4);
+                if (addrInput) addrInput.value = coords;
+                display.textContent = '📍 ' + coords;
+            });
+    }
+})();
+
+/* ── Layer 1: Real-time email format validation ─────────────────── */
+(function () {
+    var emailInput   = document.getElementById('registration_email');
+    var feedbackEl   = document.getElementById('emailFeedback');
+    var iconEl       = document.getElementById('emailStatusIcon');
+    if (!emailInput) return;
+
+    // RFC-5322 simplified pattern — covers 99.9 % of real addresses
+    var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+    function setStatus(state, msg) {
+        feedbackEl.textContent = msg;
+        if (state === 'ok') {
+            iconEl.textContent = '✅';
+            iconEl.style.display = '';
+            feedbackEl.style.color = 'var(--color-success, #38a169)';
+            emailInput.style.borderColor = '#38a169';
+        } else if (state === 'error') {
+            iconEl.textContent = '❌';
+            iconEl.style.display = '';
+            feedbackEl.style.color = 'var(--color-error, #e53e3e)';
+            emailInput.style.borderColor = '#e53e3e';
+        } else {
+            iconEl.style.display = 'none';
+            feedbackEl.style.color = '';
+            emailInput.style.borderColor = '';
+        }
+    }
+
+    emailInput.addEventListener('input', function () {
+        var val = this.value.trim();
+        if (!val) { setStatus('idle', ''); return; }
+
+        if (!EMAIL_RE.test(val)) {
+            setStatus('error', 'Please enter a valid email address (e.g. you@example.com).');
+            return;
+        }
+
+        // Looks like a valid format
+        var domain = val.split('@')[1].toLowerCase();
+        var freemail = ['gmail.com','yahoo.com','hotmail.com','outlook.com','live.com','icloud.com','protonmail.com'];
+        if (freemail.indexOf(domain) !== -1) {
+            setStatus('ok', 'Valid email address.');
+        } else {
+            setStatus('ok', '✓ Format OK — domain will be verified on submit.');
+        }
+    });
+
+    emailInput.addEventListener('blur', function () {
+        var val = this.value.trim();
+        if (!val) { setStatus('idle', ''); return; }
+        if (!EMAIL_RE.test(val)) {
+            setStatus('error', 'Please enter a valid email address.');
+        }
+    });
+})();
+</script>
+{% endblock %}

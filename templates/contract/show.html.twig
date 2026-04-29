@@ -1,0 +1,289 @@
+{% extends 'base.html.twig' %}
+{% block title %}Contract {{ contract.contractNumber|slice(0,8) }} - UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="/css/contracts.css">
+<style>
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 10000; display: none; align-items: center; justify-content: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: white; border-radius: var(--radius-xl); padding: 2rem; max-width: 560px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px rgba(0,0,0,0.2); position: relative; }
+    .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text-muted); }
+    #signatureCanvas { border: 2px solid var(--light-gray); border-radius: var(--radius-lg); width: 100%; touch-action: none; cursor: crosshair; background: #fafafa; }
+</style>
+{% endblock %}
+
+{% block body %}
+<main style="padding: 2rem 0 4rem;">
+    <div class="container" style="max-width: 960px;">
+        <div style="margin-bottom: 1.5rem;">
+            <a href="{{ path('contract_index') }}" style="color: var(--color-brand); font-weight: 500; font-size: 0.9rem;">← All Contracts</a>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div>
+                <div class="section-tag">Contract</div>
+                <h2 style="margin-top: 0.25rem;">{{ contract.contractNumber|slice(0,8) }}...</h2>
+            </div>
+            <span class="badge {% if contract.status.value == 'active' or contract.status.value == 'paid' %}badge-success{% elseif contract.status.value == 'cancelled' %}badge-danger{% else %}badge-warning{% endif %}" style="font-size: 0.95rem; padding: 6px 16px;">
+                {{ contract.status.value|replace({'_': ' '})|title }}
+            </span>
+        </div>
+
+        <div class="grid grid-2">
+            <!-- Contract Details -->
+            <div class="card">
+                <div class="card-header">Contract Details</div>
+                <table style="width: 100%; font-size: 0.95rem;">
+                    <tr>
+                        <td style="color: var(--gray); padding: 0.5rem 0;">Listing:</td>
+                        <td><strong><a href="{{ path('listing_show', {id: contract.listing.id}) }}" style="color: var(--color-brand);">{{ contract.listing.title }}</a></strong></td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--gray); padding: 0.5rem 0;">Student:</td>
+                        <td>{{ contract.student.fullName }}</td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--gray); padding: 0.5rem 0;">Owner:</td>
+                        <td>{{ contract.owner.fullName }}</td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--gray); padding: 0.5rem 0;">Monthly Rent:</td>
+                        <td><strong style="color: var(--color-brand);">{{ contract.monthlyRent }} TND</strong></td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--gray); padding: 0.5rem 0;">Security Deposit:</td>
+                        <td>{{ contract.securityDeposit }} TND</td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--gray); padding: 0.5rem 0;">Platform Fee (5%):</td>
+                        <td>{{ (contract.monthlyRent * 0.05)|number_format(2) }} TND</td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--gray); padding: 0.5rem 0;">Start Date:</td>
+                        <td>{{ contract.startDate|date('d/m/Y') }}</td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--gray); padding: 0.5rem 0;">End Date:</td>
+                        <td>{{ contract.endDate|date('d/m/Y') }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-header">Actions</div>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <a href="{{ path('contract_download', {id: contract.id}) }}" class="btn btn-outline" target="_blank">📥 Download PDF</a>
+
+                    <form method="post" action="{{ path('contract_email_pdf', {id: contract.id}) }}" style="margin:0;">
+                        <button type="submit" class="btn btn-outline" style="width:100%; color:#6366f1; border-color:#6366f1;">
+                            📧 Send PDF to my email
+                        </button>
+                    </form>
+
+                    {% if contract.status.value in ['draft', 'pending_signature', 'signed_by_student'] %}
+                        {% if is_granted('ROLE_STUDENT') and app.user == contract.student and not contract.studentSignaturePath %}
+                            <button class="btn btn-primary" onclick="document.getElementById('signModal').classList.add('active')">✍️ Sign as Student</button>
+                        {% endif %}
+                        {% if is_granted('ROLE_OWNER') and app.user == contract.owner and not contract.ownerSignaturePath %}
+                            <button class="btn btn-primary" onclick="document.getElementById('signModal').classList.add('active')">✍️ Sign as Owner</button>
+                        {% endif %}
+                    {% endif %}
+
+                    {% if contract.status.value in ['signed_by_student', 'signed_by_both', 'pending_payment'] and is_granted('ROLE_STUDENT') and app.user == contract.student %}
+                        <a href="{{ path('contract_pay', {id: contract.id}) }}" class="btn btn-primary" style="background: #28a745; border-color: #28a745;">💳 Pay Security Deposit</a>
+                    {% endif %}
+
+                    {% if contract.status.value == 'signed_by_student' and is_granted('ROLE_OWNER') and app.user == contract.owner %}
+                        <div style="background: rgba(255,193,7,0.1); border: 1px solid var(--warning); border-radius: var(--radius-lg); padding: 1rem; font-size: 0.85rem;">
+                            ⏳ Awaiting your signature. The student has already signed.
+                        </div>
+                    {% endif %}
+
+                    {% if is_granted('ROLE_OWNER') and app.user == contract.owner and contract.status.value in ['active', 'paid', 'signed_by_both'] %}
+                        <form method="post" action="{{ path('contract_terminate', {id: contract.id}) }}">
+                            <button type="submit" class="btn btn-danger" style="width: 100%;" onclick="return confirm('Terminate this contract? This cannot be undone.')">🚫 Terminate Contract</button>
+                        </form>
+                    {% endif %}
+
+                    {% if is_granted('ROLE_STUDENT') and app.user == contract.student
+                        and contract.status.value not in ['cancelled', 'completed'] %}
+                        <button class="btn btn-outline" style="color: #dc3545; border-color: #dc3545; width:100%;"
+                                onclick="document.getElementById('terminationModal').classList.add('active')">
+                            {% if contract.status.value in ['active', 'paid'] %}
+                                ❌ Request Termination
+                            {% else %}
+                                ❌ Cancel Contract
+                            {% endif %}
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Signatures -->
+        {% if contract.studentSignaturePath or contract.ownerSignaturePath %}
+        <div class="grid grid-2" style="margin-top: 1rem;">
+            {% if contract.studentSignaturePath %}
+            <div class="card" style="text-align: center;">
+                <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600;">Student Signature</p>
+                <img src="/{{ contract.studentSignaturePath }}" style="max-width: 250px; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 8px;" alt="Student signature">
+                <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.5rem;">{{ contract.student.fullName }}</p>
+            </div>
+            {% endif %}
+            {% if contract.ownerSignaturePath %}
+            <div class="card" style="text-align: center;">
+                <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600;">Owner Signature</p>
+                <img src="/{{ contract.ownerSignaturePath }}" style="max-width: 250px; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 8px;" alt="Owner signature">
+                <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.5rem;">{{ contract.owner.fullName }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Contract Content -->
+        {% if contract.contractContent %}
+        <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>📄 Contract Document</span>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <a href="{{ path('contract_download', {id: contract.id}) }}" class="btn btn-outline btn-sm" target="_blank" style="font-size:0.8rem;">⬇ Download PDF</a>
+                    {% if is_granted('ROLE_ADMIN') or (is_granted('ROLE_OWNER') and app.user == contract.owner) %}
+                    <form method="post" action="{{ path('contract_regenerate', {id: contract.id}) }}" style="margin:0;">
+                        <button type="submit" class="btn btn-outline btn-sm" style="font-size:0.8rem; color:var(--color-brand);" title="Re-generate the HTML document from current contract data">🔄 Regenerate</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            <div style="padding: 2rem 2.5rem; background: #fff; border-radius: 0 0 var(--radius-lg) var(--radius-lg); font-size: 0.925rem; line-height: 1.8; border: 1px solid var(--color-border);">
+                {{ contract.contractContent|raw }}
+            </div>
+        </div>
+        {% else %}
+        <div class="card" style="margin-top: 1.5rem; text-align:center; padding:2rem; color:var(--color-text-muted);">
+            <p style="font-size:2rem; margin:0;">📄</p>
+            <p style="margin:.5rem 0 1rem;">Contract document not yet generated.</p>
+            {% if is_granted('ROLE_ADMIN') or (is_granted('ROLE_OWNER') and app.user == contract.owner) %}
+            <form method="post" action="{{ path('contract_regenerate', {id: contract.id}) }}">
+                <button type="submit" class="btn btn-primary btn-sm">Generate Document</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</main>
+
+{# Sign Modal #}
+<div class="modal-overlay" id="signModal">
+    <div class="modal">
+        <button class="modal-close" onclick="document.getElementById('signModal').classList.remove('active')">&times;</button>
+        <h3 style="margin-bottom: 0.25rem;">✍️ Digital Signature</h3>
+        <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.9rem;">Draw your signature below using your mouse or finger.</p>
+        <canvas id="signatureCanvas" width="500" height="200"></canvas>
+        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+            <button class="btn btn-outline btn-sm" onclick="clearSignature()">Clear</button>
+            <button class="btn btn-primary" onclick="submitSignature()">✅ Sign & Submit</button>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('signModal').classList.remove('active')">Cancel</button>
+        </div>
+        <form id="signForm" method="post" action="{{ path('contract_sign', {id: contract.id}) }}">
+            <input type="hidden" name="signature" id="signatureData">
+        </form>
+    </div>
+</div>
+
+{# Termination / Cancellation Modal #}
+<div class="modal-overlay" id="terminationModal">
+    <div class="modal">
+        <button class="modal-close" onclick="document.getElementById('terminationModal').classList.remove('active')">&times;</button>
+
+        {% set isPreActive = contract.status.value not in ['active', 'paid'] %}
+
+        {% if isPreActive %}
+            {# Pre-active: instant cancel, no reason needed #}
+            <h3 style="margin-bottom: 0.5rem;">❌ Cancel Contract</h3>
+            <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1.5rem;">
+                This contract has not yet been activated. Cancelling it will release the listing immediately.
+                <strong>This action cannot be undone.</strong>
+            </p>
+            <form method="post" action="{{ path('contract_request_termination', {id: contract.id}) }}">
+                <input type="hidden" name="reason" value="Student cancelled before contract activation.">
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Cancel this contract? This cannot be undone.')">Confirm Cancellation</button>
+                    <button type="button" class="btn btn-outline" onclick="document.getElementById('terminationModal').classList.remove('active')">Go Back</button>
+                </div>
+            </form>
+        {% else %}
+            {# Active / paid: request requires owner approval #}
+            <h3 style="margin-bottom: 0.5rem;">🔔 Request Termination</h3>
+            <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1rem;">
+                Your request will be sent to the owner for approval. The contract remains active until they accept.
+            </p>
+            <form method="post" action="{{ path('contract_request_termination', {id: contract.id}) }}">
+                <div class="form-group">
+                    <label class="form-label">Reason for termination</label>
+                    <textarea name="reason" class="form-control" rows="4" required placeholder="Please explain why you want to terminate this contract..."></textarea>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" class="btn btn-danger">Submit Request</button>
+                    <button type="button" class="btn btn-outline" onclick="document.getElementById('terminationModal').classList.remove('active')">Cancel</button>
+                </div>
+            </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+// Signature Pad
+var canvas = document.getElementById('signatureCanvas');
+if (canvas) {
+    var ctx = canvas.getContext('2d');
+    var drawing = false;
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    canvas.addEventListener('mousedown', function(e) { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
+    canvas.addEventListener('mousemove', function(e) { if (!drawing) return; ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); });
+    canvas.addEventListener('mouseup', function() { drawing = false; });
+    canvas.addEventListener('mouseleave', function() { drawing = false; });
+
+    canvas.addEventListener('touchstart', function(e) {
+        drawing = true;
+        var r = canvas.getBoundingClientRect();
+        ctx.beginPath();
+        ctx.moveTo(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
+        e.preventDefault();
+    });
+    canvas.addEventListener('touchmove', function(e) {
+        if (!drawing) return;
+        var r = canvas.getBoundingClientRect();
+        ctx.lineTo(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
+        ctx.stroke();
+        e.preventDefault();
+    });
+    canvas.addEventListener('touchend', function() { drawing = false; });
+}
+
+function clearSignature() {
+    var c = document.getElementById('signatureCanvas');
+    c.getContext('2d').clearRect(0, 0, c.width, c.height);
+}
+
+function submitSignature() {
+    var c = document.getElementById('signatureCanvas');
+    // Check if canvas is blank
+    var blank = document.createElement('canvas');
+    blank.width = c.width;
+    blank.height = c.height;
+    if (c.toDataURL() === blank.toDataURL()) {
+        alert('Please draw your signature before submitting.');
+        return;
+    }
+    document.getElementById('signatureData').value = c.toDataURL('image/png');
+    document.getElementById('signForm').submit();
+}
+</script>
+{% endblock %}

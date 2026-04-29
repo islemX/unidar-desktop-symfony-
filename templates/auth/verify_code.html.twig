@@ -1,0 +1,267 @@
+{% extends 'base.html.twig' %}
+{% block title %}Verify your email — UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<style>
+  .otp-wrapper {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 1.75rem 0 1.25rem;
+  }
+  .otp-digit {
+    width: 52px;
+    height: 62px;
+    text-align: center;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #1a1d2e;
+    border: 2px solid var(--color-border, #e2e8f0);
+    border-radius: 12px;
+    background: #f7f8fc;
+    outline: none;
+    caret-color: transparent;
+    transition: border-color .18s, box-shadow .18s, background .18s;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0;
+    /* prevent mobile zoom */
+    font-size: clamp(1.25rem, 5vw, 1.75rem);
+  }
+  .otp-digit:focus {
+    border-color: var(--color-brand, #6c63ff);
+    box-shadow: 0 0 0 3px rgba(108,99,255,.18);
+    background: #fff;
+  }
+  .otp-digit.filled {
+    border-color: #6c63ff;
+    background: #f3f2ff;
+    color: #5b52e0;
+  }
+  .otp-digit.error {
+    border-color: #e53e3e;
+    background: #fff5f5;
+    color: #c53030;
+    animation: shake .35s ease;
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25%      { transform: translateX(-5px); }
+    75%      { transform: translateX(5px); }
+  }
+
+  .code-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .8rem;
+    color: #718096;
+    background: #f7f8fc;
+    border: 1px solid #eaecf2;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-weight: 600;
+  }
+  .code-timer .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #48bb78;
+    animation: pulse-dot 1.4s ease-in-out infinite;
+  }
+  .code-timer.expired .dot { background: #e53e3e; animation: none; }
+  @keyframes pulse-dot {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: .5; transform: scale(.75); }
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div><div class="shape shape-3"></div></div>
+
+<div class="section" style="min-height:calc(100vh - 70px); display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
+  <div class="container" style="max-width:460px;">
+    <div class="card fade-in-up" style="padding:0; overflow:hidden;">
+
+      {# ── Header ── #}
+      <div class="card-header text-center" style="padding:2rem 2rem 1.5rem; background:linear-gradient(135deg,#5b52e0 0%,#3cbfb8 100%);">
+        <div style="font-size:2.5rem; line-height:1; margin-bottom:.75rem;">✉️</div>
+        <h1 style="font-size:1.5rem; font-weight:800; color:#fff; margin:0 0 .375rem;">Check your inbox</h1>
+        <p style="margin:0; font-size:.9rem; color:rgba(255,255,255,.8);">
+          We sent a <strong style="color:#fff;">6-digit code</strong> to<br>
+          <span style="color:#c7f9f5; font-weight:700; word-break:break-all;">{{ email ?: '&hellip;' }}</span>
+        </p>
+      </div>
+
+      {# ── Body ── #}
+      <div style="padding:2rem;">
+
+        {# Flash messages #}
+        {% for type, messages in app.flashes %}
+          {% for message in messages %}
+            <div class="alert alert-{{ type }}" style="margin-bottom:1.25rem;">{{ message }}</div>
+          {% endfor %}
+        {% endfor %}
+
+        {# Timer badge #}
+        <div class="text-center" style="margin-bottom:.25rem;">
+          <span class="code-timer" id="timerBadge">
+            <span class="dot" id="timerDot"></span>
+            <span id="timerText">Code expires in <strong id="countdown">15:00</strong></span>
+          </span>
+        </div>
+
+        {# OTP Form #}
+        <form method="post" action="{{ path('app_verify_code') }}" id="otpForm" novalidate autocomplete="off">
+          <input type="hidden" name="email" value="{{ email }}">
+          <input type="hidden" name="code"  id="codeHidden">
+
+          <div class="otp-wrapper" id="otpWrapper">
+            <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" data-idx="0" autofocus>
+            <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" data-idx="1">
+            <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" data-idx="2">
+            <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" data-idx="3">
+            <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" data-idx="4">
+            <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" data-idx="5">
+          </div>
+
+          <p class="text-center text-small text-muted" style="margin:0 0 1.5rem;">
+            Enter the 6-digit code — it expires in 15 minutes.
+          </p>
+
+          <button type="submit" class="btn btn-primary" id="submitBtn" style="width:100%; padding:.875rem; font-size:1rem;" disabled>
+            Verify Email &nbsp;→
+          </button>
+        </form>
+
+        {# Divider #}
+        <div style="display:flex; align-items:center; gap:.75rem; margin:1.5rem 0; color:#a0aab8;">
+          <span style="flex:1; height:1px; background:#eaecf2;"></span>
+          <span style="font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.5px;">Didn't get the code?</span>
+          <span style="flex:1; height:1px; background:#eaecf2;"></span>
+        </div>
+
+        {# Resend form #}
+        <form method="post" action="{{ path('app_resend_verification') }}" id="resendForm">
+          <input type="hidden" name="email" value="{{ email }}">
+          <button type="submit" class="btn" id="resendBtn"
+                  style="width:100%; padding:.75rem; background:#f3f2ff; color:#5b52e0; border:1px solid #c7c3ff; border-radius:var(--radius-md,10px); font-weight:700; font-size:.9rem; cursor:pointer; transition:background .15s;">
+            🔁 Resend code to {{ email ?: 'my email' }}
+          </button>
+        </form>
+
+        <div class="text-center" style="margin-top:1.25rem;">
+          <a href="{{ path('app_login') }}" style="font-size:.875rem; color:var(--color-brand);">← Back to sign in</a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+(function () {
+  /* ── OTP digit inputs ─────────────────────────────────────────── */
+  const digits  = Array.from(document.querySelectorAll('.otp-digit'));
+  const hidden  = document.getElementById('codeHidden');
+  const submit  = document.getElementById('submitBtn');
+  const form    = document.getElementById('otpForm');
+
+  function value() { return digits.map(d => d.value).join(''); }
+
+  function syncHidden() {
+    const v = value();
+    hidden.value = v;
+    submit.disabled = v.length < 6;
+    digits.forEach(d => {
+      d.classList.toggle('filled', d.value !== '');
+    });
+  }
+
+  digits.forEach((el, i) => {
+    // Only allow digits
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Backspace') {
+        if (el.value === '' && i > 0) {
+          digits[i - 1].value = '';
+          digits[i - 1].focus();
+          syncHidden();
+        }
+        return;
+      }
+      if (e.key === 'ArrowLeft'  && i > 0) { digits[i-1].focus(); return; }
+      if (e.key === 'ArrowRight' && i < 5) { digits[i+1].focus(); return; }
+      if (!/^[0-9]$/.test(e.key)) { e.preventDefault(); }
+    });
+
+    el.addEventListener('input', () => {
+      const v = el.value.replace(/\D/g, '');
+      el.value = v.slice(-1);     // keep last typed digit
+      syncHidden();
+      if (el.value && i < 5) digits[i + 1].focus();
+    });
+
+    // Handle paste on any digit
+    el.addEventListener('paste', e => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData)
+                       .getData('text').replace(/\D/g, '').slice(0, 6);
+      pasted.split('').forEach((ch, idx) => {
+        if (digits[idx]) digits[idx].value = ch;
+      });
+      const next = Math.min(pasted.length, 5);
+      digits[next].focus();
+      syncHidden();
+    });
+  });
+
+  // Submit on last digit
+  form.addEventListener('submit', e => {
+    const v = value();
+    if (v.length < 6) { e.preventDefault(); return; }
+    hidden.value = v;
+    // Visual feedback
+    digits.forEach(d => d.classList.add('filled'));
+  });
+
+  /* ── Countdown timer (15 min) ─────────────────────────────────── */
+  const countdownEl = document.getElementById('countdown');
+  const timerBadge  = document.getElementById('timerBadge');
+  const timerDot    = document.getElementById('timerDot');
+  const timerText   = document.getElementById('timerText');
+
+  let seconds = 15 * 60;
+
+  const tick = setInterval(() => {
+    seconds--;
+    if (seconds <= 0) {
+      clearInterval(tick);
+      countdownEl.textContent = '0:00';
+      timerBadge.classList.add('expired');
+      timerText.innerHTML = '<strong style="color:#e53e3e;">Code expired</strong> — request a new one below';
+      submit.disabled = true;
+      digits.forEach(d => d.disabled = true);
+      return;
+    }
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    countdownEl.textContent = m + ':' + String(s).padStart(2, '0');
+
+    // Turn orange in last 2 minutes
+    if (seconds <= 120) {
+      timerDot.style.background = '#ed8936';
+      countdownEl.style.color   = '#c05621';
+    }
+  }, 1000);
+
+  /* ── Resend button cool-down (prevent double-click spam) ──────── */
+  const resendBtn  = document.getElementById('resendBtn');
+  const resendForm = document.getElementById('resendForm');
+  resendForm.addEventListener('submit', () => {
+    resendBtn.disabled = true;
+    resendBtn.textContent = '⏳ Sending…';
+  });
+})();
+</script>
+{% endblock %}

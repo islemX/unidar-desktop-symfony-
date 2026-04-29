@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+{% block title %}Users - Admin{% endblock %}
+{% block body %}
+<div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <h2>User Management</h2>
+        <a href="{{ path('admin_dashboard') }}" class="btn btn-outline btn-sm">← Dashboard</a>
+    </div>
+    <form method="get" style="display:flex;gap:1rem;margin-bottom:1.5rem;">
+        <input type="text" name="search" value="{{ app.request.query.get('search') }}" class="form-control" placeholder="Search by name or email" style="max-width:300px;">
+        <select name="role" class="form-control" style="max-width:150px;">
+            <option value="">All roles</option>
+            <option value="student" {{ app.request.query.get('role') == 'student' ? 'selected' }}>Students</option>
+            <option value="owner" {{ app.request.query.get('role') == 'owner' ? 'selected' }}>Owners</option>
+            <option value="admin" {{ app.request.query.get('role') == 'admin' ? 'selected' }}>Admins</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+    <div class="card">
+        <table class="table">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.fullName }}</td>
+                <td>{{ user.email }}</td>
+                <td><span class="badge badge-primary">{{ user.role.value }}</span></td>
+                <td><span class="badge {% if user.status.value == 'active' %}badge-success{% elseif user.status.value == 'suspended' %}badge-warning{% else %}badge-danger{% endif %}">{{ user.status.value }}</span></td>
+                <td>
+                    <form method="post" action="{{ path('admin_user_update', {id: user.id}) }}" style="display:flex;flex-wrap:wrap;gap:0.35rem;align-items:center;">
+                        <select name="status" class="form-control" style="width:auto;padding:0.25rem 0.5rem;">
+                            <option value="active"    {{ user.status.value == 'active'    ? 'selected' }}>Active</option>
+                            <option value="suspended" {{ user.status.value == 'suspended' ? 'selected' }}>Suspend</option>
+                            <option value="banned"    {{ user.status.value == 'banned'    ? 'selected' }}>Ban</option>
+                        </select>
+                        <input type="text" name="cause" class="form-control" placeholder="Reason (ban/suspend)" style="width:160px;padding:0.25rem 0.5rem;font-size:0.82rem;">
+                        <button type="submit" class="btn btn-primary btn-sm">Update</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {{ knp_pagination_render(users) }}
+    </div>
+</div>
+{% endblock %}

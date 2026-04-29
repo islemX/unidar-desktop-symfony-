@@ -1,0 +1,43 @@
+<nav class="navbar glass">
+    <div class="nav-container">
+        <a href="{{ path('app_home') }}" class="nav-logo" style="display:flex; align-items:center; padding:0; line-height:1; text-decoration:none;">
+            <img src="/images/logo.svg" alt="UNIDAR" style="height:68px; width:auto; display:block;">
+        </a>
+        <div class="nav-links">
+            {% set is_admin = app.user and app.user.role and app.user.role.value == 'admin' %}
+            {% set is_owner = app.user and app.user.role and app.user.role.value == 'owner' %}
+            {% set is_student = app.user and app.user.role and app.user.role.value == 'student' %}
+
+            <a href="{{ path('app_home') }}" class="nav-link {{ app.request.attributes.get('_route') == 'app_home' ? 'active' }}" data-i18n="nav_home">Home</a>
+
+            {% if is_admin %}
+                <a href="{{ path('admin_dashboard') }}" class="nav-link {{ app.request.attributes.get('_route') starts with 'admin' ? 'active' }}" data-i18n="nav_dashboard">Dashboard</a>
+            {% else %}
+                <a href="{{ path('listing_index') }}" class="nav-link {{ app.request.attributes.get('_route') starts with 'listing' ? 'active' }}" data-i18n="nav_listings">Listings</a>
+                {% if is_student %}
+                    <a href="{{ path('roommate_index') }}" class="nav-link {{ app.request.attributes.get('_route') starts with 'roommate' ? 'active' }}" data-i18n="nav_roommates">Roommates</a>
+                    <a href="{{ path('dashboard_student') }}" class="nav-link {{ app.request.attributes.get('_route') == 'dashboard_student' ? 'active' }}" data-i18n="nav_dashboard">Dashboard</a>
+                {% endif %}
+                {% if is_owner %}
+                    <a href="{{ path('dashboard_owner') }}" class="nav-link {{ app.request.attributes.get('_route') == 'dashboard_owner' ? 'active' }}" data-i18n="nav_dashboard">Dashboard</a>
+                    <a href="{{ path('listing_my') }}" class="nav-link {{ app.request.attributes.get('_route') == 'listing_my' ? 'active' }}" data-i18n="nav_my_properties">My Listings</a>
+                {% endif %}
+            {% endif %}
+        </div>
+        <div class="header-actions" style="display: flex; align-items: center; gap: 0.75rem;">
+            {# i18n.js auto-injects lang switcher at the start of this div #}
+            {% if is_granted('ROLE_USER') %}
+                <div class="flex-column items-end" style="display: flex; flex-direction: column; align-items: flex-end;">
+                    <span id="userName" class="font-bold text-small" style="font-size: 0.875rem; font-weight: 600; color: var(--color-surface-900);">{{ app.user.fullName }}</span>
+                    <span class="text-tiny text-muted" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted);">
+                        {% if is_granted('ROLE_ADMIN') %}Admin{% elseif is_granted('ROLE_OWNER') %}Owner{% else %}Student{% endif %}
+                    </span>
+                </div>
+                <a href="{{ path('app_logout') }}" class="btn btn-secondary btn-sm" data-i18n="nav_logout">Logout</a>
+            {% else %}
+                <a href="{{ path('app_login') }}" class="btn btn-secondary btn-sm" data-i18n="nav_login">Login</a>
+                <a href="{{ path('app_register') }}" class="btn btn-primary btn-sm" data-i18n="nav_signup">Sign Up</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>

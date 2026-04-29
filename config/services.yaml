@@ -1,0 +1,68 @@
+# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
+
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+# See also https://symfony.com/doc/current/service_container/import.html
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    commission_rate: '%env(float:COMMISSION_RATE)%'
+    app.voice_service_url: '%env(string:default::VOICE_SERVICE_URL)%'
+    app.mailer_from_email: '%env(MAILER_FROM_EMAIL)%'
+    app.mailer_from_name: '%env(MAILER_FROM_NAME)%'
+    app.name: 'UNIDAR'
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+        bind:
+            string $voiceServiceUrl: '%app.voice_service_url%'
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones
+
+    App\Service\CommissionCalculator:
+        arguments:
+            $commissionRate: '%commission_rate%'
+
+    App\Service\ImageProxyService:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Service\ContractManager:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Ml\Storage\ModelRepository:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Service\MailerService:
+        arguments:
+            $fromEmail: '%app.mailer_from_email%'
+            $fromName: '%app.mailer_from_name%'
+            $appName: '%app.name%'
+
+    App\Service\CaptchaService:
+        arguments:
+            $secretKey: '%env(RECAPTCHA_SECRET_KEY)%'
+            $siteKey: '%env(RECAPTCHA_SITE_KEY)%'
+
+    # ── UnidarMediaPipelineBundle ─────────────────────────────────────────
+    App\Bundle\MediaPipeline\Service\ImageProcessorService:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Bundle\MediaPipeline\EventListener\VichUploadListener:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+        tags:
+            - { name: kernel.event_listener, event: vich_uploader.post_upload, method: onPostUpload }

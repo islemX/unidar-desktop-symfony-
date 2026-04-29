@@ -1,0 +1,91 @@
+{% extends 'base.html.twig' %}
+{% block title %}Identity Verification - UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .verif-container { max-width: 800px; margin: 0 auto; }
+    .fade-in-up { animation: fadeInUp 0.5s ease both; }
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div></div>
+
+<main style="padding: 2rem 0 4rem; position: relative; z-index: 1;">
+    <div class="container verif-container">
+        <div class="fade-in-up" style="margin-bottom: 2rem;">
+            <div class="section-tag">Trust & Safety</div>
+            <h1 style="font-size: 2.5rem; margin-top: 0.5rem;">Identity Verification</h1>
+        </div>
+
+        {# ── Status Card ── #}
+        <div class="card fade-in-up" style="margin-bottom: 2rem; animation-delay: 0.1s;">
+            {% if existing is iterable and existing|length > 0 %}
+                {% set v = existing|first %}
+
+                {% if v.status.value == 'pending' %}
+                    <div class="flash-warning" style="border-radius: var(--radius-lg);">
+                        <h3 style="margin-bottom: 0.5rem;">Wait! 🕒</h3>
+                        <p>Your verification documents have been submitted and are under review.
+                        You will be notified once the review is complete.</p>
+                        <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 1rem;">Submitted: {{ v.submittedAt|date('d/m/Y H:i') }}</div>
+                    </div>
+
+                {% elseif v.status.value == 'approved' %}
+                    <div class="flash-success" style="border-radius: var(--radius-lg);">
+                        <h3 style="margin-bottom: 0.5rem;">You're verified! ✨</h3>
+                        <p>Your identity has been verified! You now have access to all platform features.</p>
+                        <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 1rem;">Approved: {{ v.reviewedAt|date('d/m/Y H:i') }}</div>
+                    </div>
+                    <a href="{{ path('dashboard_student') }}" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Go to Dashboard</a>
+
+                {% elseif v.status.value == 'rejected' %}
+                    <div class="flash-error" style="border-radius: var(--radius-lg);">
+                        <h3 style="margin-bottom: 0.5rem;">Verification Failed ❌</h3>
+                        <p>{{ v.rejectionReason ?? 'Your verification was rejected. Please review the requirements and resubmit.' }}</p>
+                        <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 1rem;">Rejected: {{ v.reviewedAt|date('d/m/Y H:i') }}</div>
+                    </div>
+                {% endif %}
+
+            {% else %}
+                <div class="flash-warning" style="border-radius: var(--radius-lg);">
+                    <strong>Verification Required</strong>
+                    <p style="margin-top: 0.5rem;">To access all features and find roommates, please verify your identity as a student.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        {# ── Form Card — show if no submission, pending resubmit (rejected), or first time ── #}
+        {% set showForm = (existing is not iterable) or (existing|length == 0) or (existing|first.status.value == 'rejected') %}
+        {% if showForm %}
+        <div class="card fade-in-up" style="animation-delay: 0.2s;">
+            <h2 style="margin-bottom: 1rem;">Submit Documents</h2>
+            <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">
+                Please upload clear photos or scans of your student ID and national ID.
+                This helps us ensure a safe community for all students.
+            </p>
+
+            {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.studentIdFile.vars.id }}">Student ID Card</label>
+                {{ form_widget(form.studentIdFile, {'attr': {'class': 'form-input', 'accept': 'image/*,.pdf', 'style': 'padding-top: 1.5rem; padding-bottom: 1.5rem; border-style: dashed; text-align: center;'}}) }}
+                {{ form_errors(form.studentIdFile) }}
+                <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.25rem;">Upload your university ID card (JPG, PNG, or PDF, max 5MB)</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.nationalIdFile.vars.id }}">National ID / Passport</label>
+                {{ form_widget(form.nationalIdFile, {'attr': {'class': 'form-input', 'accept': 'image/*,.pdf', 'style': 'padding-top: 1.5rem; padding-bottom: 1.5rem; border-style: dashed; text-align: center;'}}) }}
+                {{ form_errors(form.nationalIdFile) }}
+                <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.25rem;">Upload your national ID or passport (JPG, PNG, or PDF, max 5MB)</p>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.875rem;">Submit for Review</button>
+            {{ form_end(form) }}
+        </div>
+        {% endif %}
+    </div>
+</main>
+{% endblock %}

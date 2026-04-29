@@ -1,0 +1,52 @@
+{% extends 'emails/_layout.html.twig' %}
+{% set recipient_email = user.email %}
+
+{% block body %}
+<div style="text-align:center; margin-bottom:28px;">
+  <div style="font-size:50px; line-height:1; margin-bottom:14px;">✉️</div>
+  <h1 style="margin:0 0 8px; font-size:22px; font-weight:800; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">
+    {% if is_resend is defined and is_resend %}New verification code{% else %}Confirm your email address{% endif %}
+  </h1>
+</div>
+
+<p style="margin:0 0 16px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">
+  Hi <strong style="color:#1a1d2e;">{{ user.fullName }}</strong>,
+</p>
+
+{% if is_resend is defined and is_resend %}
+<p style="margin:0 0 22px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">
+  You requested a new verification code for your <strong>UNIDAR</strong> account. Enter the code below on the verification page.
+</p>
+{% else %}
+<p style="margin:0 0 22px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">
+  Thanks for joining <strong>UNIDAR</strong>! Enter the code below on the verification page to activate your account.
+</p>
+{% endif %}
+
+{# ── Big OTP code box ── #}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+  <tr>
+    <td align="center">
+      <div style="display:inline-block; background:linear-gradient(135deg,#5b52e0,#3cbfb8); border-radius:18px; padding:28px 48px;">
+        <p style="margin:0 0 6px; font-size:11px; color:rgba(255,255,255,0.7); text-transform:uppercase; letter-spacing:2.5px; font-family:-apple-system,Arial,sans-serif;">Your verification code</p>
+        <p style="margin:0; font-size:44px; font-weight:900; color:#ffffff; letter-spacing:10px; font-family:'Courier New',Courier,monospace; line-height:1.1;">{{ code }}</p>
+        <p style="margin:10px 0 0; font-size:12px; color:rgba(255,255,255,0.65); font-family:-apple-system,Arial,sans-serif;">Expires in 15 minutes</p>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;">
+  <tr>
+    <td style="background:#fffbeb; border-radius:12px; border-left:4px solid #d69e2e; padding:16px 20px;">
+      <p style="margin:0; font-size:13.5px; color:#744210; line-height:1.6; font-family:-apple-system,Arial,sans-serif;">
+        ⏱ <strong>This code is valid for 15 minutes.</strong> Go back to the UNIDAR registration page and enter it there.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:16px 0 0; font-size:13px; color:#a0aab8; text-align:center; font-family:-apple-system,Arial,sans-serif;">
+  Didn't request this? You can safely ignore this email.
+</p>
+{% endblock %}

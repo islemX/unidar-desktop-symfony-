@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}UNIDAR{% endblock %} - Student Housing Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/design-tokens.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/premium.css">
+    <link rel="stylesheet" href="/css/contracts.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    {% block stylesheets %}{% endblock %}
+    <style>
+        /* ── CSS variable aliases (backward compat with old templates) ── */
+        :root {
+            --primary:       var(--color-brand);
+            --primary-dark:  var(--color-primary-700);
+            --primary-light: var(--color-primary-300);
+            --secondary:     #00c4cc;
+            --accent:        #a855f7;
+            --success:       var(--color-success);
+            --warning:       var(--color-warning);
+            --danger:        var(--color-error);
+            --gray:          var(--color-text-muted);
+            --dark:          var(--color-surface-900);
+            --light:         var(--color-surface-50);
+            --lighter-gray:  var(--color-surface-50);
+            --light-gray:    var(--color-surface-200);
+            --border:        var(--color-border);
+            --radius:        var(--radius-lg);
+            --radius-2xl:    1.25rem;
+            --radius-3xl:    1.5rem;
+        }
+
+        /* ── Base layout ── */
+        .container { width:100%; max-width:1200px; margin:0 auto; padding:0 1.5rem; }
+
+        /* ── Cards ── */
+        .card { background:white; border:1px solid var(--color-border); border-radius:var(--radius-xl); padding:1.5rem; box-shadow:var(--shadow-sm); }
+        .card-header { padding:1.25rem 1.5rem; border-bottom:1px solid var(--color-border); background:var(--color-surface-50); border-radius:var(--radius-xl) var(--radius-xl) 0 0; font-weight:700; font-size:1.1rem; margin:-1.5rem -1.5rem 1.5rem; }
+        .card-body { padding:0; }
+
+        /* ── Badges ── */
+        .badge { display:inline-block; padding:3px 10px; border-radius:50px; font-size:0.75rem; font-weight:600; }
+        .badge-success  { background:#d1fae5; color:#065f46; }
+        .badge-danger   { background:#fee2e2; color:#991b1b; }
+        .badge-warning  { background:#fef3c7; color:#92400e; }
+        .badge-info     { background:#dbeafe; color:#1e40af; }
+        .badge-gray     { background:#f1f5f9; color:#475569; }
+        .badge-primary  { background:var(--color-primary-100); color:var(--color-primary-700); }
+
+        /* ── Buttons ── */
+        .btn-outline { background:transparent; color:var(--color-brand); border:1px solid var(--color-brand); }
+        .btn-outline:hover { background:var(--color-primary-50); color:var(--color-brand); }
+        .btn-danger { background:#ef4444; color:white; border:none; }
+        .btn-danger:hover { background:#dc2626; color:white; }
+        .btn-sm { padding:6px 14px; font-size:0.82rem; }
+        .btn-lg { padding:14px 32px; font-size:1.05rem; }
+
+        /* ── Forms ── */
+        .form-control, .form-input {
+            width:100%; padding:0.625rem 0.875rem;
+            border:1px solid var(--color-border); border-radius:var(--radius-lg);
+            font-family:inherit; font-size:0.9rem; background:white;
+            color:var(--color-text-main); transition:border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-control:focus, .form-input:focus { outline:none; border-color:var(--color-brand); box-shadow:0 0 0 3px var(--color-primary-100); }
+        .form-control::placeholder, .form-input::placeholder { color:var(--color-surface-400); }
+        select.form-control, select.form-input { cursor:pointer; }
+        .form-group { margin-bottom:1.25rem; }
+        .form-group label, .form-label { display:block; margin-bottom:0.4rem; font-weight:500; font-size:0.875rem; color:var(--color-surface-700); }
+
+        /* ── Tables ── */
+        .table { width:100%; border-collapse:collapse; }
+        .table th { text-align:left; padding:0.75rem 1rem; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--color-surface-500); border-bottom:2px solid var(--color-border); white-space:nowrap; }
+        .table td { padding:0.875rem 1rem; border-bottom:1px solid var(--color-border); font-size:0.9rem; vertical-align:middle; }
+        .table tr:last-child td { border-bottom:none; }
+        .table tbody tr:hover td { background:var(--color-surface-50); }
+
+        /* ── Grid utilities ── */
+        .grid { display:grid; gap:1.5rem; }
+        .grid-2 { grid-template-columns:repeat(2,1fr); }
+        .grid-3 { grid-template-columns:repeat(3,1fr); }
+        .grid-4 { grid-template-columns:repeat(4,1fr); }
+        @media(max-width:960px) { .grid-3,.grid-4 { grid-template-columns:repeat(2,1fr); } }
+        @media(max-width:600px) { .grid-2,.grid-3,.grid-4 { grid-template-columns:1fr; } }
+        .mt-lg  { margin-top:1.5rem; }
+        .mt-xl  { margin-top:2rem; }
+        .mb-0   { margin-bottom:0; }
+        .text-muted { color:var(--color-text-muted); }
+        .text-small, .text-tiny { font-size:0.85rem; }
+        .font-bold { font-weight:700; }
+        .text-center { text-align:center; }
+        .flex { display:flex; }
+        .items-center { align-items:center; }
+        .justify-between { justify-content:space-between; }
+        .justify-center { justify-content:center; }
+        .justify-end { justify-content:flex-end; }
+        .gap-md { gap:1rem; }
+        .gap-lg { gap:1.5rem; }
+
+        /* ── Flash messages ── */
+        .flash-success { background:#d1fae5; border:1px solid #6ee7b7; color:#065f46; padding:0.875rem 1.25rem; border-radius:var(--radius-lg); margin-bottom:1rem; }
+        .flash-error   { background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; padding:0.875rem 1.25rem; border-radius:var(--radius-lg); margin-bottom:1rem; }
+        .flash-warning { background:#fef3c7; border:1px solid #fcd34d; color:#92400e; padding:0.875rem 1.25rem; border-radius:var(--radius-lg); margin-bottom:1rem; }
+
+        /* ── Listings layout ── */
+        .layout-sidebar { display:grid; grid-template-columns:280px 1fr; gap:2rem; align-items:start; }
+        @media(max-width:900px) { .layout-sidebar { grid-template-columns:1fr; } }
+        .sidebar { background:white; border:1px solid var(--color-border); border-radius:var(--radius-xl); padding:1.5rem; position:sticky; top:90px; }
+
+        /* ── Listing card ── */
+        .listing-card { background:white; border:1px solid var(--color-border); border-radius:var(--radius-xl); overflow:hidden; transition:all 0.35s cubic-bezier(0.4,0,0.2,1); }
+        .listing-card:hover { transform:translateY(-6px); box-shadow:0 20px 40px -10px rgba(31,38,135,0.12); border-color:var(--color-primary-200); }
+        .listing-card img { width:100%; height:220px; object-fit:cover; display:block; transition:transform 0.5s ease; }
+        .listing-card:hover img { transform:scale(1.04); }
+        .listing-card-img-placeholder { width:100%; height:220px; background:linear-gradient(135deg,var(--color-primary-600),#7c3aed); display:flex; align-items:center; justify-content:center; font-size:3.5rem; }
+        .listing-card-body { padding:1.25rem; }
+        .listing-card-price { font-size:1.2rem; font-weight:800; color:var(--color-brand); }
+        .listing-card-address { font-size:0.82rem; color:var(--color-text-muted); margin-top:0.4rem; }
+        .listing-card-features { display:flex; gap:1rem; margin-top:0.75rem; font-size:0.82rem; color:var(--color-surface-600); }
+
+        /* ── Filter panel ── */
+        .filter-panel-pro { background:rgba(255,255,255,0.7); backdrop-filter:blur(16px); border:1px solid var(--color-border); border-radius:var(--radius-2xl); padding:1.5rem; margin-bottom:2rem; box-shadow:0 4px 20px rgba(0,0,0,0.04); }
+
+        /* ── Auth pages ── */
+        .auth-page { min-height:calc(100vh - 70px); display:flex; align-items:center; justify-content:center; padding:2rem; background:linear-gradient(135deg,var(--color-primary-50) 0%,white 50%,var(--color-primary-50) 100%); }
+        .auth-card { background:white; border:1px solid var(--color-border); border-radius:var(--radius-2xl); padding:2.5rem; width:100%; max-width:480px; box-shadow:0 20px 60px rgba(0,0,0,0.08); }
+        .auth-card-wide { max-width:640px; }
+        .auth-logo { text-align:center; margin-bottom:2rem; }
+        .auth-logo span { font-size:1.75rem; font-weight:800; }
+        .auth-title { font-size:1.5rem; font-weight:700; margin-bottom:0.5rem; }
+        .auth-subtitle { color:var(--color-text-muted); font-size:0.9rem; margin-bottom:2rem; }
+
+        /* ── Section utilities (used in home and other pages) ── */
+        .section-tag { display:inline-block; background:var(--color-primary-100); color:var(--color-primary-700); padding:4px 16px; border-radius:50px; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.75rem; }
+        .page-header { padding:2.5rem 0 1.5rem; border-bottom:1px solid var(--color-border); margin-bottom:2rem; }
+        .page-header h1 { font-size:1.75rem; margin-bottom:0.25rem; }
+        .page-header p { color:var(--color-text-muted); }
+
+        /* ── Stat cards ── */
+        .stat-card { text-align:center; padding:1.5rem; display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:120px; background:linear-gradient(135deg,var(--color-primary-600),var(--color-primary-700)); color:white; border-radius:var(--radius-xl); box-shadow:var(--shadow-md); transition:all 0.3s ease; }
+        .stat-card:hover { transform:translateY(-5px); box-shadow:var(--shadow-lg); }
+        .stat-card h3 { font-size:2rem; font-weight:800; color:white; margin-bottom:0.25rem; }
+        .stat-card p { font-size:0.85rem; opacity:0.85; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+
+        /* ── Conversation list ── */
+        .conversation-list { border-right:1px solid var(--color-border); background:white; overflow-y:auto; }
+        .conversation-item { padding:1rem 1.5rem; border-bottom:1px solid var(--color-surface-100); cursor:pointer; transition:all 0.2s; }
+        .conversation-item:hover { background:var(--color-surface-50); transform:translateX(4px); }
+        .conversation-item.active { background:var(--color-primary-50); border-left:3px solid var(--color-brand); }
+
+        /* ── Avatar ── */
+        .avatar { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,var(--color-primary-400),var(--color-primary-600)); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:1.2rem; flex-shrink:0; }
+
+        /* ── Message bubbles ── */
+        .message-bubble { max-width:80%; padding:0.875rem 1rem; border-radius:var(--radius-xl); font-size:0.95rem; line-height:1.5; margin-bottom:0.5rem; }
+        .message-bubble.sent { background:var(--color-brand); color:white; align-self:flex-end; border-bottom-right-radius:4px; box-shadow:0 4px 12px rgba(99,102,241,0.2); }
+        .message-bubble.received { background:white; align-self:flex-start; border-bottom-left-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.05); border:1px solid var(--color-surface-100); }
+
+        /* ── Pagination ── */
+        .pagination { margin-top:2rem; display:flex; justify-content:center; }
+        .pagination .page-item { list-style:none; }
+        .pagination a, .pagination span { padding:0.5rem 0.875rem; border:1px solid var(--color-border); border-radius:var(--radius-md); font-size:0.875rem; color:var(--color-surface-700); display:inline-block; margin:0 2px; text-decoration:none; }
+        .pagination .active a, .pagination .current { background:var(--color-brand); color:white; border-color:var(--color-brand); }
+        .pagination a:hover { background:var(--color-surface-50); }
+    </style>
+</head>
+<body>
+    {% include '_navbar.html.twig' %}
+
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <div style="max-width:1200px;margin:0.75rem auto;padding:0 1.5rem;">
+                <div class="flash-{{ label }}">{{ message }}</div>
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    {% block body %}{% endblock %}
+
+    <footer style="background:var(--color-surface-900);color:rgba(255,255,255,0.7);padding:3rem 0 1.5rem;margin-top:4rem;">
+        <div class="container">
+            <div class="grid grid-4" style="margin-bottom:2rem;">
+                <div>
+                    <div style="margin-bottom:0.75rem;">
+                        <img src="/images/logo.svg" alt="UNIDAR" style="height:52px; width:auto; opacity:0.95;">
+                    </div>
+                    <p style="font-size:0.875rem;line-height:1.7;">The premier student housing platform for Tunisian universities.</p>
+                </div>
+                <div>
+                    <div style="color:white;font-weight:600;margin-bottom:0.75rem;">Platform</div>
+                    <ul style="list-style:none;display:flex;flex-direction:column;gap:0.5rem;">
+                        <li><a href="{{ path('listing_index') }}" style="color:rgba(255,255,255,0.6);font-size:0.875rem;">Browse Listings</a></li>
+                        <li><a href="{{ path('roommate_index') }}" style="color:rgba(255,255,255,0.6);font-size:0.875rem;">Find Roommates</a></li>
+                        <li><a href="{{ path('subscription_index') }}" style="color:rgba(255,255,255,0.6);font-size:0.875rem;">Premium Plans</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <div style="color:white;font-weight:600;margin-bottom:0.75rem;">Account</div>
+                    <ul style="list-style:none;display:flex;flex-direction:column;gap:0.5rem;">
+                        {% if is_granted('ROLE_USER') %}
+                        <li><a href="{{ path('dashboard_student') }}" style="color:rgba(255,255,255,0.6);font-size:0.875rem;">Dashboard</a></li>
+                        <li><a href="{{ path('contract_index') }}" style="color:rgba(255,255,255,0.6);font-size:0.875rem;">My Contracts</a></li>
+                        <li><a href="{{ path('app_logout') }}" style="color:rgba(255,255,255,0.6);font-size:0.875rem;">Logout</a></li>
+                        {% else %}
+                        <li><a href="{{ path('app_login') }}" style="color:rgba(255,255,255,0.6);font-size:0.875rem;">Login</a></li>
+                        <li><a href="{{ path('app_register') }}" style="color:rgba(255,255,255,0.6);font-size:0.875rem;">Sign Up</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div>
+                    <div style="color:white;font-weight:600;margin-bottom:0.75rem;">Contact</div>
+                    <ul style="list-style:none;display:flex;flex-direction:column;gap:0.5rem;font-size:0.875rem;">
+                        <li style="color:rgba(255,255,255,0.6);">support@unidar.tn</li>
+                        <li style="color:rgba(255,255,255,0.6);">Tunis, Tunisia</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:1.5rem;text-align:center;font-size:0.8rem;color:rgba(255,255,255,0.4);">
+                © {{ "now"|date("Y") }} UNIDAR. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/js/i18n.js"></script>
+    {# i18n.js auto-injects the switcher into .nav-container — no manual init needed #}
+
+    {% if is_granted('ROLE_USER') %}
+    <link rel="stylesheet" href="/css/chat-widget.css">
+    <script src="/js/chat-widget-symfony.js"></script>
+    <script>
+        var chatWidget = new ChatWidget({{ app.user.id }});
+        window.chatWidget = chatWidget;
+    </script>
+    {% endif %}
+
+    {# ── Voice Commander (orb + ribbon + ⌘K palette) ── #}
+    {% block voice_briefing %}{% endblock %}
+    {% include '_voice_orb.html.twig' %}
+
+    {% block javascripts %}{% endblock %}
+</body>
+</html>

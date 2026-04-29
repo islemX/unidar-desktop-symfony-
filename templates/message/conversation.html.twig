@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+{% block title %}Messages - UNIDAR{% endblock %}
+{% block body %}
+{% set other = conversation.user1 == app.user ? conversation.user2 : conversation.user1 %}
+<div style="display:grid;grid-template-columns:350px 1fr;height:calc(100vh - 64px);">
+    <div class="conversation-list">
+        <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--light-gray);font-weight:600;">Messages</div>
+        <a href="{{ path('message_index') }}" style="display:block;padding:1rem 1.5rem;color:var(--primary);text-decoration:none;">← All conversations</a>
+        <div class="conversation-item active">
+            <strong>{{ other.fullName }}</strong>
+            {% if conversation.listing %}<div style="font-size:0.85rem;color:var(--gray);">Re: {{ conversation.listing.title }}</div>{% endif %}
+        </div>
+    </div>
+    <div class="chat-panel">
+        <div style="padding:1rem 1.5rem;background:white;border-bottom:1px solid var(--light-gray);display:flex;justify-content:space-between;align-items:center;">
+            <strong>{{ other.fullName }}</strong>
+            <div style="display:flex;gap:0.5rem;">
+                <form method="post" action="{{ path('message_archive', {id: conversation.id}) }}">
+                    <button type="submit" class="btn btn-outline btn-sm">Archive</button>
+                </form>
+                <form method="post" action="{{ path('message_block', {id: other.id}) }}">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Block this user?')">Block</button>
+                </form>
+            </div>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            {% for msg in messages %}
+                <div style="display:flex;{% if msg.sender == app.user %}justify-content:flex-end;{% endif %}margin-bottom:0.75rem;">
+                    <div class="message-bubble {{ msg.sender == app.user ? 'message-sent' : 'message-received' }}">
+                        {{ msg.message }}
+                        <div style="font-size:0.75rem;opacity:0.7;margin-top:0.25rem;text-align:right;">{{ msg.createdAt|date('H:i') }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="chat-input">
+            {{ form_start(form, {'action': path('message_conversation', {id: conversation.id}), 'method': 'POST'}) }}
+            <div style="display:flex;gap:0.75rem;">
+                {{ form_widget(form.message, {'attr': {'class': 'form-control', 'placeholder': 'Type a message...', 'rows': 1, 'style': 'flex:1;resize:none;'}}) }}
+                <button type="submit" class="btn btn-primary">Send</button>
+            </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block javascripts %}
+<script>
+const chatMessages = document.getElementById('chatMessages');
+if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
+
+// Poll for new messages every 3 seconds
+const convId = {{ conversation.id }};
+setInterval(async () => {
+    try {
+        const res = await fetch(`/api/messages/${convId}`);
+        const data = await res.json();
+        // Simple refresh approach
+    } catch(e) {}
+}, 3000);
+</script>
+{% endblock %}

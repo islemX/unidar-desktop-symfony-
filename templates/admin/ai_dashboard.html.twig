@@ -1,0 +1,465 @@
+{% extends 'base.html.twig' %}
+{% block title %}AI Intelligence Hub — UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<style>
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── Page shell ───────────────────────────────────────────────────────────── */
+.ai-page {
+    min-height: 100vh;
+    background: #f0f2ff;
+    padding: 0 0 4rem;
+    position: relative;
+}
+.ai-page::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+        radial-gradient(ellipse 900px 500px at 15% -10%, rgba(99,102,241,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 700px 400px at 85% 5%,  rgba(168,85,247,0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 600px 300px at 50% 80%, rgba(59,130,246,0.08) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+}
+.ai-container { max-width: 1380px; margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 1; }
+
+/* ── Hero header ──────────────────────────────────────────────────────────── */
+.ai-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+    padding: 2.5rem 0 0;
+    margin-bottom: 2.5rem;
+    position: relative; overflow: hidden;
+}
+.ai-hero::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%236366f1' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+}
+.ai-hero-inner {
+    max-width: 1380px; margin: 0 auto; padding: 0 1.5rem;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    flex-wrap: wrap; gap: 1.5rem; position: relative; z-index: 1;
+}
+.ai-hero-left { flex: 1; min-width: 260px; }
+.ai-hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: rgba(165,180,252,0.9); margin-bottom: 0.75rem;
+}
+.ai-hero-eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: #6366f1; box-shadow: 0 0 10px #6366f1; animation: heroDotPulse 2s ease-in-out infinite; }
+@keyframes heroDotPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.4)} }
+.ai-hero h1 {
+    font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 900; margin: 0 0 0.5rem;
+    color: white; letter-spacing: -0.02em; line-height: 1.1;
+}
+.ai-hero h1 span {
+    background: linear-gradient(135deg, #a5b4fc, #c4b5fd, #818cf8);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.ai-hero p { color: rgba(148,163,184,0.85); font-size: 0.9rem; margin: 0; }
+
+/* LLM status + nav buttons */
+.ai-hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1rem; }
+.llm-status {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 1.1rem; border-radius: 50px;
+    font-size: 0.78rem; font-weight: 700;
+    border: 1.5px solid;
+}
+.llm-online  { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.4); color: #6ee7b7; }
+.llm-offline { background: rgba(239,68,68,0.12);  border-color: rgba(239,68,68,0.4);  color: #fca5a5; }
+.llm-dot { width: 8px; height: 8px; border-radius: 50%; animation: heroDotPulse 2s ease-in-out infinite; }
+.llm-online  .llm-dot { background: #10b981; }
+.llm-offline .llm-dot { background: #ef4444; animation: none; }
+
+.ai-nav-btns { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.ai-nav-btn {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.55rem 1.1rem; border-radius: 10px; text-decoration: none;
+    font-size: 0.8rem; font-weight: 700; transition: all 0.2s;
+    background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9);
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+}
+.ai-nav-btn:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.3); transform: translateY(-1px); }
+.ai-nav-btn-danger { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.35); color: #fca5a5; }
+.ai-nav-btn-danger:hover { background: rgba(239,68,68,0.25); }
+
+/* Hero tab bar */
+.ai-hero-tabs {
+    max-width: 1380px; margin: 1.5rem auto 0; padding: 0 1.5rem;
+    display: flex; gap: 0; border-top: 1px solid rgba(255,255,255,0.08);
+    position: relative; z-index: 1;
+}
+.ai-htab {
+    padding: 0.85rem 1.4rem; font-size: 0.82rem; font-weight: 600;
+    color: rgba(148,163,184,0.7); border-bottom: 2.5px solid transparent;
+    cursor: pointer; transition: all 0.2s; text-decoration: none;
+    display: flex; align-items: center; gap: 0.4rem;
+}
+.ai-htab:hover { color: rgba(255,255,255,0.85); }
+.ai-htab.active { color: #a5b4fc; border-bottom-color: #6366f1; }
+
+/* ── Alert chips ──────────────────────────────────────────────────────────── */
+.ai-alerts { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 2rem; }
+.ai-alert-chip {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.55rem 1.1rem; border-radius: 50px; text-decoration: none;
+    font-size: 0.8rem; font-weight: 700; transition: all 0.2s;
+    backdrop-filter: blur(8px);
+}
+.ai-alert-chip:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.15); }
+.ai-alert-fraud  { background: rgba(239,68,68,0.1);  border: 1.5px solid rgba(239,68,68,0.3);  color: #dc2626; }
+.ai-alert-churn  { background: rgba(245,158,11,0.1); border: 1.5px solid rgba(245,158,11,0.3); color: #d97706; }
+.ai-alert-info   { background: rgba(99,102,241,0.1); border: 1.5px solid rgba(99,102,241,0.3); color: #6366f1; }
+
+/* ── KPI stats ────────────────────────────────────────────────────────────── */
+.ai-kpis { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.25rem; margin-bottom: 2.5rem; }
+@media(max-width:700px) { .ai-kpis { grid-template-columns: 1fr; } }
+.ai-kpi {
+    background: white; border: 1px solid rgba(226,232,240,0.8);
+    border-radius: 20px; padding: 1.5rem;
+    display: flex; align-items: center; gap: 1.1rem;
+    box-shadow: 0 4px 16px -6px rgba(15,23,42,0.08);
+    transition: all 0.3s ease; position: relative; overflow: hidden;
+}
+.ai-kpi::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 70%, rgba(99,102,241,0.03) 100%);
+}
+.ai-kpi:hover { transform: translateY(-3px); box-shadow: 0 12px 28px -8px rgba(99,102,241,0.2); border-color: rgba(99,102,241,0.25); }
+.ai-kpi-icon {
+    width: 54px; height: 54px; border-radius: 16px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+}
+.ai-kpi-body { flex: 1; }
+.ai-kpi-val { font-size: 2rem; font-weight: 900; color: #0f172a; letter-spacing: -0.03em; line-height: 1; }
+.ai-kpi-lbl { font-size: 0.78rem; color: #64748b; font-weight: 600; margin-top: 0.25rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ── Section title ────────────────────────────────────────────────────────── */
+.ai-section-title {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;
+}
+.ai-section-title h2 {
+    font-size: 1.05rem; font-weight: 800; color: #0f172a; margin: 0;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.ai-section-badge {
+    font-size: 0.68rem; font-weight: 700; padding: 3px 9px; border-radius: 50px;
+    background: linear-gradient(135deg, #eef2ff, #f5f3ff); color: #6366f1;
+    border: 1px solid #c7d2fe;
+}
+
+/* ── Model cards grid ─────────────────────────────────────────────────────── */
+.ai-models-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 1rem; margin-bottom: 3rem; }
+.ai-model-card {
+    background: white; border: 1.5px solid #e2e8f0;
+    border-radius: 18px; padding: 1.2rem; position: relative; overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px -4px rgba(15,23,42,0.06);
+}
+.ai-model-card:hover { transform: translateY(-4px); box-shadow: 0 14px 28px -8px rgba(99,102,241,0.2); }
+.ai-model-card.is-trained { border-color: #bbf7d0; }
+.ai-model-card.is-trained::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #10b981, #34d399);
+}
+.ai-model-card.is-untrained::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #e2e8f0, #cbd5e1);
+}
+.ai-model-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; }
+.ai-model-name { font-weight: 800; font-size: 0.88rem; color: #1e293b; line-height: 1.3; }
+.ai-model-badge {
+    font-size: 0.65rem; font-weight: 800; padding: 3px 9px; border-radius: 50px;
+    white-space: nowrap; flex-shrink: 0; margin-left: 0.4rem;
+}
+.badge-trained   { background: #dcfce7; color: #166534; }
+.badge-untrained { background: #f1f5f9; color: #64748b; }
+.ai-model-meta { font-size: 0.72rem; color: #94a3b8; }
+.ai-model-meta div { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 2px; }
+
+/* Accuracy bar */
+.ai-model-bar-wrap { margin-top: 0.75rem; }
+.ai-model-bar-label { display: flex; justify-content: space-between; font-size: 0.7rem; color: #94a3b8; margin-bottom: 4px; }
+.ai-model-bar-bg { height: 6px; background: #f1f5f9; border-radius: 50px; overflow: hidden; }
+.ai-model-bar-fill { height: 100%; border-radius: 50px; background: linear-gradient(90deg, #10b981, #34d399); transition: width 1.2s cubic-bezier(.16,1,.3,1); width: 0; }
+
+/* ── Features grid ────────────────────────────────────────────────────────── */
+.ai-features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px,1fr)); gap: 1rem; }
+.ai-feat-card {
+    background: white; border: 1px solid #e8ecf4;
+    border-radius: 18px; padding: 1.2rem 1.25rem;
+    display: flex; gap: 1rem; align-items: flex-start;
+    box-shadow: 0 2px 8px -4px rgba(15,23,42,0.06);
+    transition: all 0.3s ease; position: relative; overflow: hidden;
+}
+.ai-feat-card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    border-radius: 18px 0 0 18px; opacity: 0; transition: opacity 0.2s;
+}
+.ai-feat-card:hover { transform: translateY(-4px); box-shadow: 0 16px 32px -10px rgba(99,102,241,0.2); border-color: rgba(99,102,241,0.3); }
+.ai-feat-card:hover::before { opacity: 1; }
+.ai-feat-icon {
+    width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+}
+.ai-feat-num {
+    position: absolute; top: 0.7rem; right: 0.9rem;
+    font-size: 0.65rem; font-weight: 800; color: #cbd5e1;
+    letter-spacing: 0.04em;
+}
+.ai-feat-body { flex: 1; min-width: 0; }
+.ai-feat-title { font-weight: 800; font-size: 0.88rem; color: #0f172a; margin-bottom: 0.2rem; line-height: 1.3; }
+.ai-feat-desc  { font-size: 0.77rem; color: #64748b; line-height: 1.5; margin-bottom: 0.5rem; }
+.ai-feat-endpoint {
+    font-size: 0.67rem; font-family: 'SF Mono', 'Fira Code', monospace;
+    background: #f8fafc; border: 1px solid #e2e8f0; color: #6366f1;
+    padding: 3px 8px; border-radius: 6px; display: inline-block;
+    word-break: break-all;
+}
+.ai-feat-no-ep { font-size: 0.7rem; color: #cbd5e1; font-style: italic; }
+
+/* Category colours */
+.cat-search   { background: linear-gradient(135deg,#dbeafe,#eff6ff); color: #1e40af; }
+.cat-listing  { background: linear-gradient(135deg,#fce7f3,#fdf2f8); color: #9d174d; }
+.cat-roommate { background: linear-gradient(135deg,#d1fae5,#ecfdf5); color: #065f46; }
+.cat-legal    { background: linear-gradient(135deg,#fef3c7,#fffbeb); color: #92400e; }
+.cat-pricing  { background: linear-gradient(135deg,#ede9fe,#f5f3ff); color: #5b21b6; }
+.cat-trust    { background: linear-gradient(135deg,#fee2e2,#fff5f5); color: #991b1b; }
+.cat-owner    { background: linear-gradient(135deg,#e0f2fe,#f0f9ff); color: #075985; }
+.cat-map      { background: linear-gradient(135deg,#d1fae5,#ecfdf5); color: #064e3b; }
+.ai-feat-cat-badge {
+    display: inline-flex; align-items: center;
+    font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 50px;
+    margin-bottom: 0.4rem;
+}
+
+/* Card left border accent colour per category */
+.ai-feat-card.c-search::before   { background: #3b82f6; }
+.ai-feat-card.c-listing::before  { background: #ec4899; }
+.ai-feat-card.c-roommate::before { background: #10b981; }
+.ai-feat-card.c-legal::before    { background: #f59e0b; }
+.ai-feat-card.c-pricing::before  { background: #8b5cf6; }
+.ai-feat-card.c-trust::before    { background: #ef4444; }
+.ai-feat-card.c-owner::before    { background: #0ea5e9; }
+.ai-feat-card.c-map::before      { background: #059669; }
+
+/* Responsive */
+@media(max-width: 960px)  { .ai-features-grid { grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); } }
+@media(max-width: 640px)  { .ai-hero-inner { flex-direction: column; } .ai-hero-right { align-items: flex-start; } }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="ai-page">
+
+  {# ── Hero ── #}
+  <div class="ai-hero">
+    <div class="ai-hero-inner">
+      <div class="ai-hero-left">
+        <div class="ai-hero-eyebrow">
+          <span class="ai-hero-eyebrow-dot"></span>
+          UNIDAR Intelligence Platform
+        </div>
+        <h1>AI <span>Intelligence</span> Hub</h1>
+        <p>20 AI features · {{ models|length }} ML models · real-time fraud & churn signals</p>
+      </div>
+      <div class="ai-hero-right">
+        <div class="llm-status {{ llm_online ? 'llm-online' : 'llm-offline' }}">
+          <span class="llm-dot"></span>
+          {{ llm_online ? 'LLM Online (Ollama)' : 'LLM Offline — rule-based fallback active' }}
+        </div>
+        <div class="ai-nav-btns">
+          <a href="{{ path('admin_ai_fraud_queue') }}"      class="ai-nav-btn ai-nav-btn-danger">🚨 Fraud Queue</a>
+          <a href="{{ path('admin_ai_churn_report') }}"     class="ai-nav-btn">📉 Churn</a>
+          <a href="{{ path('admin_ai_anomaly_report') }}"   class="ai-nav-btn">👁️ Anomalies</a>
+          <a href="{{ path('admin_ai_sentiment_overview') }}" class="ai-nav-btn">💬 Sentiment</a>
+          <a href="{{ path('admin_dashboard') }}"           class="ai-nav-btn">← Dashboard</a>
+        </div>
+      </div>
+    </div>
+    <div class="ai-hero-tabs">
+      <a href="#models"   class="ai-htab active" onclick="scrollTo(this,'models')">🧠 Models</a>
+      <a href="#features" class="ai-htab" onclick="scrollTo(this,'features')">⚡ Features</a>
+    </div>
+  </div>
+
+  <div class="ai-container">
+
+    {# ── Alerts ── #}
+    {% if alerts %}
+    <div class="ai-alerts">
+      {% for alert in alerts %}
+      <a href="{{ alert.url }}" class="ai-alert-chip ai-alert-{{ alert.type }}">
+        {% if alert.type == 'fraud' %}🚨{% elseif alert.type == 'churn' %}📉{% else %}⚠️{% endif %}
+        {{ alert.message }}
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {# ── KPI Row ── #}
+    <div class="ai-kpis">
+      <div class="ai-kpi">
+        <div class="ai-kpi-icon" style="background:linear-gradient(135deg,#eef2ff,#e0e7ff);">🏠</div>
+        <div class="ai-kpi-body">
+          <div class="ai-kpi-val">{{ stats.total_listings }}</div>
+          <div class="ai-kpi-lbl">Total Listings</div>
+        </div>
+      </div>
+      <div class="ai-kpi">
+        <div class="ai-kpi-icon" style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);">✅</div>
+        <div class="ai-kpi-body">
+          <div class="ai-kpi-val">{{ stats.active_listings }}</div>
+          <div class="ai-kpi-lbl">Active Listings</div>
+        </div>
+      </div>
+      <div class="ai-kpi">
+        <div class="ai-kpi-icon" style="background:linear-gradient(135deg,#fdf4ff,#f3e8ff);">👤</div>
+        <div class="ai-kpi-body">
+          <div class="ai-kpi-val">{{ stats.total_users }}</div>
+          <div class="ai-kpi-lbl">Registered Users</div>
+        </div>
+      </div>
+    </div>
+
+    {# ── ML Models ── #}
+    <div id="models">
+      <div class="ai-section-title">
+        <h2>🧠 ML Model Status
+          <span class="ai-section-badge">
+            {{ models|filter(m => m.trained)|length }}/{{ models|length }} trained
+          </span>
+        </h2>
+      </div>
+      <div class="ai-models-grid">
+        {% for name, model in models %}
+        {% set icons = {
+          'price_recommendation': '💰',
+          'roommate_compatibility': '🤝',
+          'listing_quality': '⭐',
+          'fraud_detection': '🛡️',
+          'churn_prediction': '📉',
+          'dynamic_pricing': '📊',
+          'behavioural_anomaly': '👁️',
+          'energy_cost': '⚡',
+          'listing_performance': '📈',
+        } %}
+        <div class="ai-model-card {{ model.trained ? 'is-trained' : 'is-untrained' }}">
+          <div class="ai-model-header">
+            <div>
+              <div style="font-size:1.4rem;margin-bottom:0.3rem;">{{ icons[name] ?? '🤖' }}</div>
+              <div class="ai-model-name">{{ model.label }}</div>
+            </div>
+            <span class="ai-model-badge {{ model.trained ? 'badge-trained' : 'badge-untrained' }}">
+              {{ model.trained ? '✓ Trained' : '○ Untrained' }}
+            </span>
+          </div>
+          {% if model.trained %}
+            <div class="ai-model-meta">
+              {% if model.trained_at %}
+              <div>🕐 <span>{{ model.trained_at|slice(0,10) }}</span></div>
+              {% endif %}
+              {% if model.samples %}
+              <div>📊 <span>{{ model.samples }} samples</span></div>
+              {% endif %}
+            </div>
+            <div class="ai-model-bar-wrap">
+              <div class="ai-model-bar-label">
+                <span>Readiness</span><span>100%</span>
+              </div>
+              <div class="ai-model-bar-bg">
+                <div class="ai-model-bar-fill" data-w="100"></div>
+              </div>
+            </div>
+          {% else %}
+            <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.4rem;line-height:1.5;">
+              No model file — predictions use rule-based fallback
+            </div>
+            <div class="ai-model-bar-wrap">
+              <div class="ai-model-bar-label"><span>Readiness</span><span style="color:#cbd5e1;">0%</span></div>
+              <div class="ai-model-bar-bg"><div class="ai-model-bar-fill" style="background:#e2e8f0;" data-w="0"></div></div>
+            </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ── 20 AI Features ── #}
+    <div id="features">
+      <div class="ai-section-title">
+        <h2>⚡ All 20 AI Features <span class="ai-section-badge">Production Ready</span></h2>
+      </div>
+      <div class="ai-features-grid">
+
+        {% set features = [
+          { icon:'🔍', n:'01', cat:'Search',   title:'Natural Language Search',        desc:'Free-text search in EN/FR/AR — price, city, type extracted automatically',   ep:'/api/ai/search?q=...' },
+          { icon:'🖼️', n:'02', cat:'Search',   title:'Visual Similarity Search',       desc:'Find listings with matching aesthetic from photo embeddings',                ep:null },
+          { icon:'🧠', n:'03', cat:'Search',   title:'Smart Adaptive Filters',         desc:'Filters that learn from individual user browsing behaviour',                  ep:null },
+          { icon:'✍️', n:'04', cat:'Listing',  title:'AI Description Generator',       desc:'Generates polished EN/FR/AR listing copy from property attributes',          ep:'/api/ai/listing/{id}/description' },
+          { icon:'📸', n:'05', cat:'Listing',  title:'Photo Quality Scorer',           desc:'Blur detection, brightness analysis, room coverage — grade A–F',             ep:'/api/ai/listing/{id}/photo-quality' },
+          { icon:'🛡️', n:'06', cat:'Listing',  title:'Fraud Detector',                 desc:'14-signal ML score 0–100, risk level, recommended action',                   ep:'/api/ai/listing/{id}/fraud-score' },
+          { icon:'⚡', n:'07', cat:'Listing',  title:'Energy Cost Estimator',          desc:'Monthly electricity + water bill forecast with saving tips',                  ep:'/api/ai/listing/{id}/energy' },
+          { icon:'💞', n:'08', cat:'Roommate', title:'Roommate Chemistry Timeline',    desc:'12-month conflict heatmap across 6 compatibility dimensions',                 ep:'/api/ai/roommate/chemistry' },
+          { icon:'🏘️', n:'09', cat:'Roommate', title:'Group House Assembler',          desc:'Greedy optimal group assembly from a candidate pool',                         ep:null },
+          { icon:'📋', n:'10', cat:'Legal',    title:'Lease Risk Analyzer',            desc:'Clause extraction + tenant fairness score, multilingual EN/FR/AR',           ep:'/api/ai/lease/analyze' },
+          { icon:'⚖️', n:'11', cat:'Legal',    title:'AI Dispute Mediator',            desc:'Neutral AI arbitration between landlord and tenant statements',               ep:'/api/ai/dispute/mediate' },
+          { icon:'💰', n:'12', cat:'Pricing',  title:'Dynamic Market Pricing',         desc:'Seasonal + demand price nudges; Tunisia academic calendar aware',             ep:'/api/ai/listing/{id}/dynamic-pricing' },
+          { icon:'🏦', n:'13', cat:'Pricing',  title:'Cost of Living Calculator',      desc:'Full monthly budget: rent + transport + groceries + utilities',               ep:'/api/ai/listing/{id}/cost-of-living' },
+          { icon:'🪪', n:'14', cat:'Trust',    title:'Document Verification',          desc:'OCR + validity check for student IDs and national certificates',              ep:'/api/ai/document/verify' },
+          { icon:'👁️', n:'15', cat:'Trust',    title:'Behavioural Anomaly Detector',   desc:'Flags scrapers, spammers, and fake accounts from usage patterns',             ep:'/api/ai/user/{id}/anomaly' },
+          { icon:'📈', n:'16', cat:'Owner',    title:'Listing Performance Predictor',  desc:'Days-to-fill forecast with conversion probability and action plan',           ep:'/api/ai/listing/{id}/performance' },
+          { icon:'📉', n:'17', cat:'Owner',    title:'Churn Predictor',                desc:'Identifies users at risk of leaving — triggers re-engagement',               ep:'/api/ai/user/{id}/churn' },
+          { icon:'💬', n:'18', cat:'Owner',    title:'Review Sentiment Extractor',     desc:'Theme extraction + positive/negative scoring on tenant reviews',              ep:'/api/ai/reviews/sentiment' },
+          { icon:'🚌', n:'19', cat:'Map',      title:'Campus Commute Score',           desc:'Real travel time to all 11 major Tunisian universities — offline',            ep:'/api/ai/listing/{id}/commute' },
+          { icon:'🏙️', n:'20', cat:'Map',      title:'Neighbourhood Vibe Classifier',  desc:'8 vibe dimensions: student-friendly, nightlife, quiet, parks…',              ep:'/api/ai/listing/{id}/neighbourhood' },
+        ] %}
+
+        {% for f in features %}
+        <div class="ai-feat-card c-{{ f.cat|lower }}">
+          <div class="ai-feat-icon cat-{{ f.cat|lower }}">{{ f.icon }}</div>
+          <div class="ai-feat-body">
+            <div class="ai-feat-num">#{{ f.n }}</div>
+            <div class="ai-feat-cat-badge cat-{{ f.cat|lower }}">{{ f.cat }}</div>
+            <div class="ai-feat-title">{{ f.title }}</div>
+            <div class="ai-feat-desc">{{ f.desc }}</div>
+            {% if f.ep %}
+              <span class="ai-feat-endpoint">{{ f.ep }}</span>
+            {% else %}
+              <span class="ai-feat-no-ep">Service-level · no direct endpoint</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+
+      </div>
+    </div>
+
+  </div>{# /ai-container #}
+</div>
+
+<script>
+// Animate model readiness bars on load
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        document.querySelectorAll('.ai-model-bar-fill').forEach(function(el) {
+            el.style.width = (el.getAttribute('data-w') || 0) + '%';
+        });
+    }, 200);
+});
+
+// Smooth scroll + active tab
+function scrollTo(el, id) {
+    var target = document.getElementById(id);
+    if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    document.querySelectorAll('.ai-htab').forEach(function(t) { t.classList.remove('active'); });
+    el.classList.add('active');
+    return false;
+}
+</script>
+{% endblock %}

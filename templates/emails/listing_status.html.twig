@@ -1,0 +1,56 @@
+{% extends 'emails/_layout.html.twig' %}
+{% set recipient_email = user.email %}
+
+{% block body %}
+  {% if status == 'approved' %}
+    <div style="text-align:center; margin-bottom:24px;">
+      <div style="font-size:48px; line-height:1; margin-bottom:12px;">✅</div>
+      <h1 style="margin:0 0 8px; font-size:22px; font-weight:800; color:#38a169; font-family:-apple-system,Arial,sans-serif;">Your listing has been approved!</h1>
+      <span style="display:inline-block; background:#c6f6d5; color:#276749; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; padding:4px 12px; border-radius:20px; font-family:-apple-system,Arial,sans-serif;">Live</span>
+    </div>
+
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Hi <strong style="color:#1a1d2e;">{{ user.fullName }}</strong>,</p>
+    <p style="margin:0 0 20px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Your listing <strong style="color:#6c63ff;">"{{ listing.title }}"</strong> has been reviewed and is now <strong>live</strong> on UNIDAR. Students can find and contact you about it.</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px; border-radius:12px; overflow:hidden; border:1px solid #eaecf2;">
+      <tr style="background:#f7f8fc;">
+        <td style="padding:11px 18px; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif; width:45%;">Title</td>
+        <td style="padding:11px 18px; font-size:13px; font-weight:700; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">{{ listing.title }}</td>
+      </tr>
+      <tr style="border-top:1px solid #eaecf2;">
+        <td style="padding:11px 18px; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif;">Price</td>
+        <td style="padding:11px 18px; font-size:13px; font-weight:700; color:#6c63ff; font-family:-apple-system,Arial,sans-serif;">{{ listing.price }} TND / month</td>
+      </tr>
+    </table>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td style="background:linear-gradient(135deg,#5b52e0,#3cbfb8); border-radius:14px; padding:18px 24px; text-align:center;">
+        <p style="margin:0; font-size:15px; font-weight:700; color:#ffffff; font-family:-apple-system,Arial,sans-serif;">Sign in to your dashboard to view and manage your listing</p>
+      </td></tr>
+    </table>
+
+  {% elseif status == 'rejected' %}
+    <div style="text-align:center; margin-bottom:24px;">
+      <div style="font-size:48px; line-height:1; margin-bottom:12px;">⚠️</div>
+      <h1 style="margin:0 0 8px; font-size:22px; font-weight:800; color:#d69e2e; font-family:-apple-system,Arial,sans-serif;">Your listing needs changes</h1>
+      <span style="display:inline-block; background:#fefcbf; color:#7b6c0b; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; padding:4px 12px; border-radius:20px; font-family:-apple-system,Arial,sans-serif;">Changes required</span>
+    </div>
+
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Hi <strong style="color:#1a1d2e;">{{ user.fullName }}</strong>,</p>
+    <p style="margin:0 0 18px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Your listing <strong style="color:#6c63ff;">"{{ listing.title }}"</strong> could not be approved at this time. Here's why:</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+      <tr><td style="background:#fffbeb; border-radius:12px; border-left:4px solid #d69e2e; padding:18px 22px;">
+        <p style="margin:0; font-size:14px; color:#744210; line-height:1.65; font-family:-apple-system,Arial,sans-serif;">{{ reason }}</p>
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 20px; font-size:14px; color:#718096; font-family:-apple-system,Arial,sans-serif;">Please update your listing to address the feedback above, then resubmit for review. Our team typically reviews listings within 24 hours.</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td style="background:#f7f8fc; border-radius:12px; border:1px solid #eaecf2; padding:16px 20px; text-align:center;">
+        <p style="margin:0; font-size:13.5px; font-weight:600; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Sign in → My Listings → Edit &amp; resubmit</p>
+      </td></tr>
+    </table>
+  {% endif %}
+{% endblock %}

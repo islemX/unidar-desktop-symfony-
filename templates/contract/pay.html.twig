@@ -1,0 +1,282 @@
+{% extends 'base.html.twig' %}
+{% block title %}Pay Rent - UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="/css/contracts.css">
+<style>
+    .payment-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 900px; margin: 0 auto; }
+    @media(max-width: 768px) { .payment-layout { grid-template-columns: 1fr; } }
+
+    .virtual-card {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+        border-radius: var(--radius-xl);
+        padding: 2rem;
+        color: white;
+        aspect-ratio: 1.6 / 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        transition: background 0.5s ease;
+    }
+    .virtual-card.visa { background: linear-gradient(135deg, #1a365d, #2c5282); }
+    .virtual-card.mastercard { background: linear-gradient(135deg, #4a5568, #2d3748); }
+
+    .card-brand { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.1em; text-align: right; }
+    .card-number { font-size: 1.3rem; letter-spacing: 0.15em; font-family: monospace; margin: 1rem 0; }
+    .card-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
+    .card-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; margin-bottom: 2px; }
+    .card-value { font-size: 0.9rem; font-weight: 600; }
+
+    .payment-tabs { display: flex; border-bottom: 2px solid var(--color-border); margin-bottom: 1.5rem; }
+    .payment-tab { flex: 1; padding: 0.75rem; text-align: center; cursor: pointer; font-weight: 500; font-size: 0.9rem; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .payment-tab.active { color: var(--color-brand); border-bottom-color: var(--color-brand); }
+
+    .payment-summary { background: var(--color-surface-50); border-radius: var(--radius-lg); padding: 1rem; margin-top: 1.5rem; }
+    .payment-summary tr td { padding: 6px 0; font-size: 0.9rem; }
+    .payment-summary tr td:first-child { color: var(--color-text-muted); }
+    .payment-summary tr td:last-child { text-align: right; font-weight: 600; }
+    .payment-summary .total-row td { border-top: 1px solid var(--color-border); padding-top: 10px; font-size: 1.1rem; color: var(--color-brand); }
+
+    .transfer-info { background: var(--color-surface-50); border-radius: var(--radius-lg); padding: 1.25rem; }
+    .transfer-info p { margin: 0.4rem 0; font-size: 0.9rem; }
+    .transfer-info strong { min-width: 100px; display: inline-block; }
+
+    /* Processing overlay */
+    .processing-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 50000; display: none; align-items: center; justify-content: center; }
+    .processing-overlay.active { display: flex; }
+    .processing-card { background: white; border-radius: var(--radius-xl); padding: 2.5rem; text-align: center; max-width: 400px; width: 90%; }
+    .processing-bar { height: 6px; background: var(--color-surface-100); border-radius: 3px; overflow: hidden; margin: 1.5rem 0; }
+    .processing-fill { height: 100%; background: linear-gradient(90deg, var(--color-brand), #7c3aed); border-radius: 3px; width: 0; transition: width 0.8s ease; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div></div>
+
+<main style="padding: 2rem 0 4rem;">
+    <div class="container">
+        <div style="margin-bottom: 1.5rem;">
+            <a href="{{ path('contract_show', {id: contract.id}) }}" style="color: var(--color-brand); font-weight: 500; font-size: 0.9rem;">← Back to Contract</a>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div class="section-tag">Payment</div>
+            <h1 style="font-size: 1.75rem; margin-top: 0.5rem;">Complete Your Payment</h1>
+            <p class="text-muted">Contract <code>{{ contract.contractNumber|slice(0,8) }}...</code> for {{ contract.listing.title }}</p>
+        </div>
+
+        <div class="payment-layout">
+            <!-- Left: Card Preview & Summary -->
+            <div>
+                <div class="virtual-card" id="virtualCard">
+                    <div>
+                        <div class="card-brand" id="cardBrand">CARD</div>
+                    </div>
+                    <div class="card-number" id="cardNumberPreview">•••• •••• •••• ••••</div>
+                    <div class="card-bottom">
+                        <div>
+                            <div class="card-label">Card Holder</div>
+                            <div class="card-value" id="cardHolderPreview">YOUR NAME</div>
+                        </div>
+                        <div>
+                            <div class="card-label">Expires</div>
+                            <div class="card-value" id="cardExpiryPreview">MM/YY</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payment-summary">
+                    <table style="width: 100%;">
+                        <tr>
+                            <td>Monthly Rent:</td>
+                            <td>{{ contract.monthlyRent }} TND</td>
+                        </tr>
+                        <tr>
+                            <td>Platform Fee (5%):</td>
+                            <td>{{ (contract.monthlyRent * 0.05)|number_format(2) }} TND</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td>Total:</td>
+                            <td>{{ (contract.monthlyRent * 1.05)|number_format(2) }} TND</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right: Payment Form -->
+            <div class="card">
+                <div class="payment-tabs">
+                    <div class="payment-tab active" onclick="switchPaymentTab('card')">💳 Card</div>
+                    <div class="payment-tab" onclick="switchPaymentTab('transfer')">🏦 Transfer</div>
+                </div>
+
+                <!-- Card Payment -->
+                <div id="cardPaymentForm">
+                    <div class="form-group">
+                        <label class="form-label">Cardholder Name</label>
+                        <input type="text" class="form-input" id="cardHolder" placeholder="Full name on card" autocomplete="cc-name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Card Number</label>
+                        <input type="text" class="form-input" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" autocomplete="cc-number">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Expiration</label>
+                            <input type="text" class="form-input" id="cardExpiry" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">CVC</label>
+                            <input type="text" class="form-input" id="cardCvc" placeholder="123" maxlength="4" autocomplete="cc-csc">
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary" style="width: 100%; padding: 0.875rem; font-size: 1rem;" onclick="processCardPayment()">
+                        💳 Pay {{ (contract.monthlyRent * 1.05)|number_format(2) }} TND
+                    </button>
+                </div>
+
+                <!-- Transfer Info (hidden by default) -->
+                <div id="transferPaymentForm" style="display: none;">
+                    <div class="transfer-info">
+                        <h4 style="margin-bottom: 1rem;">Bank Transfer Details</h4>
+                        <p><strong>Bank:</strong> BIAT</p>
+                        <p><strong>IBAN:</strong> TN59 1234 5678 9012 3456 7890</p>
+                        <p><strong>Reference:</strong> CONTRAT-{{ contract.id }}</p>
+                        <p><strong>Amount:</strong> {{ (contract.monthlyRent * 1.05)|number_format(2) }} TND</p>
+                    </div>
+                    <div style="background: rgba(255,193,7,0.1); border: 1px solid var(--warning); border-radius: var(--radius-lg); padding: 1rem; margin-top: 1rem; font-size: 0.85rem;">
+                        <strong>⚠️</strong> Please include the reference number. Processing takes 1-3 business days.
+                    </div>
+                    <form method="post" action="{{ path('contract_pay', {id: contract.id}) }}" style="margin-top: 1rem;">
+                        <input type="hidden" name="method" value="transfer">
+                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.875rem;">
+                            Confirm Transfer Initiated
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Processing Overlay -->
+<div class="processing-overlay" id="processingOverlay">
+    <div class="processing-card">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+        <h3 style="margin-bottom: 0.5rem;">Processing Payment</h3>
+        <p class="text-muted" id="processingStep" style="font-size: 0.9rem;">Connecting to bank...</p>
+        <div class="processing-bar">
+            <div class="processing-fill" id="processingFill"></div>
+        </div>
+        <p class="text-muted" id="processingPercent" style="font-size: 0.85rem;">0%</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+// Tab switching
+function switchPaymentTab(tab) {
+    document.querySelectorAll('.payment-tab').forEach(function(t) { t.classList.remove('active'); });
+    event.target.classList.add('active');
+    document.getElementById('cardPaymentForm').style.display = tab === 'card' ? 'block' : 'none';
+    document.getElementById('transferPaymentForm').style.display = tab === 'transfer' ? 'block' : 'none';
+}
+
+// Real-time card preview
+document.getElementById('cardHolder').addEventListener('input', function() {
+    document.getElementById('cardHolderPreview').textContent = this.value || 'YOUR NAME';
+});
+
+document.getElementById('cardNumber').addEventListener('input', function() {
+    var val = this.value.replace(/\D/g, '');
+    var formatted = val.replace(/(\d{4})/g, '$1 ').trim();
+    this.value = formatted;
+    document.getElementById('cardNumberPreview').textContent = formatted || '•••• •••• •••• ••••';
+
+    // Card brand detection
+    var card = document.getElementById('virtualCard');
+    card.className = 'virtual-card';
+    var brand = 'CARD';
+    if (/^4/.test(val)) { brand = 'VISA'; card.classList.add('visa'); }
+    else if (/^5[1-5]/.test(val)) { brand = 'MASTERCARD'; card.classList.add('mastercard'); }
+    else if (/^3[47]/.test(val)) { brand = 'AMEX'; }
+    document.getElementById('cardBrand').textContent = brand;
+});
+
+document.getElementById('cardExpiry').addEventListener('input', function() {
+    var val = this.value.replace(/\D/g, '');
+    if (val.length >= 2) val = val.slice(0,2) + '/' + val.slice(2);
+    this.value = val;
+    document.getElementById('cardExpiryPreview').textContent = val || 'MM/YY';
+});
+
+// Luhn check
+function luhnCheck(num) {
+    var arr = (num + '').split('').reverse().map(Number);
+    var sum = arr.reduce(function(s, d, i) {
+        if (i % 2 !== 0) d *= 2;
+        if (d > 9) d -= 9;
+        return s + d;
+    }, 0);
+    return sum % 10 === 0;
+}
+
+// Process payment
+function processCardPayment() {
+    var num = document.getElementById('cardNumber').value.replace(/\s/g, '');
+    var exp = document.getElementById('cardExpiry').value;
+    var cvc = document.getElementById('cardCvc').value;
+    var holder = document.getElementById('cardHolder').value;
+
+    if (!holder || holder.length < 3) { alert('Please enter cardholder name.'); return; }
+    if (num.length < 13 || num.length > 19) { alert('Invalid card number.'); return; }
+    if (!/^\d{2}\/\d{2}$/.test(exp)) { alert('Invalid expiry date (MM/YY).'); return; }
+    if (cvc.length < 3) { alert('Invalid CVC.'); return; }
+
+    // Check expiry in future
+    var parts = exp.split('/');
+    var expDate = new Date(2000 + parseInt(parts[1]), parseInt(parts[0]), 0);
+    if (expDate < new Date()) { alert('Card has expired.'); return; }
+
+    // Show processing animation
+    var overlay = document.getElementById('processingOverlay');
+    overlay.classList.add('active');
+
+    var steps = [
+        { pct: 15, msg: 'Establishing secure connection (TLS 1.3)...' },
+        { pct: 35, msg: 'Encrypting payment data (AES-256)...' },
+        { pct: 60, msg: '3D Secure verification...' },
+        { pct: 85, msg: 'Recording contract payment...' },
+        { pct: 100, msg: 'Payment authorized!' }
+    ];
+
+    var i = 0;
+    function nextStep() {
+        if (i >= steps.length) {
+            // Submit actual payment
+            setTimeout(function() {
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{{ path('contract_pay', {id: contract.id}) }}';
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'method';
+                input.value = 'card';
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+            }, 800);
+            return;
+        }
+        document.getElementById('processingStep').textContent = steps[i].msg;
+        document.getElementById('processingFill').style.width = steps[i].pct + '%';
+        document.getElementById('processingPercent').textContent = steps[i].pct + '%';
+        i++;
+        setTimeout(nextStep, 800 + Math.random() * 500);
+    }
+    nextStep();
+}
+</script>
+{% endblock %}

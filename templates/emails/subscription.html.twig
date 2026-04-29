@@ -1,0 +1,65 @@
+{% extends 'emails/_layout.html.twig' %}
+{% set recipient_email = user.email %}
+
+{% block body %}
+  {% if status == 'active' %}
+    <div style="text-align:center; margin-bottom:24px;">
+      <div style="font-size:48px; line-height:1; margin-bottom:12px;">✅</div>
+      <h1 style="margin:0 0 8px; font-size:22px; font-weight:800; color:#38a169; font-family:-apple-system,Arial,sans-serif;">Subscription activated!</h1>
+      <span style="display:inline-block; background:#c6f6d5; color:#276749; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; padding:4px 12px; border-radius:20px; font-family:-apple-system,Arial,sans-serif;">Active</span>
+    </div>
+
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Hi <strong style="color:#1a1d2e;">{{ user.fullName }}</strong>,</p>
+    <p style="margin:0 0 20px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Your <strong>UNIDAR {{ subscription.plan is not null ? subscription.plan.value|capitalize : 'Premium' }}</strong> subscription is now active. Here's a summary:</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px; border-radius:12px; overflow:hidden; border:1px solid #eaecf2;">
+      <tr style="background:#f7f8fc;">
+        <td style="padding:11px 18px; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif; width:45%;">Plan</td>
+        <td style="padding:11px 18px; font-size:13px; font-weight:700; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">{{ subscription.plan is not null ? subscription.plan.value|capitalize : 'Premium' }}</td>
+      </tr>
+      {% if subscription.startsAt %}
+      <tr style="border-top:1px solid #eaecf2;">
+        <td style="padding:11px 18px; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif;">Started</td>
+        <td style="padding:11px 18px; font-size:13px; font-weight:700; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">{{ subscription.startsAt|date('d M Y') }}</td>
+      </tr>
+      {% endif %}
+      {% if subscription.expiresAt %}
+      <tr style="border-top:1px solid #eaecf2; background:#fafbff;">
+        <td style="padding:11px 18px; font-size:13px; color:#718096; font-family:-apple-system,Arial,sans-serif;">Renews / Expires</td>
+        <td style="padding:11px 18px; font-size:13px; font-weight:700; color:#1a1d2e; font-family:-apple-system,Arial,sans-serif;">{{ subscription.expiresAt|date('d M Y') }}</td>
+      </tr>
+      {% endif %}
+    </table>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td style="background:linear-gradient(135deg,#5b52e0,#3cbfb8); border-radius:14px; padding:18px 24px; text-align:center;">
+        <p style="margin:0; font-size:15px; font-weight:700; color:#ffffff; font-family:-apple-system,Arial,sans-serif;">Sign in to your dashboard to enjoy premium features 🚀</p>
+      </td></tr>
+    </table>
+
+  {% elseif status == 'failed' %}
+    <div style="text-align:center; margin-bottom:24px;">
+      <div style="font-size:48px; line-height:1; margin-bottom:12px;">❌</div>
+      <h1 style="margin:0 0 8px; font-size:22px; font-weight:800; color:#e53e3e; font-family:-apple-system,Arial,sans-serif;">Payment failed</h1>
+      <span style="display:inline-block; background:#fed7d7; color:#9b2c2c; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; padding:4px 12px; border-radius:20px; font-family:-apple-system,Arial,sans-serif;">Payment Error</span>
+    </div>
+
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Hi <strong style="color:#1a1d2e;">{{ user.fullName }}</strong>,</p>
+    <p style="margin:0 0 18px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">We were unable to process your payment for the <strong>{{ plan ?? 'Premium' }}</strong> plan.</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+      <tr><td style="background:#fff5f5; border-radius:12px; border-left:4px solid #e53e3e; padding:18px 22px;">
+        <p style="margin:0 0 4px; font-size:12px; font-weight:700; color:#9b2c2c; text-transform:uppercase; letter-spacing:.5px; font-family:-apple-system,Arial,sans-serif;">Reason</p>
+        <p style="margin:0; font-size:14px; color:#742a2a; font-family:-apple-system,Arial,sans-serif;">{{ error }}</p>
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 20px; font-size:14px; color:#718096; font-family:-apple-system,Arial,sans-serif;">Your account has not been charged. Sign in to retry with a different payment method.</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td style="background:#f7f8fc; border-radius:12px; border:1px solid #eaecf2; padding:16px 20px; text-align:center;">
+        <p style="margin:0; font-size:13.5px; font-weight:600; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Sign in to your UNIDAR dashboard → Subscription → Retry payment</p>
+      </td></tr>
+    </table>
+  {% endif %}
+{% endblock %}

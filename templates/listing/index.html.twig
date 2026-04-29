@@ -1,0 +1,563 @@
+{% extends 'base.html.twig' %}
+{% block voice_briefing %}
+<script>window.__vcPage__ = { page: 'listings', itemCount: {{ listings is defined ? listings|length : 0 }}, role: '{{ app.user ? (is_granted("ROLE_OWNER") ? "owner" : "student") : "guest" }}', briefing: { en: "Listings page. {{ listings is defined ? listings|length : 0 }} properties found. Say 'search city' or 'under 500' to filter.", fr: "Annonces. {{ listings is defined ? listings|length : 0 }} logements. Dites 'chercher ville' ou 'moins de 500'.", ar: "صفحة الإعلانات. {{ listings is defined ? listings|length : 0 }} عقار متاح. قل 'ابحث مدينة' أو 'أقل من 500'." }, suggestions: [ {label:'Search in Tunis', cmd:'search Tunis'}, {label:'Under 500 TND', cmd:'under 500'}, {label:'Apartments only', cmd:'search apartment'}, {label:'Open first listing', cmd:'open the first one'} ] };</script>
+{% endblock %}
+{% block title %}Browse Listings - UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<style>
+/* ── Cluster bubble (overrides default MarkerCluster styles) ── */
+.price-cluster-bubble {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: white;
+    border: 3px solid white;
+    border-radius: 50px;
+    padding: 6px 14px;
+    font-weight: 800;
+    font-size: 0.82rem;
+    box-shadow: 0 6px 20px rgba(79,70,229,0.5);
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+/* ============ Page shell ============ */
+.lst-page { padding: 2.5rem 0 5rem; position: relative; }
+.lst-page::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 420px;
+    background: radial-gradient(1200px 420px at 50% -200px, rgba(99,102,241,0.18), transparent 60%),
+                radial-gradient(900px 320px at 85% -150px, rgba(168,85,247,0.14), transparent 60%);
+    pointer-events: none; z-index: 0;
+}
+.lst-page > .container { position: relative; z-index: 1; }
+
+/* ============ Hero ============ */
+.lst-hero {
+    background: rgba(255,255,255,0.65);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 28px;
+    padding: 2rem 2.25rem;
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 10px 30px -12px rgba(15, 23, 42, 0.08);
+    display: flex; justify-content: space-between; align-items: flex-end;
+    flex-wrap: wrap; gap: 1.5rem;
+}
+.lst-hero-left { min-width: 260px; }
+.lst-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 6px 12px; border-radius: 50px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.12));
+    color: #6366f1; border: 1px solid rgba(99,102,241,0.2); margin-bottom: 0.9rem;
+}
+.lst-title {
+    font-size: clamp(1.7rem, 3.3vw, 2.4rem);
+    font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; margin: 0;
+    background: linear-gradient(135deg, #0f172a 0%, #4f46e5 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.lst-sub { margin: 0.5rem 0 0; color: #64748b; font-size: 0.95rem; }
+
+/* ============ View toggle ============ */
+.lst-view-toggle {
+    display: inline-flex; padding: 4px; gap: 4px;
+    background: #f1f5f9; border: 1px solid #e2e8f0;
+    border-radius: 14px;
+}
+.lst-view-toggle button {
+    border: none; background: transparent; padding: 8px 16px;
+    border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+    color: #64748b; display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.25s ease;
+}
+.lst-view-toggle button.active {
+    background: white; color: #4f46e5;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+}
+.lst-view-toggle button:not(.active):hover { color: #0f172a; }
+
+/* ============ Filter bar (pro) ============ */
+.lst-filters {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 22px;
+    padding: 1.4rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 14px -6px rgba(15,23,42,0.08), 0 1px 2px rgba(15,23,42,0.04);
+    position: relative;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.lst-filters:focus-within {
+    border-color: rgba(99,102,241,0.35);
+    box-shadow: 0 10px 25px -8px rgba(99,102,241,0.25), 0 2px 4px rgba(15,23,42,0.04);
+}
+.lst-filters-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap;
+}
+.lst-filters-head h2 {
+    margin: 0; font-size: 0.88rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.08em; color: #475569;
+    display: inline-flex; align-items: center; gap: 8px;
+}
+.lst-filters-head h2 .lst-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    box-shadow: 0 0 0 4px rgba(99,102,241,0.12);
+}
+.lst-filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.9rem;
+}
+.lst-field { position: relative; }
+.lst-field label {
+    display: block;
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: #475569; margin-bottom: 0.35rem;
+    display: inline-flex; align-items: center; gap: 5px;
+}
+.lst-field .form-input,
+.lst-field input[type="number"],
+.lst-field select {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 0.92rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    color: #0f172a;
+    transition: all 0.2s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+}
+.lst-field select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M1 1l5 5 5-5'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+    cursor: pointer;
+}
+.lst-field input:hover, .lst-field select:hover {
+    border-color: #cbd5e1; background: white;
+}
+.lst-field input:focus, .lst-field select:focus {
+    outline: none;
+    border-color: #6366f1;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(99,102,241,0.12);
+}
+.lst-field input::-webkit-outer-spin-button,
+.lst-field input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.lst-filters-actions {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 1.25rem; padding-top: 1rem;
+    border-top: 1px dashed #e2e8f0;
+    gap: 0.75rem; flex-wrap: wrap;
+}
+.lst-active-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.lst-active-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px 5px 12px;
+    border-radius: 50px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.08));
+    border: 1px solid rgba(99,102,241,0.2);
+    color: #4338ca;
+    font-size: 0.76rem; font-weight: 600;
+}
+.lst-buttons { display: inline-flex; gap: 0.6rem; }
+.lst-btn-clear {
+    padding: 10px 18px; font-size: 0.85rem; font-weight: 600;
+    background: transparent; border: 1px solid #e2e8f0; border-radius: 12px;
+    color: #64748b; cursor: pointer; text-decoration: none;
+    transition: all 0.2s ease;
+}
+.lst-btn-clear:hover { border-color: #cbd5e1; color: #0f172a; }
+.lst-btn-apply {
+    padding: 10px 22px; font-size: 0.88rem; font-weight: 700;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white; border: none; border-radius: 12px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    box-shadow: 0 8px 18px -6px rgba(79, 70, 229, 0.5);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+.lst-btn-apply:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -6px rgba(79,70,229,0.6); }
+.lst-btn-apply:active { transform: translateY(0); }
+
+/* ============ Results header ============ */
+.lst-results-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.25rem; padding: 0.4rem 0.25rem;
+    flex-wrap: wrap; gap: 0.75rem;
+}
+.lst-results-count { font-size: 0.95rem; color: #64748b; }
+.lst-results-count strong {
+    color: #0f172a; font-size: 1.15rem; font-weight: 800;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+/* ============ Empty state ============ */
+.lst-empty {
+    padding: 4rem 2rem;
+    background: white;
+    border: 1px dashed #e2e8f0;
+    border-radius: 22px;
+    text-align: center;
+}
+.lst-empty-icon { font-size: 3.5rem; margin-bottom: 0.5rem; display: inline-block;
+    filter: drop-shadow(0 6px 14px rgba(99,102,241,0.2));
+    animation: lstFloat 4s ease-in-out infinite;
+}
+@keyframes lstFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+/* ============ Grid ============ */
+.listings-grid { display: grid; gap: 1.75rem; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+
+/* ============ Map ============ */
+#listingsMap { height: 640px; border-radius: 22px; overflow: hidden;
+    border: 1px solid #e2e8f0; box-shadow: 0 10px 30px -12px rgba(15,23,42,0.12); }
+.map-popup-card { min-width: 200px; }
+.map-popup-card img { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; margin-bottom: 6px; }
+.map-popup-card strong { display: block; font-size: 0.95rem; margin-bottom: 2px; }
+.map-popup-card .price { color: var(--color-brand, #6366f1); font-weight: 800; }
+.map-popup-card a { display: inline-block; margin-top: 6px; font-size: 0.8rem; color: var(--color-brand, #6366f1); }
+
+/* ============ Pagination touch-up ============ */
+.pagination { display: flex; justify-content: center; margin-top: 2.5rem; }
+.pagination ul { display: inline-flex; gap: 4px; list-style: none; padding: 6px; margin: 0;
+    background: white; border: 1px solid #e2e8f0; border-radius: 14px;
+    box-shadow: 0 4px 12px -6px rgba(15,23,42,0.08); }
+.pagination li a, .pagination li span { display: inline-flex; align-items: center; justify-content: center;
+    min-width: 36px; height: 36px; padding: 0 12px;
+    border-radius: 10px; text-decoration: none; color: #64748b; font-weight: 600; font-size: 0.88rem;
+    transition: all 0.2s ease; }
+.pagination li a:hover { background: #f1f5f9; color: #4f46e5; }
+.pagination li.current span { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white;
+    box-shadow: 0 6px 14px -4px rgba(79,70,229,0.5); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .lst-empty-icon { animation: none; }
+    .lst-btn-apply { transition: none; }
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="floating-shapes"><div class="shape shape-1"></div><div class="shape shape-2"></div></div>
+
+{# Build a compact list of the currently-applied filters for the chip strip #}
+{% set applied_chips = [] %}
+{% if app.request.query.get('listing_filter') %}
+    {% set qf = app.request.query.all('listing_filter') %}
+    {% if qf.minPrice is defined and qf.minPrice %}{% set applied_chips = applied_chips|merge([{'label': 'Min ' ~ qf.minPrice ~ ' TND'}]) %}{% endif %}
+    {% if qf.maxPrice is defined and qf.maxPrice %}{% set applied_chips = applied_chips|merge([{'label': 'Max ' ~ qf.maxPrice ~ ' TND'}]) %}{% endif %}
+    {% if qf.bedrooms is defined and qf.bedrooms %}{% set applied_chips = applied_chips|merge([{'label': qf.bedrooms ~ '+ bed' ~ (qf.bedrooms > 1 ? 's' : '')}]) %}{% endif %}
+    {% if qf.propertyType is defined and qf.propertyType %}{% set applied_chips = applied_chips|merge([{'label': qf.propertyType|replace({'_': ' '})|title}]) %}{% endif %}
+    {% if qf.genderPreference is defined and qf.genderPreference %}{% set applied_chips = applied_chips|merge([{'label': qf.genderPreference|capitalize ~ ' only'}]) %}{% endif %}
+{% endif %}
+
+<main class="lst-page">
+    <div class="container">
+
+        {# ——— AI Natural Language Search ——— #}
+        <div class="fade-in-up" style="margin-bottom:1.25rem;">
+            <div style="background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(168,85,247,0.06));border:1px solid rgba(99,102,241,0.2);border-radius:22px;padding:1.25rem 1.5rem;">
+                <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
+                    <span style="font-size:1.1rem;">🔮</span>
+                    <span style="font-weight:700;font-size:0.88rem;color:#4338ca;text-transform:uppercase;letter-spacing:0.06em;">AI Smart Search</span>
+                    <span style="font-size:0.72rem;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;padding:2px 8px;border-radius:50px;font-weight:700;">NEW</span>
+                </div>
+                <div style="display:flex;gap:0.75rem;align-items:center;">
+                    <input type="text" id="nlSearchInput" placeholder="e.g. &quot;studio near ENIT under 600 TND with wifi&quot; or &quot;appartement calme à Ariana avec parking&quot;"
+                        style="flex:1;padding:12px 16px;border:1.5px solid #c7d2fe;border-radius:14px;font-size:0.9rem;background:white;outline:none;transition:all 0.2s;font-family:inherit;"
+                        onfocus="this.style.borderColor='#6366f1';this.style.boxShadow='0 0 0 4px rgba(99,102,241,0.12)'"
+                        onblur="this.style.borderColor='#c7d2fe';this.style.boxShadow='none'"
+                        onkeydown="if(event.key==='Enter')runNlSearch()">
+                    <button onclick="runNlSearch()" id="nlSearchBtn"
+                        style="padding:12px 22px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;border:none;border-radius:14px;font-weight:700;font-size:0.88rem;cursor:pointer;white-space:nowrap;box-shadow:0 8px 18px -6px rgba(79,70,229,0.5);transition:all 0.2s;"
+                        onmouseover="this.style.transform='translateY(-1px)'"
+                        onmouseout="this.style.transform='translateY(0)'">
+                        ✨ Search
+                    </button>
+                </div>
+                <div id="nlSearchResults" style="display:none;margin-top:1rem;"></div>
+                <p style="font-size:0.75rem;color:#64748b;margin:0.5rem 0 0;">Search in English, French, or Arabic — AI understands price, location, type, and amenities.</p>
+            </div>
+        </div>
+
+        {# ——— Hero ——— #}
+        <div class="lst-hero fade-in-up">
+            <div class="lst-hero-left">
+                <span class="lst-tag">✨ <span data-i18n="listings_marketplace">Marketplace</span></span>
+                <h1 class="lst-title" data-i18n="listings_title">Find Your Perfect Home</h1>
+                <p class="lst-sub">Browse verified student housing across Tunisia — filter, compare, and contact owners in a click.</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <div class="lst-view-toggle" role="tablist" aria-label="View mode">
+                    <button type="button" id="viewGridBtn" class="active" onclick="setView('grid')">🔲 <span>Grid</span></button>
+                    <button type="button" id="viewMapBtn" onclick="setView('map')">🗺️ <span>Map</span></button>
+                </div>
+                {% if is_granted('ROLE_OWNER') %}
+                    <a href="{{ path('listing_new') }}" class="lst-btn-apply" style="text-decoration:none;">+ Add Listing</a>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ——— Filter bar ——— #}
+        <div class="lst-filters fade-in-up stagger-1">
+            <div class="lst-filters-head">
+                <h2><span class="lst-dot"></span> Filters</h2>
+                {% if applied_chips|length > 0 %}
+                    <div class="lst-active-chips">
+                        {% for c in applied_chips %}
+                            <span class="lst-active-chip">{{ c.label }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            {{ form_start(filter_form, {'method': 'GET', 'action': path('listing_index'), 'attr': {'style': 'margin:0'}}) }}
+            <div class="lst-filters-grid">
+                <div class="lst-field">
+                    <label data-i18n="filter_min_price">💰 Min Price <span style="color:#94a3b8;font-weight:500;">(TND)</span></label>
+                    {{ form_widget(filter_form.minPrice, {'attr': {'placeholder': '200'}}) }}
+                </div>
+                <div class="lst-field">
+                    <label data-i18n="filter_max_price">💰 Max Price <span style="color:#94a3b8;font-weight:500;">(TND)</span></label>
+                    {{ form_widget(filter_form.maxPrice, {'attr': {'placeholder': '1200'}}) }}
+                </div>
+                <div class="lst-field">
+                    <label data-i18n="filter_bedrooms">🛏 Bedrooms</label>
+                    {{ form_widget(filter_form.bedrooms, {'attr': {'placeholder': 'Any'}}) }}
+                </div>
+                <div class="lst-field">
+                    <label data-i18n="filter_property_type">🏠 Property Type</label>
+                    {{ form_widget(filter_form.propertyType) }}
+                </div>
+                <div class="lst-field">
+                    <label>👥 Gender</label>
+                    {{ form_widget(filter_form.genderPreference) }}
+                </div>
+            </div>
+
+            <div class="lst-filters-actions">
+                <div class="lst-results-count" aria-live="polite">
+                    <strong>{{ listings.getTotalItemCount() }}</strong> listings match
+                </div>
+                <div class="lst-buttons">
+                    <a href="{{ path('listing_index') }}" class="lst-btn-clear">Clear</a>
+                    <button type="submit" class="lst-btn-apply" data-i18n="btn_apply_filters">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                        Apply Filters
+                    </button>
+                </div>
+            </div>
+            {{ form_end(filter_form) }}
+        </div>
+
+        {# ——— Grid view ——— #}
+        <div id="gridView">
+            {% if listings|length == 0 %}
+                <div class="lst-empty fade-in-up">
+                    <div class="lst-empty-icon">🏜️</div>
+                    <h3 style="margin: 0 0 0.5rem; font-size: 1.25rem; color: #0f172a;">No listings match your filters</h3>
+                    <p style="color: #64748b; margin: 0 0 1.5rem;">Try widening the price range or clearing filters.</p>
+                    <a href="{{ path('listing_index') }}" class="lst-btn-apply" style="text-decoration:none;">Reset filters</a>
+                </div>
+            {% else %}
+                <div class="listings-grid">
+                    {% for listing in listings %}
+                        {% include 'listing/_card.html.twig' %}
+                    {% endfor %}
+                </div>
+                <div class="pagination">{{ knp_pagination_render(listings) }}</div>
+            {% endif %}
+        </div>
+
+        {# ——— Map view ——— #}
+        <div id="mapView" style="display: none;">
+            <div id="listingsMap"></div>
+        </div>
+    </div>
+</main>
+
+<script>
+    var _listingsData = [
+        {% for listing in listings %}
+            {% if listing.latitude and listing.longitude %}
+            {
+                id: {{ listing.id }},
+                title: {{ listing.title|json_encode|raw }},
+                address: {{ listing.address|json_encode|raw }},
+                price: {{ listing.price }},
+                lat: {{ listing.latitude }},
+                lng: {{ listing.longitude }},
+                image: {% if listing.images is not empty %}{{ ('/uploads/listings/' ~ listing.images.first.imagePath)|json_encode|raw }}{% else %}null{% endif %},
+                url: {{ path('listing_show', {id: listing.id})|json_encode|raw }}
+            }{% if not loop.last %},{% endif %}
+            {% endif %}
+        {% endfor %}
+    ];
+    var _listingsMap = null;
+
+    function setView(mode) {
+        var grid = document.getElementById('gridView');
+        var map = document.getElementById('mapView');
+        var gBtn = document.getElementById('viewGridBtn');
+        var mBtn = document.getElementById('viewMapBtn');
+        if (mode === 'map') {
+            grid.style.display = 'none';
+            map.style.display = 'block';
+            gBtn.classList.remove('active');
+            mBtn.classList.add('active');
+            initListingsMap();
+        } else {
+            grid.style.display = 'block';
+            map.style.display = 'none';
+            mBtn.classList.remove('active');
+            gBtn.classList.add('active');
+        }
+    }
+
+    function initListingsMap() {
+        if (_listingsMap) {
+            setTimeout(function() { _listingsMap.invalidateSize(); }, 100);
+            return;
+        }
+        _listingsMap = L.map('listingsMap').setView([36.8065, 10.1815], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors', maxZoom: 19
+        }).addTo(_listingsMap);
+
+        if (_listingsData.length === 0) return;
+
+        // ── MarkerCluster group ──────────────────────────────────────────
+        var cluster = L.markerClusterGroup({
+            maxClusterRadius: 70,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            // Custom cluster bubble showing count + price range
+            iconCreateFunction: function(c) {
+                var children = c.getAllChildMarkers();
+                var prices   = children.map(function(m) { return m._listingPrice || 0; });
+                var minP     = Math.min.apply(null, prices);
+                var maxP     = Math.max.apply(null, prices);
+                var label    = c.getChildCount() === 1
+                    ? minP + ' TND'
+                    : c.getChildCount() + ' listings · ' + minP + '–' + maxP + ' TND';
+                return L.divIcon({
+                    className: '',
+                    html: '<div class="price-cluster-bubble">🏠 ' + label + '</div>',
+                    iconSize: null,
+                    iconAnchor: [0, 0]
+                });
+            }
+        });
+
+        var bounds = [];
+        _listingsData.forEach(function(l) {
+            var priceIcon = L.divIcon({
+                className: 'price-marker',
+                html: '<div style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 5px 12px; border-radius: 50px; font-weight: 700; font-size: 0.8rem; box-shadow: 0 6px 14px rgba(79,70,229,0.5); white-space: nowrap; border: 2px solid white;">' + l.price + ' TND</div>',
+                iconSize: null,
+                iconAnchor: [30, 12]
+            });
+            var m = L.marker([l.lat, l.lng], { icon: priceIcon });
+            m._listingPrice = l.price; // stored for cluster label calculation
+            var imgHtml = l.image ? '<img src="' + l.image + '" alt="">' : '';
+            m.bindPopup(
+                '<div class="map-popup-card">' + imgHtml +
+                '<strong>' + l.title + '</strong>' +
+                '<div style="font-size:0.8rem;color:#64748b;">' + l.address + '</div>' +
+                '<div class="price">' + l.price + ' TND/mo</div>' +
+                '<a href="' + l.url + '">View details →</a>' +
+                '</div>'
+            );
+            cluster.addLayer(m);
+            bounds.push([l.lat, l.lng]);
+        });
+
+        _listingsMap.addLayer(cluster);
+        if (bounds.length > 0) _listingsMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+        setTimeout(function() { _listingsMap.invalidateSize(); }, 200);
+    }
+</script>
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+// ── AI Natural Language Search ──────────────────────────────────────────────
+function runNlSearch() {
+    var q = document.getElementById('nlSearchInput').value.trim();
+    var btn = document.getElementById('nlSearchBtn');
+    var box = document.getElementById('nlSearchResults');
+    if (!q) return;
+    btn.disabled = true; btn.textContent = '⏳ Searching…';
+    box.style.display = 'block';
+    box.innerHTML = '<div style="text-align:center;padding:1rem;color:#64748b;font-size:0.85rem;">🔮 AI is understanding your query…</div>';
+    fetch('/api/ai/search?q=' + encodeURIComponent(q) + '&limit=6', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            btn.disabled = false; btn.textContent = '✨ Search';
+            var results = d.results || d.listings || [];
+            var intent = d.intent || {};
+            if (!results.length) {
+                box.innerHTML = '<div style="text-align:center;padding:1rem;color:#64748b;">No AI results found — try the filters above.</div>';
+                return;
+            }
+            var html = '';
+            if (intent && Object.keys(intent).length) {
+                html += '<div style="font-size:0.78rem;color:#6366f1;font-weight:700;margin-bottom:0.6rem;">🎯 Understood: ';
+                var parts = [];
+                if (intent.city) parts.push('📍 ' + intent.city);
+                if (intent.max_price) parts.push('💰 ≤' + intent.max_price + ' TND');
+                if (intent.bedrooms) parts.push('🛏 ' + intent.bedrooms + ' bed');
+                if (intent.property_type) parts.push('🏠 ' + intent.property_type);
+                html += parts.join(' · ') + '</div>';
+            }
+            html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.75rem;">';
+            results.forEach(function(lst) {
+                var imgSrc = lst.image ? lst.image : null;
+                var imgHtml = imgSrc ? '<img src="' + imgSrc + '" style="width:100%;height:100px;object-fit:cover;border-radius:10px 10px 0 0;" alt="">' : '';
+                html += '<a href="/listing/' + lst.id + '" style="text-decoration:none;color:inherit;">';
+                html += '<div style="background:white;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;transition:all 0.2s;box-shadow:0 2px 8px -4px rgba(15,23,42,0.1);"';
+                html += ' onmouseover="this.style.boxShadow=\'0 10px 25px -8px rgba(99,102,241,0.3)\';this.style.borderColor=\'#c7d2fe\'"';
+                html += ' onmouseout="this.style.boxShadow=\'0 2px 8px -4px rgba(15,23,42,0.1)\';this.style.borderColor=\'#e2e8f0\'">';
+                html += imgHtml;
+                html += '<div style="padding:0.75rem;">';
+                html += '<div style="font-weight:700;font-size:0.9rem;color:#0f172a;margin-bottom:3px;">' + (lst.title||'Listing') + '</div>';
+                html += '<div style="font-size:0.75rem;color:#64748b;margin-bottom:6px;">📍 ' + (lst.address||'') + '</div>';
+                html += '<div style="font-weight:800;color:#6366f1;">' + (lst.price||0) + ' TND<span style="font-size:0.7rem;font-weight:500;color:#94a3b8;">/mo</span></div>';
+                if (lst.score) { html += '<div style="font-size:0.7rem;color:#10b981;margin-top:3px;">✨ ' + Math.round(lst.score*100) + '% match</div>'; }
+                html += '</div></div></a>';
+            });
+            html += '</div>';
+            if (results.length >= 6) {
+                html += '<div style="text-align:center;margin-top:0.75rem;">';
+                html += '<a href="' + window.location.pathname + '?q=' + encodeURIComponent(q) + '" style="font-size:0.82rem;color:var(--color-brand);font-weight:700;">See all results →</a>';
+                html += '</div>';
+            }
+            box.innerHTML = html;
+        })
+        .catch(function() {
+            btn.disabled = false; btn.textContent = '✨ Search';
+            box.innerHTML = '<div style="color:#ef4444;font-size:0.84rem;padding:0.5rem;">Search failed. Please try again.</div>';
+        });
+}
+</script>
+{% endblock %}

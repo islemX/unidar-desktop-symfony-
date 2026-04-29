@@ -1,0 +1,58 @@
+{% extends 'emails/_layout.html.twig' %}
+{% set recipient_email = user.email %}
+
+{% block body %}
+  {% if status == 'approved' %}
+    <div style="text-align:center; margin-bottom:24px;">
+      <div style="font-size:48px; line-height:1; margin-bottom:12px;">✅</div>
+      <h1 style="margin:0 0 8px; font-size:22px; font-weight:800; color:#38a169; font-family:-apple-system,Arial,sans-serif;">Identity verified!</h1>
+      <span style="display:inline-block; background:#c6f6d5; color:#276749; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; padding:4px 12px; border-radius:20px; font-family:-apple-system,Arial,sans-serif;">Verified</span>
+    </div>
+
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Hi <strong style="color:#1a1d2e;">{{ user.fullName }}</strong>,</p>
+    <p style="margin:0 0 22px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Your identity has been <strong>successfully verified</strong> on UNIDAR. A verified badge now appears on your profile, giving other users extra confidence when interacting with you.</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+      <tr><td style="background:#f0fff4; border-radius:12px; border-left:4px solid #38a169; padding:18px 22px;">
+        <p style="margin:0; font-size:13.5px; color:#276749; line-height:1.65; font-family:-apple-system,Arial,sans-serif;">
+          🛡️ Verified members get <strong>higher listing visibility</strong>, faster contact responses, and access to premium housing options.
+        </p>
+      </td></tr>
+    </table>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td style="background:linear-gradient(135deg,#5b52e0,#3cbfb8); border-radius:14px; padding:18px 24px; text-align:center;">
+        <p style="margin:0; font-size:15px; font-weight:700; color:#ffffff; font-family:-apple-system,Arial,sans-serif;">Sign in to your UNIDAR dashboard to explore your benefits</p>
+      </td></tr>
+    </table>
+
+  {% elseif status == 'rejected' %}
+    <div style="text-align:center; margin-bottom:24px;">
+      <div style="font-size:48px; line-height:1; margin-bottom:12px;">❌</div>
+      <h1 style="margin:0 0 8px; font-size:22px; font-weight:800; color:#e53e3e; font-family:-apple-system,Arial,sans-serif;">Identity verification failed</h1>
+      <span style="display:inline-block; background:#fed7d7; color:#9b2c2c; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; padding:4px 12px; border-radius:20px; font-family:-apple-system,Arial,sans-serif;">Not verified</span>
+    </div>
+
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Hi <strong style="color:#1a1d2e;">{{ user.fullName }}</strong>,</p>
+    <p style="margin:0 0 18px; font-size:15px; line-height:1.75; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Unfortunately we were unable to verify your identity. Here's the reason:</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:22px;">
+      <tr><td style="background:#fff5f5; border-radius:12px; border-left:4px solid #e53e3e; padding:18px 22px;">
+        <p style="margin:0; font-size:14px; color:#742a2a; line-height:1.65; font-family:-apple-system,Arial,sans-serif;">{{ reason }}</p>
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 14px; font-size:14px; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Please make sure your documents are:</p>
+    <ul style="font-size:13.5px; color:#4a5568; padding-left:20px; line-height:2; margin:0 0 22px; font-family:-apple-system,Arial,sans-serif;">
+      <li>Clear and fully visible (no cropping or blurring)</li>
+      <li>Valid and not expired</li>
+      <li>A government-issued photo ID (national ID, passport, or driving licence)</li>
+    </ul>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td style="background:#f7f8fc; border-radius:12px; border:1px solid #eaecf2; padding:16px 20px; text-align:center;">
+        <p style="margin:0; font-size:13.5px; font-weight:600; color:#4a5568; font-family:-apple-system,Arial,sans-serif;">Sign in → Account Settings → Resubmit identity documents</p>
+      </td></tr>
+    </table>
+  {% endif %}
+{% endblock %}

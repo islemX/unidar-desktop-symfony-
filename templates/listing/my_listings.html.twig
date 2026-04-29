@@ -1,0 +1,80 @@
+{% extends 'base.html.twig' %}
+{% block voice_briefing %}
+<script>window.__vcPage__ = { page: 'my_listings', itemCount: {{ listings is defined ? listings|length : 0 }}, role: 'owner', briefing: { en: "My properties. {{ listings is defined ? listings|length : 0 }} listings. Say 'add listing' to create a new property.", fr: "Mes annonces. {{ listings is defined ? listings|length : 0 }} logements. Dites 'ajouter annonce'.", ar: "عقاراتي. {{ listings is defined ? listings|length : 0 }} إعلان. قل 'إضافة إعلان'." }, suggestions: [ {label:'Add new listing', cmd:'add listing'}, {label:'Open first listing', cmd:'open the first one'}, {label:'Go to dashboard', cmd:'go to dashboard'} ] };</script>
+{% endblock %}
+{% block title %}My Listings - UNIDAR{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .my-card { background:white; border:1px solid var(--color-border); border-radius:var(--radius-xl); overflow:hidden; transition:all .25s; display:flex; flex-direction:column; }
+    .my-card:hover { transform:translateY(-4px); box-shadow:var(--shadow-md); border-color:var(--color-primary-200); }
+    .my-card-thumb { width:100%; height:170px; object-fit:cover; background:linear-gradient(135deg,var(--color-primary-300),var(--color-primary-600)); }
+    .my-card-body { padding:1rem 1.1rem; flex:1; display:flex; flex-direction:column; gap:.4rem; }
+    .my-card-title { font-weight:700; font-size:1rem; color:var(--color-surface-900); }
+    .my-card-meta { font-size:.8rem; color:var(--color-text-muted); }
+    .my-card-row { display:flex; justify-content:space-between; align-items:center; margin-top:.5rem; }
+    .my-card-price { font-weight:800; color:var(--color-brand); font-size:1.1rem; }
+    .my-card-actions { display:flex; gap:.4rem; padding:.75rem 1.1rem; border-top:1px solid var(--color-border); background:var(--color-surface-50); }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container" style="padding:2rem 1.5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <div>
+            <h2 style="margin:0;">My Listings</h2>
+            <p class="text-muted text-small">{{ listings|length }} propert{{ listings|length == 1 ? 'y' : 'ies' }} in your portfolio</p>
+        </div>
+        <div style="display:flex;gap:.5rem;">
+            <a href="{{ path('dashboard_owner') }}" class="btn btn-secondary">← Dashboard</a>
+            <a href="{{ path('listing_new') }}" class="btn btn-primary">+ New Listing</a>
+        </div>
+    </div>
+
+    {% if listings|length == 0 %}
+        <div class="card" style="text-align:center;padding:3rem;">
+            <p style="font-size:3rem;margin-bottom:1rem;">🏠</p>
+            <p style="color:var(--gray);">You haven't created any listings yet.</p>
+            <a href="{{ path('listing_new') }}" class="btn btn-primary" style="margin-top:1rem;">Create First Listing</a>
+        </div>
+    {% else %}
+        <div class="grid grid-3">
+            {% for listing in listings %}
+                <div class="my-card">
+                    {% if listing.images|length > 0 %}
+                        <img src="/uploads/listings/{{ listing.images|first.imagePath }}" class="my-card-thumb" alt="{{ listing.title }}">
+                    {% else %}
+                        <div class="my-card-thumb" style="display:grid;place-items:center;color:white;font-size:2.5rem;">🏠</div>
+                    {% endif %}
+                    <div class="my-card-body">
+                        <div class="my-card-title">{{ listing.title }}</div>
+                        <div class="my-card-meta">{{ listing.address }}</div>
+                        <div class="my-card-meta">
+                            🛏 {{ listing.bedrooms }} · 🚿 {{ listing.bathrooms }} · 👥 cap. {{ listing.capacity }} · {{ listing.propertyType.getLabel() }}
+                        </div>
+                        <div class="my-card-row">
+                            <span class="my-card-price">{{ listing.price }} TND<span style="font-size:.7em;color:var(--color-text-muted);font-weight:500;"> /mo</span></span>
+                            <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+                                <span class="badge {{ listing.status == 'active' ? 'badge-success' : listing.status == 'rented' ? 'badge-info' : 'badge-gray' }}">{{ listing.status }}</span>
+                                {% if listing.ownerSignaturePath %}
+                                    <span class="badge badge-success" title="Signed">✓ signed</span>
+                                {% else %}
+                                    <span class="badge badge-warning" title="No signature on file">⚠ no sig</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="my-card-actions">
+                        <a href="{{ path('listing_show', {id: listing.id}) }}" class="btn btn-secondary btn-sm" style="flex:1;text-align:center;">View</a>
+                        <a href="{{ path('listing_edit', {id: listing.id}) }}" class="btn btn-outline btn-sm" style="flex:1;text-align:center;">Edit</a>
+                        <form method="post" action="{{ path('listing_delete', {id: listing.id}) }}" style="flex:1;">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete'~listing.id) }}">
+                            <button type="submit" class="btn btn-danger btn-sm" style="width:100%;" onclick="return confirm('Remove this listing?')">Remove</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

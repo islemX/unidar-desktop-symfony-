@@ -1,0 +1,9 @@
+{#
+   Voice Commander mount point.
+   The orb itself, ribbon and command palette are injected by /js/voice-commands.js.
+   This partial only loads the assets and seeds the locale.
+   Available to anonymous users: most intents are public navigation; auth-gated intents
+   redirect through Symfony security as usual.
+#}
+<link rel="stylesheet" href="/css/voice-orb.css">
+<script src="/js/voice-commands.js" defer></script>
